@@ -3,9 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Send, Loader2, Bookmark, BookmarkCheck } from "lucide-react";
 import useBoxLogo from "@/assets/usebox-logo.png";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
@@ -37,8 +34,8 @@ const Chat = () => {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const pendingChatIdRef = useRef<string | null>(null);
   const pendingMessagesRef = useRef<ChatMessage[]>([]);
-  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
-  const [saveName, setSaveName] = useState("");
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleValue, setTitleValue] = useState("");
 
   const activeChat = chats.find((c) => c.id === activeChatId);
 
