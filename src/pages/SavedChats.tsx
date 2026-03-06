@@ -120,6 +120,16 @@ const SavedChats = () => {
                   )}
                 </div>
                 <div className="flex items-center gap-1">
+                  {editingId !== chat.id && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                      onClick={() => startEditing(chat.id, chat.title)}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
