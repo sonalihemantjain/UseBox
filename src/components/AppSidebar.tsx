@@ -81,7 +81,7 @@ export function AppSidebar() {
         <Separator className="mx-3" />
 
         <SidebarGroup>
-          <RoleSelector value={role} onChange={setRole} collapsed={collapsed} />
+          <RoleSelector value={role} onChange={setRole as (r: import("@/hooks/useUserRole").UserRole | null) => void} collapsed={collapsed} />
         </SidebarGroup>
       </SidebarContent>
 
