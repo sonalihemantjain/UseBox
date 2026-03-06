@@ -164,8 +164,28 @@ const Chat = () => {
 
       <div className="flex flex-col flex-1 min-w-0">
         {activeChatId && activeChat && (
-          <div className="flex items-center justify-between px-4 sm:px-6 py-2 border-b border-border bg-card/40 backdrop-blur-sm">
-            <h3 className="text-sm font-medium truncate text-foreground">{activeChat.title}</h3>
+          <div className="flex items-center justify-between px-4 sm:px-6 py-2 border-b border-border bg-card/40 backdrop-blur-sm gap-2">
+            {editingTitle ? (
+              <input
+                value={titleValue}
+                onChange={(e) => setTitleValue(e.target.value)}
+                onBlur={commitTitleEdit}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") commitTitleEdit();
+                  if (e.key === "Escape") setEditingTitle(false);
+                }}
+                className="text-sm font-medium text-foreground bg-transparent border-b border-primary outline-none flex-1 min-w-0 py-0.5"
+                autoFocus
+              />
+            ) : (
+              <h3
+                className="text-sm font-medium truncate text-foreground cursor-pointer hover:text-primary transition-colors"
+                onClick={() => { setTitleValue(activeChat.title); setEditingTitle(true); }}
+                title="Click to rename"
+              >
+                {activeChat.title}
+              </h3>
+            )}
             <Button
               variant="ghost"
               size="sm"
