@@ -1,5 +1,13 @@
-import { User, Zap, Code, Layers, Shield, HelpCircle, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { User, Zap, Code, Layers, Shield, HelpCircle, Sparkles, ChevronDown, RotateCcw } from "lucide-react";
 import { type UserRole, ROLE_LABELS } from "@/hooks/useUserRole";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const ROLE_ICONS: Record<UserRole, React.ElementType> = {
   business: User,
@@ -25,13 +33,15 @@ const ROLE_ICON_COLORS: Record<UserRole, string> = {
   admin: "text-red-400",
 };
 
+const roles: UserRole[] = ["business", "lowcode", "developer", "architect", "admin"];
+
 interface RoleSelectorProps {
   value: UserRole | null;
   onChange: (role: UserRole | null) => void;
   collapsed?: boolean;
 }
 
-export function RoleSelector({ value, collapsed }: RoleSelectorProps) {
+export function RoleSelector({ value, onChange, collapsed }: RoleSelectorProps) {
   if (collapsed) return null;
 
   if (!value) {
@@ -54,17 +64,43 @@ export function RoleSelector({ value, collapsed }: RoleSelectorProps) {
 
   return (
     <div className="mx-3 my-2">
-      <div className={`flex items-center gap-2.5 px-3 py-3 rounded-xl bg-gradient-to-b ${ROLE_COLORS[value]} border`}>
-        <div className="h-8 w-8 rounded-lg bg-background/50 flex items-center justify-center shrink-0">
-          <Icon className={`h-4 w-4 ${ROLE_ICON_COLORS[value]}`} />
-        </div>
-        <div className="min-w-0">
-          <p className="text-[10px] text-muted-foreground leading-tight flex items-center gap-1">
-            <Sparkles className="h-2.5 w-2.5" /> Your Persona
-          </p>
-          <p className="text-sm font-semibold text-foreground leading-tight mt-0.5">{ROLE_LABELS[value]}</p>
-        </div>
-      </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className={`w-full flex items-center gap-2.5 px-3 py-3 rounded-xl bg-gradient-to-b ${ROLE_COLORS[value]} border cursor-pointer hover:opacity-90 transition-opacity`}>
+            <div className="h-8 w-8 rounded-lg bg-background/50 flex items-center justify-center shrink-0">
+              <Icon className={`h-4 w-4 ${ROLE_ICON_COLORS[value]}`} />
+            </div>
+            <div className="min-w-0 text-left flex-1">
+              <p className="text-[10px] text-muted-foreground leading-tight flex items-center gap-1">
+                <Sparkles className="h-2.5 w-2.5" /> Your Persona
+              </p>
+              <p className="text-sm font-semibold text-foreground leading-tight mt-0.5">{ROLE_LABELS[value]}</p>
+            </div>
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-52">
+          {roles.map((role) => {
+            const RoleIcon = ROLE_ICONS[role];
+            const isActive = value === role;
+            return (
+              <DropdownMenuItem
+                key={role}
+                onClick={() => onChange(role)}
+                className={isActive ? "bg-primary/10 text-primary font-medium" : ""}
+              >
+                <RoleIcon className={`h-4 w-4 mr-2 ${isActive ? ROLE_ICON_COLORS[role] : ""}`} />
+                {ROLE_LABELS[role]}
+              </DropdownMenuItem>
+            );
+          })}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => onChange(null)} className="text-muted-foreground">
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Re-discover via chat
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
