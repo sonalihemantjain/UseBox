@@ -20,4 +20,6 @@ export function getArticleIcon(name: string): LucideIcon {
   return iconMap[name] || BookOpen;
 }
 
-export const getKnowledgeIcon = getArticleIcon;
+export function getKnowledgeIcon(name: string): LucideIcon {
+  return iconMap[name] || BookOpen;
+}
