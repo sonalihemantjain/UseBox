@@ -1,0 +1,94 @@
+import { Brain, MessageSquare, BookOpen, GraduationCap, BarChart3, LogOut } from "lucide-react";
+import { NavLink } from "@/components/NavLink";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarFooter,
+  SidebarHeader,
+  useSidebar,
+} from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+
+const navItems = [
+  { title: "AI Coaching", url: "/chat", icon: MessageSquare },
+  { title: "Knowledge", url: "/knowledge", icon: BookOpen },
+  { title: "Learning Paths", url: "/learning", icon: GraduationCap },
+  { title: "Analytics", url: "/analytics", icon: BarChart3 },
+];
+
+export function AppSidebar() {
+  const { state } = useSidebar();
+  const collapsed = state === "collapsed";
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
+
+  return (
+    <Sidebar collapsible="icon">
+      <SidebarHeader className="p-4">
+        <a href="/dashboard" className="flex items-center gap-2.5">
+          <Brain className="h-7 w-7 text-primary shrink-0" />
+          {!collapsed && (
+            <span className="font-display text-xl font-bold tracking-tight text-foreground">
+              Knowl<span className="text-gradient-gold">Edge</span>
+            </span>
+          )}
+        </a>
+      </SidebarHeader>
+
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to={item.url}
+                      className="hover:bg-muted/50"
+                      activeClassName="bg-primary/10 text-primary font-medium"
+                    >
+                      <item.icon className="mr-2 h-4 w-4 shrink-0" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter className="p-3">
+        {!collapsed && user && (
+          <p className="text-xs text-muted-foreground truncate px-2 mb-2">
+            {user.email}
+          </p>
+        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleSignOut}
+          className="w-full justify-start text-muted-foreground hover:text-foreground"
+        >
+          <LogOut className="h-4 w-4 mr-2 shrink-0" />
+          {!collapsed && <span>Sign Out</span>}
+        </Button>
+      </SidebarFooter>
+    </Sidebar>
+  );
+}

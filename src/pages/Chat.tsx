@@ -82,27 +82,7 @@ const Chat = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card/60 backdrop-blur-xl sticky top-0 z-50 shrink-0">
-        <div className="container mx-auto flex items-center justify-between px-4 sm:px-6 py-3">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")} className="text-muted-foreground">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Sparkles className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <h1 className="font-display text-sm font-semibold leading-tight">AI Coach</h1>
-                <p className="text-xs text-muted-foreground">Powered by KnowlEdge</p>
-              </div>
-            </div>
-          </div>
-          <span className="text-xs text-muted-foreground hidden sm:block">{user?.email}</span>
-        </div>
-      </header>
+    <div className="flex flex-col h-[calc(100vh-3rem)] bg-background">
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto">
