@@ -7,9 +7,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
-import { streamChat, type ChatMessage } from "@/lib/chat-stream";
+import { type ChatMessage } from "@/lib/chat-stream";
 import { ChatHistorySidebar } from "@/components/ChatHistorySidebar";
 import { useChatHistory } from "@/hooks/useChatHistory";
+import { DualModelResponse } from "@/components/chat/DualModelResponse";
 
 const SUGGESTIONS = [
   "How do I get started with product adoption strategies?",
@@ -18,16 +19,21 @@ const SUGGESTIONS = [
   "Help me create a learning path for my team",
 ];
 
+type DisplayMessage = ChatMessage & { comparing?: boolean };
+
 const Chat = () => {
   const { user } = useAuth();
   const { role } = useUserRole();
   const { chats, createChat, renameChat, deleteChat, toggleSaveChat, loadMessages, saveMessage, autoTitle } = useChatHistory();
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [comparingIndex, setComparingIndex] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const pendingChatIdRef = useRef<string | null>(null);
+  const pendingMessagesRef = useRef<ChatMessage[]>([]);
 
   const activeChat = chats.find((c) => c.id === activeChatId);
 
@@ -35,12 +41,11 @@ const Chat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  useEffect(() => { scrollToBottom(); }, [messages, comparingIndex]);
 
   const selectChat = useCallback(async (chatId: string) => {
     setActiveChatId(chatId);
+    setComparingIndex(null);
     const msgs = await loadMessages(chatId);
     setMessages(msgs);
   }, [loadMessages]);
@@ -50,6 +55,7 @@ const Chat = () => {
     if (id) {
       setActiveChatId(id);
       setMessages([]);
+      setComparingIndex(null);
     }
   }, [createChat]);
 
@@ -58,6 +64,7 @@ const Chat = () => {
     if (activeChatId === chatId) {
       setActiveChatId(null);
       setMessages([]);
+      setComparingIndex(null);
     }
   }, [deleteChat, activeChatId]);
 
@@ -72,15 +79,15 @@ const Chat = () => {
     if (!content.trim() || isLoading) return;
 
     let chatId = activeChatId;
-
     if (!chatId) {
       chatId = await createChat();
       if (!chatId) { toast.error("Failed to create chat"); return; }
       setActiveChatId(chatId);
     }
 
-    const userMsg: ChatMessage = { role: "user", content: content.trim() };
-    setMessages((prev) => [...prev, userMsg]);
+    const userMsg: DisplayMessage = { role: "user", content: content.trim() };
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
     setInput("");
     setIsLoading(true);
 
@@ -90,41 +97,28 @@ const Chat = () => {
       autoTitle(chatId, content.trim());
     }
 
-    let assistantSoFar = "";
+    // Store for the dual model component
+    pendingChatIdRef.current = chatId;
+    pendingMessagesRef.current = newMessages.map(({ role, content }) => ({ role, content }));
+    setComparingIndex(newMessages.length); // the index where comparison will appear
+  };
 
-    const upsertAssistant = (chunk: string) => {
-      assistantSoFar += chunk;
-      setMessages((prev) => {
-        const last = prev[prev.length - 1];
-        if (last?.role === "assistant") {
-          return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantSoFar } : m));
-        }
-        return [...prev, { role: "assistant", content: assistantSoFar }];
-      });
-    };
+  const handlePick = async (content: string, _model: string) => {
+    const chatId = pendingChatIdRef.current;
+    const assistantMsg: DisplayMessage = { role: "assistant", content };
+    setMessages((prev) => [...prev, assistantMsg]);
+    setComparingIndex(null);
+    setIsLoading(false);
 
-    const finalChatId = chatId;
-
-    try {
-      await streamChat({
-        messages: [...messages, userMsg],
-        role,
-        onDelta: upsertAssistant,
-        onDone: async () => {
-          setIsLoading(false);
-          if (assistantSoFar) {
-            await saveMessage(finalChatId, { role: "assistant", content: assistantSoFar });
-          }
-        },
-        onError: (err) => {
-          toast.error(err);
-          setIsLoading(false);
-        },
-      });
-    } catch {
-      toast.error("Failed to connect to AI coach");
-      setIsLoading(false);
+    if (chatId) {
+      await saveMessage(chatId, { role: "assistant", content });
     }
+  };
+
+  const handleCompareError = (err: string) => {
+    toast.error(err);
+    setIsLoading(false);
+    setComparingIndex(null);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -151,7 +145,6 @@ const Chat = () => {
       />
 
       <div className="flex flex-col flex-1 min-w-0">
-        {/* Chat header with save button */}
         {activeChatId && activeChat && (
           <div className="flex items-center justify-between px-4 sm:px-6 py-2 border-b border-border bg-card/40 backdrop-blur-sm">
             <h3 className="text-sm font-medium truncate text-foreground">{activeChat.title}</h3>
@@ -167,10 +160,9 @@ const Chat = () => {
           </div>
         )}
 
-        {/* Messages */}
         <div className="flex-1 overflow-y-auto">
-          <div className="container mx-auto max-w-3xl px-4 sm:px-6 py-6 space-y-6">
-            {messages.length === 0 && (
+          <div className="container mx-auto max-w-4xl px-4 sm:px-6 py-6 space-y-6">
+            {messages.length === 0 && comparingIndex === null && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -182,8 +174,8 @@ const Chat = () => {
                 <h2 className="font-display text-2xl sm:text-3xl font-bold mb-3">
                   Hey! I'm your AI Coach 👋
                 </h2>
-                <p className="text-muted-foreground max-w-md mx-auto mb-10">
-                  Ask me anything about product adoption, learning strategies, or technical concepts.
+                <p className="text-muted-foreground max-w-md mx-auto mb-4">
+                  Ask me anything — I'll generate responses from <strong>two AI models</strong> so you can compare and pick the best one.
                 </p>
                 <div className="grid sm:grid-cols-2 gap-3 max-w-lg mx-auto">
                   {SUGGESTIONS.map((s) => (
@@ -216,7 +208,7 @@ const Chat = () => {
                     }`}
                   >
                     {msg.role === "assistant" ? (
-                      <div className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-secondary [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-secondary [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_li]:text-muted-foreground [&_p]:text-card-foreground">
+                      <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-secondary [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-secondary [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_li]:text-muted-foreground [&_p]:text-card-foreground">
                         <ReactMarkdown>{msg.content}</ReactMarkdown>
                       </div>
                     ) : (
@@ -227,21 +219,22 @@ const Chat = () => {
               ))}
             </AnimatePresence>
 
-            {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
-                <div className="bg-card border border-border rounded-2xl rounded-bl-md px-4 py-3">
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                </div>
-              </motion.div>
+            {/* Dual model comparison */}
+            {comparingIndex !== null && (
+              <DualModelResponse
+                messages={pendingMessagesRef.current}
+                role={role}
+                onPick={handlePick}
+                onError={handleCompareError}
+              />
             )}
 
             <div ref={messagesEndRef} />
           </div>
         </div>
 
-        {/* Input */}
         <div className="border-t border-border bg-card/60 backdrop-blur-xl shrink-0">
-          <form onSubmit={handleSubmit} className="container mx-auto max-w-3xl px-4 sm:px-6 py-4">
+          <form onSubmit={handleSubmit} className="container mx-auto max-w-4xl px-4 sm:px-6 py-4">
             <div className="flex items-end gap-3 bg-secondary rounded-xl px-4 py-3 border border-border focus-within:border-primary/40 transition-colors">
               <textarea
                 ref={inputRef}
@@ -268,7 +261,7 @@ const Chat = () => {
               </Button>
             </div>
             <p className="text-center text-xs text-muted-foreground mt-2">
-              AI responses may not always be accurate. Verify important information.
+              Responses from two AI models — compare and pick the best one.
             </p>
           </form>
         </div>
