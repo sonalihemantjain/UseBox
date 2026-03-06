@@ -68,7 +68,7 @@ const Auth = () => {
         <a href="/" className="flex items-center justify-center gap-2.5 mb-10">
           <Brain className="h-8 w-8 text-primary" />
           <span className="font-display text-2xl font-bold tracking-tight">
-            Knowl<span className="text-gradient-gold">Edge</span>
+            Use<span className="text-gradient-gold">Box</span>
           </span>
         </a>
 
