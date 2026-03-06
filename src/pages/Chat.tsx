@@ -119,10 +119,41 @@ const Chat = () => {
       autoTitle(chatId, content.trim());
     }
 
-    // Store for the dual model component
+    // If no persona set, use single model (discovery mode — no comparison)
+    if (!role) {
+      const apiMessages = newMessages.map(({ role, content }) => ({ role, content }));
+      let buf = "";
+      streamChat({
+        messages: apiMessages,
+        role: null,
+        model: "google/gemini-3-flash-preview",
+        onDelta: (t) => {
+          buf += t;
+          setMessages((prev) => {
+            const last = prev[prev.length - 1];
+            if (last?.role === "assistant") {
+              return [...prev.slice(0, -1), { role: "assistant", content: buf }];
+            }
+            return [...prev, { role: "assistant", content: buf }];
+          });
+        },
+        onDone: () => {
+          setIsLoading(false);
+          // Check for persona detection
+          handlePersonaDetection(buf, chatId!);
+        },
+        onError: (err) => {
+          toast.error(err);
+          setIsLoading(false);
+        },
+      });
+      return;
+    }
+
+    // Persona set — use dual model comparison
     pendingChatIdRef.current = chatId;
     pendingMessagesRef.current = newMessages.map(({ role, content }) => ({ role, content }));
-    setComparingIndex(newMessages.length); // the index where comparison will appear
+    setComparingIndex(newMessages.length);
   };
 
   const handlePick = async (content: string, _model: string) => {
