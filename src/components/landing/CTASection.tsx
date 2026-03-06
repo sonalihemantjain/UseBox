@@ -1,8 +1,10 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 const CTASection = () => {
+  const navigate = useNavigate();
   return (
     <section className="py-32 relative overflow-hidden">
       <div className="absolute inset-0">
@@ -27,7 +29,7 @@ const CTASection = () => {
             Join thousands of professionals who are learning smarter, sharing faster, and earning more with AI-powered coaching.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button size="lg" className="glow-gold text-base px-10 h-13 gap-2">
+            <Button size="lg" className="glow-gold text-base px-10 h-13 gap-2" onClick={() => navigate("/auth")}>
               Get Started — It's Free
               <ArrowRight className="h-4 w-4" />
             </Button>

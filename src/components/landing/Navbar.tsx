@@ -53,7 +53,7 @@ const Navbar = () => {
           <a href="#learn" className="block py-2 text-muted-foreground">Learn</a>
           <a href="#share" className="block py-2 text-muted-foreground">Share</a>
           <a href="#earn" className="block py-2 text-muted-foreground">Earn</a>
-          <Button className="w-full glow-gold">Get Started</Button>
+          <Button className="w-full glow-gold" onClick={() => { setOpen(false); navigate("/auth"); }}>Get Started</Button>
         </motion.div>
       )}
     </motion.nav>
