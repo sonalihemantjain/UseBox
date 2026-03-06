@@ -91,10 +91,33 @@ const SavedChats = () => {
                   <MessageSquare className="h-4 w-4 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-medium text-foreground truncate">{chat.title}</h4>
-                  <p className="text-xs text-muted-foreground">
-                    Saved · {new Date(chat.updated_at).toLocaleDateString()}
-                  </p>
+                  {editingId === chat.id ? (
+                    <div className="flex items-center gap-1">
+                      <Input
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") saveEdit();
+                          if (e.key === "Escape") cancelEdit();
+                        }}
+                        className="h-7 text-sm"
+                        autoFocus
+                      />
+                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={saveEdit}>
+                        <Check className="h-3.5 w-3.5 text-green-400" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={cancelEdit}>
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <h4 className="text-sm font-medium text-foreground truncate">{chat.title}</h4>
+                      <p className="text-xs text-muted-foreground">
+                        Saved · {new Date(chat.updated_at).toLocaleDateString()}
+                      </p>
+                    </>
+                  )}
                 </div>
                 <div className="flex items-center gap-1">
                   <Button
