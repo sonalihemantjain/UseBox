@@ -15,7 +15,7 @@ const MODEL_LABELS: Record<string, string> = {
 
 interface DualModelResponseProps {
   messages: ChatMessage[];
-  role?: string;
+  role?: string | null;
   onPick: (content: string, model: string) => void;
   onError: (err: string) => void;
 }
