@@ -6,6 +6,7 @@ import type { ChatMessage } from "@/lib/chat-stream";
 export interface ChatSession {
   id: string;
   title: string;
+  saved: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -19,7 +20,7 @@ export function useChatHistory() {
     if (!user) return;
     const { data } = await supabase
       .from("chats")
-      .select("id, title, created_at, updated_at")
+      .select("id, title, saved, created_at, updated_at")
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false });
     setChats((data as ChatSession[]) ?? []);
@@ -52,6 +53,11 @@ export function useChatHistory() {
     await fetchChats();
   }, [fetchChats]);
 
+  const toggleSaveChat = useCallback(async (chatId: string, saved: boolean) => {
+    await supabase.from("chats").update({ saved, updated_at: new Date().toISOString() }).eq("id", chatId);
+    await fetchChats();
+  }, [fetchChats]);
+
   const loadMessages = useCallback(async (chatId: string): Promise<ChatMessage[]> => {
     const { data } = await supabase
       .from("chat_messages")
@@ -74,5 +80,5 @@ export function useChatHistory() {
     await renameChat(chatId, title);
   }, [renameChat]);
 
-  return { chats, loading, createChat, renameChat, deleteChat, loadMessages, saveMessage, autoTitle, fetchChats };
+  return { chats, loading, createChat, renameChat, deleteChat, toggleSaveChat, loadMessages, saveMessage, autoTitle, fetchChats };
 }

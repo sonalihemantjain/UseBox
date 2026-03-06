@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Brain, Send, Sparkles, Loader2 } from "lucide-react";
+import { Brain, Send, Loader2, Bookmark, BookmarkCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -18,13 +18,15 @@ const SUGGESTIONS = [
 
 const Chat = () => {
   const { user } = useAuth();
-  const { chats, createChat, renameChat, deleteChat, loadMessages, saveMessage, autoTitle } = useChatHistory();
+  const { chats, createChat, renameChat, deleteChat, toggleSaveChat, loadMessages, saveMessage, autoTitle } = useChatHistory();
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const activeChat = chats.find((c) => c.id === activeChatId);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -56,12 +58,18 @@ const Chat = () => {
     }
   }, [deleteChat, activeChatId]);
 
+  const handleToggleSave = useCallback(async () => {
+    if (!activeChatId || !activeChat) return;
+    const newSaved = !activeChat.saved;
+    await toggleSaveChat(activeChatId, newSaved);
+    toast.success(newSaved ? "Chat saved for learning!" : "Chat removed from saved");
+  }, [activeChatId, activeChat, toggleSaveChat]);
+
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
 
     let chatId = activeChatId;
 
-    // Auto-create chat if none active
     if (!chatId) {
       chatId = await createChat();
       if (!chatId) { toast.error("Failed to create chat"); return; }
@@ -73,10 +81,8 @@ const Chat = () => {
     setInput("");
     setIsLoading(true);
 
-    // Save user message
     await saveMessage(chatId, userMsg);
 
-    // Auto-title on first message
     if (messages.length === 0) {
       autoTitle(chatId, content.trim());
     }
@@ -131,7 +137,6 @@ const Chat = () => {
 
   return (
     <div className="flex h-[calc(100vh-3rem)] bg-background">
-      {/* Chat History Sidebar */}
       <ChatHistorySidebar
         chats={chats}
         activeChatId={activeChatId}
@@ -141,8 +146,23 @@ const Chat = () => {
         onDelete={handleDeleteChat}
       />
 
-      {/* Main Chat Area */}
       <div className="flex flex-col flex-1 min-w-0">
+        {/* Chat header with save button */}
+        {activeChatId && activeChat && (
+          <div className="flex items-center justify-between px-4 sm:px-6 py-2 border-b border-border bg-card/40 backdrop-blur-sm">
+            <h3 className="text-sm font-medium truncate text-foreground">{activeChat.title}</h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleToggleSave}
+              className={activeChat.saved ? "text-primary" : "text-muted-foreground hover:text-foreground"}
+            >
+              {activeChat.saved ? <BookmarkCheck className="h-4 w-4 mr-1.5" /> : <Bookmark className="h-4 w-4 mr-1.5" />}
+              {activeChat.saved ? "Saved" : "Save for Learning"}
+            </Button>
+          </div>
+        )}
+
         {/* Messages */}
         <div className="flex-1 overflow-y-auto">
           <div className="container mx-auto max-w-3xl px-4 sm:px-6 py-6 space-y-6">
@@ -161,7 +181,6 @@ const Chat = () => {
                 <p className="text-muted-foreground max-w-md mx-auto mb-10">
                   Ask me anything about product adoption, learning strategies, or technical concepts.
                 </p>
-
                 <div className="grid sm:grid-cols-2 gap-3 max-w-lg mx-auto">
                   {SUGGESTIONS.map((s) => (
                     <button

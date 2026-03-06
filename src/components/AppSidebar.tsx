@@ -1,4 +1,4 @@
-import { Brain, MessageSquare, BookOpen, GraduationCap, BarChart3, LogOut } from "lucide-react";
+import { Brain, MessageSquare, BookOpen, GraduationCap, BarChart3, LogOut, BookmarkCheck } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 
 const navItems = [
   { title: "AI Coaching", url: "/chat", icon: MessageSquare },
+  { title: "Saved Chats", url: "/saved-chats", icon: BookmarkCheck },
   { title: "Knowledge", url: "/knowledge", icon: BookOpen },
   { title: "Learning Paths", url: "/learning", icon: GraduationCap },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
