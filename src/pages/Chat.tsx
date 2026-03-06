@@ -110,7 +110,7 @@ const Chat = () => {
       cleanContent = content.replace(/\[PERSONA_DETECTED:\w+\]/g, "").trim();
     } else {
       // Fallback: detect persona from AI response text OR user's original message
-      const userMessage = messages[messages.length - 1]?.content || "";
+      const combinedText = content + " " + (userMessage || "");
       const combinedText = content + " " + userMessage;
       
       const fallbackPatterns: { pattern: RegExp; persona: UserRole }[] = [
