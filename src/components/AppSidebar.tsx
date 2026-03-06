@@ -2,6 +2,8 @@ import { Brain, MessageSquare, BookOpen, GraduationCap, BarChart3, LogOut, Bookm
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
+import { RoleSelector } from "@/components/RoleSelector";
 import {
   Sidebar,
   SidebarContent,
@@ -16,6 +18,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 const navItems = [
   { title: "AI Coaching", url: "/chat", icon: MessageSquare },
@@ -31,6 +34,7 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { role, setRole } = useUserRole();
 
   const handleSignOut = async () => {
     await signOut();
@@ -71,6 +75,12 @@ export function AppSidebar() {
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
+        </SidebarGroup>
+
+        <Separator className="mx-3" />
+
+        <SidebarGroup>
+          <RoleSelector value={role} onChange={setRole} collapsed={collapsed} />
         </SidebarGroup>
       </SidebarContent>
 
