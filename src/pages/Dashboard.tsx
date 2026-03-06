@@ -58,10 +58,10 @@ const Dashboard = () => {
           className="mb-12"
         >
           <h1 className="font-display text-3xl sm:text-4xl font-bold mb-2">
-            Welcome back 👋
+            Welcome back, {ROLE_LABELS[role]} 👋
           </h1>
           <p className="text-muted-foreground text-lg">
-            Learn. Share. Earn. — Your knowledge journey continues here.
+            {roleData.greeting}
           </p>
         </motion.div>
 
@@ -71,7 +71,7 @@ const Dashboard = () => {
             {
               icon: BookOpen,
               title: "Learn",
-              description: "AI-powered coaching adapts to your level. Ask anything, get step-by-step guidance, and master new skills faster.",
+              description: roleData.learnDesc,
               color: "text-learn",
               bg: "bg-learn/5",
               border: "border-learn/20",
@@ -81,7 +81,7 @@ const Dashboard = () => {
             {
               icon: Users,
               title: "Share",
-              description: "Contribute your expertise to the community. Curate content, validate answers, and help others grow.",
+              description: roleData.shareDesc,
               color: "text-share",
               bg: "bg-share/5",
               border: "border-share/20",
@@ -91,7 +91,7 @@ const Dashboard = () => {
             {
               icon: Coins,
               title: "Earn",
-              description: "Get rewarded for quality contributions. Earn tokens, unlock premium features, and monetize your expertise.",
+              description: roleData.earnDesc,
               color: "text-earn",
               bg: "bg-earn/5",
               border: "border-earn/20",
