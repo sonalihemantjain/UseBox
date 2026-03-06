@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Brain, Send, Loader2, Bookmark, BookmarkCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { streamChat, type ChatMessage } from "@/lib/chat-stream";
@@ -18,6 +19,7 @@ const SUGGESTIONS = [
 
 const Chat = () => {
   const { user } = useAuth();
+  const { role } = useUserRole();
   const { chats, createChat, renameChat, deleteChat, toggleSaveChat, loadMessages, saveMessage, autoTitle } = useChatHistory();
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -105,6 +107,7 @@ const Chat = () => {
     try {
       await streamChat({
         messages: [...messages, userMsg],
+        role,
         onDelta: upsertAssistant,
         onDone: async () => {
           setIsLoading(false);
