@@ -129,11 +129,19 @@ const Knowledge = () => {
               <Skeleton key={i} className="h-48 rounded-xl" />
             ))}
           </div>
-        ) : articles.length === 0 ? (
+        ) : articles.filter((a) => {
+            if (statusFilter === "completed") return a.progress === "completed";
+            if (statusFilter === "bookmarked") return a.bookmarked;
+            return true;
+          }).length === 0 ? (
           <div className="text-center py-16">
             <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-30" />
-            <p className="text-lg text-muted-foreground mb-1">No articles found</p>
-            <p className="text-sm text-muted-foreground">Try adjusting your filters or search query</p>
+            <p className="text-lg text-muted-foreground mb-1">
+              {statusFilter === "completed" ? "No completed articles yet" : statusFilter === "bookmarked" ? "No bookmarked articles yet" : "No articles found"}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {statusFilter !== "all" ? "Click \"Total Articles\" to see all" : "Try adjusting your filters or search query"}
+            </p>
           </div>
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
