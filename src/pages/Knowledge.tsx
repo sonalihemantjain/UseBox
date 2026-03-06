@@ -11,6 +11,7 @@ import { ArticleViewer } from "@/components/knowledge/ArticleViewer";
 import { UploadDialog } from "@/components/knowledge/UploadDialog";
 
 const Knowledge = () => {
+  const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "bookmarked">("all");
   const {
     articles, loading,
     search, setSearch,
