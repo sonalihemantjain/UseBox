@@ -98,6 +98,46 @@ const Chat = () => {
     toast.success("Chat saved for learning!");
   }, [activeChatId, saveName, renameChat, toggleSaveChat]);
 
+  const handlePersonaDetection = useCallback((content: string, chatId: string) => {
+    let cleanContent = content;
+    const personaMatch = content.match(/\[PERSONA_DETECTED:(\w+)\]/);
+    if (personaMatch) {
+      const detected = personaMatch[1] as UserRole;
+      if (detected in ROLE_LABELS) {
+        setRole(detected);
+        toast.success(`Persona detected: ${ROLE_LABELS[detected]}! Your experience is now personalized.`);
+      }
+      cleanContent = content.replace(/\[PERSONA_DETECTED:\w+\]/g, "").trim();
+    } else {
+      // Fallback: detect persona from plain text
+      const fallbackPatterns: { pattern: RegExp; persona: UserRole }[] = [
+        { pattern: /\b(?:pro developer|developer persona|treating you as a (?:pro )?developer)\b/i, persona: "developer" },
+        { pattern: /\b(?:architect persona|treating you as an? architect)\b/i, persona: "architect" },
+        { pattern: /\b(?:business user|business persona|treating you as a business)\b/i, persona: "business" },
+        { pattern: /\b(?:low.?code|treating you as a low.?code)\b/i, persona: "lowcode" },
+        { pattern: /\b(?:administrator persona|treating you as an? admin)\b/i, persona: "admin" },
+      ];
+      for (const { pattern, persona } of fallbackPatterns) {
+        if (pattern.test(content)) {
+          setRole(persona);
+          toast.success(`Persona detected: ${ROLE_LABELS[persona]}! Your experience is now personalized.`);
+          break;
+        }
+      }
+    }
+    // Update displayed message to remove tag & save
+    if (cleanContent !== content) {
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant") {
+          return [...prev.slice(0, -1), { role: "assistant", content: cleanContent }];
+        }
+        return prev;
+      });
+    }
+    saveMessage(chatId, { role: "assistant", content: cleanContent });
+  }, [setRole, saveMessage]);
+
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
 
