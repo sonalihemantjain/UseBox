@@ -98,7 +98,7 @@ const Chat = () => {
     toast.success("Chat saved for learning!");
   }, [activeChatId, saveName, renameChat, toggleSaveChat]);
 
-  const handlePersonaDetection = useCallback((content: string, chatId: string) => {
+  const handlePersonaDetection = useCallback((content: string, chatId: string, userMessage?: string) => {
     let cleanContent = content;
     const personaMatch = content.match(/\[PERSONA_DETECTED:(\w+)\]/);
     if (personaMatch) {
