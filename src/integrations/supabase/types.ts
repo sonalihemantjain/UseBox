@@ -191,6 +191,128 @@ export type Database = {
           },
         ]
       }
+      learning_path_enrollments: {
+        Row: {
+          completed_at: string | null
+          completed_steps: string[]
+          id: string
+          path_id: string
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_steps?: string[]
+          id?: string
+          path_id: string
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_steps?: string[]
+          id?: string
+          path_id?: string
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_path_enrollments_path_id_fkey"
+            columns: ["path_id"]
+            isOneToOne: false
+            referencedRelation: "learning_paths"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learning_path_steps: {
+        Row: {
+          article_id: string | null
+          created_at: string
+          description: string
+          id: string
+          path_id: string
+          step_order: number
+          title: string
+        }
+        Insert: {
+          article_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          path_id: string
+          step_order?: number
+          title: string
+        }
+        Update: {
+          article_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          path_id?: string
+          step_order?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_path_steps_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_path_steps_path_id_fkey"
+            columns: ["path_id"]
+            isOneToOne: false
+            referencedRelation: "learning_paths"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learning_paths: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          difficulty: string
+          estimated_hours: number
+          icon: string
+          id: string
+          is_ai_generated: boolean
+          is_curated: boolean
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string
+          difficulty?: string
+          estimated_hours?: number
+          icon?: string
+          id?: string
+          is_ai_generated?: boolean
+          is_curated?: boolean
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          difficulty?: string
+          estimated_hours?: number
+          icon?: string
+          id?: string
+          is_ai_generated?: boolean
+          is_curated?: boolean
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
