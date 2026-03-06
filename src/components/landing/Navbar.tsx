@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
-import { Brain, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import useBoxLogo from "@/assets/usebox-logo.png";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
@@ -17,7 +18,7 @@ const Navbar = () => {
     >
       <div className="container mx-auto flex items-center justify-between px-6 py-4">
         <a href="/" className="flex items-center gap-2.5">
-          <Brain className="h-7 w-7 text-primary" />
+          <img src={useBoxLogo} alt="UseBox" className="h-7 w-7" />
           <span className="font-display text-xl font-bold tracking-tight text-foreground">
             Use<span className="text-gradient-gold">Box</span>
           </span>

@@ -1,11 +1,11 @@
-import { Brain } from "lucide-react";
+import useBoxLogo from "@/assets/usebox-logo.png";
 
 const Footer = () => {
   return (
     <footer className="border-t border-border py-12">
       <div className="container mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <Brain className="h-5 w-5 text-primary" />
+          <img src={useBoxLogo} alt="UseBox" className="h-5 w-5" />
           <span className="font-display text-sm font-semibold">UseBox</span>
         </div>
         <p className="text-xs text-muted-foreground">

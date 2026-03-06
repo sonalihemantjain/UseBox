@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Brain, Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
+import useBoxLogo from "@/assets/usebox-logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -66,7 +67,7 @@ const Auth = () => {
       >
         {/* Logo */}
         <a href="/" className="flex items-center justify-center gap-2.5 mb-10">
-          <Brain className="h-8 w-8 text-primary" />
+          <img src={useBoxLogo} alt="UseBox" className="h-8 w-8" />
           <span className="font-display text-2xl font-bold tracking-tight">
             Use<span className="text-gradient-gold">Box</span>
           </span>

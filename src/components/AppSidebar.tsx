@@ -1,4 +1,5 @@
-import { Brain, MessageSquare, BookOpen, GraduationCap, BarChart3, LogOut, BookmarkCheck } from "lucide-react";
+import { MessageSquare, BookOpen, GraduationCap, BarChart3, LogOut, BookmarkCheck } from "lucide-react";
+import useBoxLogo from "@/assets/usebox-logo.png";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -45,7 +46,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
         <a href="/dashboard" className="flex items-center gap-2.5">
-          <Brain className="h-7 w-7 text-primary shrink-0" />
+          <img src={useBoxLogo} alt="UseBox" className="h-7 w-7 shrink-0" />
           {!collapsed && (
             <span className="font-display text-xl font-bold tracking-tight text-foreground">
               Use<span className="text-gradient-gold">Box</span>
