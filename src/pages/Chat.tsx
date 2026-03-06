@@ -98,7 +98,7 @@ const Chat = () => {
     toast.success("Chat saved for learning!");
   }, [activeChatId, saveName, renameChat, toggleSaveChat]);
 
-  const handlePersonaDetection = useCallback((content: string, chatId: string, userMessage?: string) => {
+  const handlePersonaDetection = useCallback((content: string, chatId: string) => {
     let cleanContent = content;
     const personaMatch = content.match(/\[PERSONA_DETECTED:(\w+)\]/);
     if (personaMatch) {
@@ -108,29 +108,6 @@ const Chat = () => {
         toast.success(`Persona detected: ${ROLE_LABELS[detected]}! Your experience is now personalized.`);
       }
       cleanContent = content.replace(/\[PERSONA_DETECTED:\w+\]/g, "").trim();
-    } else {
-      // Fallback: detect persona from AI response text OR user's original message
-      const combinedText = content + " " + (userMessage || "");
-      
-      const fallbackPatterns: { pattern: RegExp; persona: UserRole }[] = [
-        // Architect (check before developer — architects are also technical)
-        { pattern: /\b(?:architect|system design|scalability|infrastructure|microservices architecture|trade.?offs|distributed systems)\b/i, persona: "architect" },
-        // Developer — broad signals
-        { pattern: /\b(?:developer|react|node\.?js|typescript|python|javascript|API|code|programming|frontend|backend|full.?stack|debugging|git|docker|CI\/CD)\b/i, persona: "developer" },
-        // Business
-        { pattern: /\b(?:business|ROI|strategy|product adoption|analytics|stakeholder|KPI|revenue|marketing)\b/i, persona: "business" },
-        // Low-code
-        { pattern: /\b(?:low.?code|no.?code|zapier|airtable|bubble|retool|automation|drag.?and.?drop|power automate)\b/i, persona: "lowcode" },
-        // Admin
-        { pattern: /\b(?:admin(?:istrat)|compliance|governance|user management|security polic|access control|SSO|RBAC)\b/i, persona: "admin" },
-      ];
-      for (const { pattern, persona } of fallbackPatterns) {
-        if (pattern.test(combinedText)) {
-          setRole(persona);
-          toast.success(`Persona detected: ${ROLE_LABELS[persona]}! Your experience is now personalized.`);
-          break;
-        }
-      }
     }
     // Update displayed message to remove tag & save
     if (cleanContent !== content) {
@@ -188,7 +165,7 @@ const Chat = () => {
         onDone: () => {
           setIsLoading(false);
           // Check for persona detection
-          handlePersonaDetection(buf, chatId!, content.trim());
+          handlePersonaDetection(buf, chatId!);
         },
         onError: (err) => {
           toast.error(err);
@@ -280,10 +257,10 @@ const Chat = () => {
                   Hey! I'm your AI Coach 👋
                 </h2>
                 <p className="text-muted-foreground max-w-md mx-auto mb-4">
-                  {role
+                   {role
                     ? <>Ask me anything — I'll generate responses from <strong>two AI models</strong> so you can compare and pick the best one.</>
-                    : <>Let's start by getting to know you! I'll ask a few questions to personalize your experience, then we'll dive into learning.</>
-                  }
+                    : <>I'll ask you a few quick questions to understand your background, then personalize everything just for you!</>
+                   }
                 </p>
                 <div className="grid sm:grid-cols-2 gap-3 max-w-lg mx-auto">
                   {SUGGESTIONS.map((s) => (
