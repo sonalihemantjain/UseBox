@@ -48,7 +48,7 @@ export function AppSidebar() {
           <Brain className="h-7 w-7 text-primary shrink-0" />
           {!collapsed && (
             <span className="font-display text-xl font-bold tracking-tight text-foreground">
-              Knowl<span className="text-gradient-gold">Edge</span>
+              Use<span className="text-gradient-gold">Box</span>
             </span>
           )}
         </a>
