@@ -66,6 +66,7 @@ const Dashboard = () => {
               color: "text-share",
               bg: "bg-share/5",
               border: "border-share/20",
+              href: "",
             },
             {
               icon: Trophy,
@@ -74,6 +75,7 @@ const Dashboard = () => {
               color: "text-earn",
               bg: "bg-earn/5",
               border: "border-earn/20",
+              href: "",
             },
           ].map((action, i) => (
             <motion.div
