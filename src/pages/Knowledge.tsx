@@ -62,11 +62,19 @@ const Knowledge = () => {
           {/* Stats */}
           <div className="grid grid-cols-3 gap-3 mb-6">
             {[
-              { label: "Total Articles", value: stats.total, color: "text-foreground" },
-              { label: "Completed", value: stats.completed, color: "text-green-400" },
-              { label: "Bookmarked", value: stats.bookmarked, color: "text-primary" },
+              { label: "Total Articles", value: stats.total, color: "text-foreground", filter: "all" as const },
+              { label: "Completed", value: stats.completed, color: "text-green-400", filter: "completed" as const },
+              { label: "Bookmarked", value: stats.bookmarked, color: "text-primary", filter: "bookmarked" as const },
             ].map((s) => (
-              <div key={s.label} className="rounded-xl bg-card border border-border p-4 text-center">
+              <div
+                key={s.label}
+                onClick={() => setStatusFilter(s.filter)}
+                className={`rounded-xl bg-card border p-4 text-center cursor-pointer transition-all ${
+                  statusFilter === s.filter
+                    ? "border-primary ring-1 ring-primary/30"
+                    : "border-border hover:border-primary/30"
+                }`}
+              >
                 <p className={`font-display text-2xl font-bold ${s.color}`}>{s.value}</p>
                 <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
               </div>
@@ -129,7 +137,13 @@ const Knowledge = () => {
           </div>
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {articles.map((article, i) => (
+            {articles
+              .filter((a) => {
+                if (statusFilter === "completed") return a.progress === "completed";
+                if (statusFilter === "bookmarked") return a.bookmarked;
+                return true;
+              })
+              .map((article, i) => (
               <KnowledgeCard
                 key={article.id}
                 article={article}
