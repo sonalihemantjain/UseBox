@@ -1,6 +1,4 @@
-import { User, Zap, Code, Layers, Shield, HelpCircle } from "lucide-react";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
+import { User, Zap, Code, Layers, Shield, HelpCircle, Sparkles } from "lucide-react";
 import { type UserRole, ROLE_LABELS } from "@/hooks/useUserRole";
 
 const ROLE_ICONS: Record<UserRole, React.ElementType> = {
@@ -11,7 +9,21 @@ const ROLE_ICONS: Record<UserRole, React.ElementType> = {
   admin: Shield,
 };
 
-const roles: UserRole[] = ["business", "lowcode", "developer", "architect", "admin"];
+const ROLE_COLORS: Record<UserRole, string> = {
+  business: "from-emerald-500/20 to-emerald-500/5 border-emerald-500/30",
+  lowcode: "from-amber-500/20 to-amber-500/5 border-amber-500/30",
+  developer: "from-blue-500/20 to-blue-500/5 border-blue-500/30",
+  architect: "from-purple-500/20 to-purple-500/5 border-purple-500/30",
+  admin: "from-red-500/20 to-red-500/5 border-red-500/30",
+};
+
+const ROLE_ICON_COLORS: Record<UserRole, string> = {
+  business: "text-emerald-400",
+  lowcode: "text-amber-400",
+  developer: "text-blue-400",
+  architect: "text-purple-400",
+  admin: "text-red-400",
+};
 
 interface RoleSelectorProps {
   value: UserRole | null;
@@ -19,42 +31,40 @@ interface RoleSelectorProps {
   collapsed?: boolean;
 }
 
-export function RoleSelector({ value, onChange, collapsed }: RoleSelectorProps) {
+export function RoleSelector({ value, collapsed }: RoleSelectorProps) {
   if (collapsed) return null;
 
-  return (
-    <div className="px-3 py-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2.5 px-1">
-        Your Persona
-      </p>
-      {!value && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/30 border border-dashed border-border mb-2">
-          <HelpCircle className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground">Start a chat to discover your persona</span>
+  if (!value) {
+    return (
+      <div className="mx-3 my-2">
+        <div className="flex items-center gap-2.5 px-3 py-3 rounded-xl bg-gradient-to-b from-muted/60 to-muted/20 border border-dashed border-border">
+          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <HelpCircle className="h-4 w-4 text-primary" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-foreground leading-tight">No persona yet</p>
+            <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">Chat with AI to discover yours</p>
+          </div>
         </div>
-      )}
-      <RadioGroup value={value || ""} onValueChange={(v) => onChange(v as UserRole)}>
-        {roles.map((role) => {
-          const Icon = ROLE_ICONS[role];
-          const isActive = value === role;
-          return (
-            <Label
-              key={role}
-              htmlFor={`role-${role}`}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-all text-sm
-                ${isActive
-                  ? "bg-primary/10 text-primary border border-primary/30"
-                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground border border-transparent"
-                }`}
-            >
-              <RadioGroupItem value={role} id={`role-${role}`} className="sr-only" />
-              <Icon className="h-4 w-4 shrink-0" />
-              <span className="flex-1">{ROLE_LABELS[role]}</span>
-              {isActive && <span className="h-2 w-2 rounded-full bg-primary" />}
-            </Label>
-          );
-        })}
-      </RadioGroup>
+      </div>
+    );
+  }
+
+  const Icon = ROLE_ICONS[value];
+
+  return (
+    <div className="mx-3 my-2">
+      <div className={`flex items-center gap-2.5 px-3 py-3 rounded-xl bg-gradient-to-b ${ROLE_COLORS[value]} border`}>
+        <div className="h-8 w-8 rounded-lg bg-background/50 flex items-center justify-center shrink-0">
+          <Icon className={`h-4 w-4 ${ROLE_ICON_COLORS[value]}`} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[10px] text-muted-foreground leading-tight flex items-center gap-1">
+            <Sparkles className="h-2.5 w-2.5" /> Your Persona
+          </p>
+          <p className="text-sm font-semibold text-foreground leading-tight mt-0.5">{ROLE_LABELS[value]}</p>
+        </div>
+      </div>
     </div>
   );
 }
