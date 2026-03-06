@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Loader2, Bookmark, BookmarkCheck } from "lucide-react";
 import useBoxLogo from "@/assets/usebox-logo.png";
@@ -10,7 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserRole, ROLE_LABELS, type UserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
-import { type ChatMessage } from "@/lib/chat-stream";
+import { streamChat, type ChatMessage } from "@/lib/chat-stream";
 import { ChatHistorySidebar } from "@/components/ChatHistorySidebar";
 import { useChatHistory } from "@/hooks/useChatHistory";
 import { DualModelResponse } from "@/components/chat/DualModelResponse";
@@ -97,6 +98,46 @@ const Chat = () => {
     toast.success("Chat saved for learning!");
   }, [activeChatId, saveName, renameChat, toggleSaveChat]);
 
+  const handlePersonaDetection = useCallback((content: string, chatId: string) => {
+    let cleanContent = content;
+    const personaMatch = content.match(/\[PERSONA_DETECTED:(\w+)\]/);
+    if (personaMatch) {
+      const detected = personaMatch[1] as UserRole;
+      if (detected in ROLE_LABELS) {
+        setRole(detected);
+        toast.success(`Persona detected: ${ROLE_LABELS[detected]}! Your experience is now personalized.`);
+      }
+      cleanContent = content.replace(/\[PERSONA_DETECTED:\w+\]/g, "").trim();
+    } else {
+      // Fallback: detect persona from plain text
+      const fallbackPatterns: { pattern: RegExp; persona: UserRole }[] = [
+        { pattern: /\b(?:pro developer|developer persona|treating you as a (?:pro )?developer)\b/i, persona: "developer" },
+        { pattern: /\b(?:architect persona|treating you as an? architect)\b/i, persona: "architect" },
+        { pattern: /\b(?:business user|business persona|treating you as a business)\b/i, persona: "business" },
+        { pattern: /\b(?:low.?code|treating you as a low.?code)\b/i, persona: "lowcode" },
+        { pattern: /\b(?:administrator persona|treating you as an? admin)\b/i, persona: "admin" },
+      ];
+      for (const { pattern, persona } of fallbackPatterns) {
+        if (pattern.test(content)) {
+          setRole(persona);
+          toast.success(`Persona detected: ${ROLE_LABELS[persona]}! Your experience is now personalized.`);
+          break;
+        }
+      }
+    }
+    // Update displayed message to remove tag & save
+    if (cleanContent !== content) {
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant") {
+          return [...prev.slice(0, -1), { role: "assistant", content: cleanContent }];
+        }
+        return prev;
+      });
+    }
+    saveMessage(chatId, { role: "assistant", content: cleanContent });
+  }, [setRole, saveMessage]);
+
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
 
@@ -119,42 +160,48 @@ const Chat = () => {
       autoTitle(chatId, content.trim());
     }
 
-    // Store for the dual model component
+    // If no persona set, use single model (discovery mode — no comparison)
+    if (!role) {
+      const apiMessages = newMessages.map(({ role, content }) => ({ role, content }));
+      let buf = "";
+      streamChat({
+        messages: apiMessages,
+        role: null,
+        model: "google/gemini-3-flash-preview",
+        onDelta: (t) => {
+          buf += t;
+          setMessages((prev) => {
+            const last = prev[prev.length - 1];
+            if (last?.role === "assistant") {
+              return [...prev.slice(0, -1), { role: "assistant", content: buf }];
+            }
+            return [...prev, { role: "assistant", content: buf }];
+          });
+        },
+        onDone: () => {
+          setIsLoading(false);
+          // Check for persona detection
+          handlePersonaDetection(buf, chatId!);
+        },
+        onError: (err) => {
+          toast.error(err);
+          setIsLoading(false);
+        },
+      });
+      return;
+    }
+
+    // Persona set — use dual model comparison
     pendingChatIdRef.current = chatId;
     pendingMessagesRef.current = newMessages.map(({ role, content }) => ({ role, content }));
-    setComparingIndex(newMessages.length); // the index where comparison will appear
+    setComparingIndex(newMessages.length);
   };
 
   const handlePick = async (content: string, _model: string) => {
     const chatId = pendingChatIdRef.current;
 
-    // Check for persona detection tag in the response
-    const personaMatch = content.match(/\[PERSONA_DETECTED:(\w+)\]/);
-    if (personaMatch) {
-      const detected = personaMatch[1] as UserRole;
-      if (detected in ROLE_LABELS) {
-        setRole(detected);
-        toast.success(`Persona detected: ${ROLE_LABELS[detected]}! Your experience is now personalized.`);
-      }
-      // Remove the tag from displayed content
-      content = content.replace(/\[PERSONA_DETECTED:\w+\]/g, "").trim();
-    } else if (!role) {
-      // Fallback: detect persona from plain text if AI didn't use the tag
-      const fallbackPatterns: { pattern: RegExp; persona: UserRole }[] = [
-        { pattern: /\b(?:pro developer|developer persona|treating you as a (?:pro )?developer)\b/i, persona: "developer" },
-        { pattern: /\b(?:architect persona|treating you as an? architect)\b/i, persona: "architect" },
-        { pattern: /\b(?:business user|business persona|treating you as a business)\b/i, persona: "business" },
-        { pattern: /\b(?:low.?code|treating you as a low.?code)\b/i, persona: "lowcode" },
-        { pattern: /\b(?:administrator persona|treating you as an? admin)\b/i, persona: "admin" },
-      ];
-      for (const { pattern, persona } of fallbackPatterns) {
-        if (pattern.test(content)) {
-          setRole(persona);
-          toast.success(`Persona detected: ${ROLE_LABELS[persona]}! Your experience is now personalized.`);
-          break;
-        }
-      }
-    }
+    // Clean any persona tag (shouldn't happen in dual mode, but just in case)
+    content = content.replace(/\[PERSONA_DETECTED:\w+\]/g, "").trim();
 
     const assistantMsg: DisplayMessage = { role: "assistant", content };
     setMessages((prev) => [...prev, assistantMsg]);
