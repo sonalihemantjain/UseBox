@@ -3,6 +3,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Send, Loader2, Bookmark, BookmarkCheck } from "lucide-react";
 import useBoxLogo from "@/assets/usebox-logo.png";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
@@ -34,6 +37,8 @@ const Chat = () => {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const pendingChatIdRef = useRef<string | null>(null);
   const pendingMessagesRef = useRef<ChatMessage[]>([]);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [saveName, setSaveName] = useState("");
 
   const activeChat = chats.find((c) => c.id === activeChatId);
 
@@ -70,10 +75,27 @@ const Chat = () => {
 
   const handleToggleSave = useCallback(async () => {
     if (!activeChatId || !activeChat) return;
-    const newSaved = !activeChat.saved;
-    await toggleSaveChat(activeChatId, newSaved);
-    toast.success(newSaved ? "Chat saved for learning!" : "Chat removed from saved");
+    if (activeChat.saved) {
+      // Unsave directly
+      await toggleSaveChat(activeChatId, false);
+      toast.success("Chat removed from saved");
+    } else {
+      // Open dialog to let user name it
+      setSaveName(activeChat.title);
+      setSaveDialogOpen(true);
+    }
   }, [activeChatId, activeChat, toggleSaveChat]);
+
+  const confirmSave = useCallback(async () => {
+    if (!activeChatId) return;
+    const name = saveName.trim();
+    if (name) {
+      await renameChat(activeChatId, name);
+    }
+    await toggleSaveChat(activeChatId, true);
+    setSaveDialogOpen(false);
+    toast.success("Chat saved for learning!");
+  }, [activeChatId, saveName, renameChat, toggleSaveChat]);
 
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
