@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 const Navbar = () => {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
   return (
