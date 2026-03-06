@@ -57,6 +57,7 @@ const Dashboard = () => {
               color: "text-learn",
               bg: "bg-learn/5",
               border: "border-learn/20",
+              href: "/chat",
             },
             {
               icon: BookOpen,
@@ -81,6 +82,7 @@ const Dashboard = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 + i * 0.1, duration: 0.5 }}
               className={`group cursor-pointer rounded-2xl bg-card border ${action.border} p-6 hover:border-opacity-50 transition-all duration-300`}
+              onClick={() => action.href && navigate(action.href)}
             >
               <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl ${action.bg} mb-4`}>
                 <action.icon className={`h-6 w-6 ${action.color}`} />
