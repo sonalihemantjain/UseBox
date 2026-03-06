@@ -57,7 +57,7 @@ const HeroSection = () => {
           transition={{ duration: 0.8, delay: 0.65 }}
           className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
         >
-          <Button size="lg" className="glow-gold text-base px-8 h-12 gap-2">
+          <Button size="lg" className="glow-gold text-base px-8 h-12 gap-2" onClick={() => navigate("/auth")}>
             Start Learning Free
             <ArrowRight className="h-4 w-4" />
           </Button>
