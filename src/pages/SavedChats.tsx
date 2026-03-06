@@ -1,6 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { BookmarkCheck, MessageSquare, ExternalLink, Trash2, Search } from "lucide-react";
+import { BookmarkCheck, MessageSquare, ExternalLink, Trash2, Search, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useChatHistory } from "@/hooks/useChatHistory";
@@ -8,9 +8,11 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 const SavedChats = () => {
-  const { chats, toggleSaveChat, deleteChat } = useChatHistory();
+  const { chats, toggleSaveChat, deleteChat, renameChat } = useChatHistory();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
 
   const savedChats = chats.filter((c) => c.saved && c.title.toLowerCase().includes(search.toLowerCase()));
 
@@ -18,6 +20,22 @@ const SavedChats = () => {
     await toggleSaveChat(chatId, false);
     toast.success("Removed from saved chats");
   }, [toggleSaveChat]);
+
+  const startEditing = useCallback((chatId: string, currentTitle: string) => {
+    setEditingId(chatId);
+    setEditValue(currentTitle);
+  }, []);
+
+  const saveEdit = useCallback(async () => {
+    if (!editingId || !editValue.trim()) return;
+    await renameChat(editingId, editValue.trim());
+    setEditingId(null);
+    toast.success("Chat renamed");
+  }, [editingId, editValue, renameChat]);
+
+  const cancelEdit = useCallback(() => {
+    setEditingId(null);
+  }, []);
 
   return (
     <div className="container mx-auto max-w-4xl px-4 sm:px-6 py-8">
