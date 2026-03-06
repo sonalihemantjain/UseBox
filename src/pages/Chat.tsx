@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Loader2, Bookmark, BookmarkCheck } from "lucide-react";
 import useBoxLogo from "@/assets/usebox-logo.png";
