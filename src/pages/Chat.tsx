@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Brain, Send, Loader2, Bookmark, BookmarkCheck } from "lucide-react";
+import { Send, Loader2, Bookmark, BookmarkCheck } from "lucide-react";
+import useBoxLogo from "@/assets/usebox-logo.png";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -176,7 +177,7 @@ const Chat = () => {
                 className="text-center pt-12 sm:pt-20"
               >
                 <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
-                  <Brain className="h-8 w-8 text-primary" />
+                  <img src={useBoxLogo} alt="UseBox" className="h-8 w-8" />
                 </div>
                 <h2 className="font-display text-2xl sm:text-3xl font-bold mb-3">
                   Hey! I'm your AI Coach 👋
