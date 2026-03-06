@@ -1,39 +1,15 @@
 import { motion } from "framer-motion";
-import { Brain, BookOpen, MessageSquare, Trophy, LogOut, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { BookOpen, MessageSquare, Trophy, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/");
-  };
-
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card/60 backdrop-blur-xl sticky top-0 z-50">
-        <div className="container mx-auto flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2.5">
-            <Brain className="h-7 w-7 text-primary" />
-            <span className="font-display text-xl font-bold tracking-tight">
-              Knowl<span className="text-gradient-gold">Edge</span>
-            </span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground hidden sm:block">{user?.email}</span>
-            <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground">
-              <LogOut className="h-4 w-4 mr-1" /> Sign Out
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-6 py-12">
+    <div className="h-full">
+      <div className="container mx-auto px-6 py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -111,7 +87,7 @@ const Dashboard = () => {
             <p className="text-sm">Start a coaching session to get AI-powered recommendations</p>
           </div>
         </motion.div>
-      </main>
+      </div>
     </div>
   );
 };
