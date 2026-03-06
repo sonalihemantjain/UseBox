@@ -288,6 +288,34 @@ const Chat = () => {
           </form>
         </div>
       </div>
+
+      {/* Save with custom name dialog */}
+      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display">Save for Learning</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label>Give this chat a name</Label>
+              <Input
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+                placeholder="e.g. RAG Architecture Notes"
+                onKeyDown={(e) => { if (e.key === "Enter") confirmSave(); }}
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>Cancel</Button>
+              <Button onClick={confirmSave} disabled={!saveName.trim()}>
+                <BookmarkCheck className="h-4 w-4 mr-1.5" />
+                Save
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
