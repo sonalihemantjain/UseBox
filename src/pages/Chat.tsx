@@ -109,16 +109,24 @@ const Chat = () => {
       }
       cleanContent = content.replace(/\[PERSONA_DETECTED:\w+\]/g, "").trim();
     } else {
-      // Fallback: detect persona from plain text
+      // Fallback: detect persona from AI response text OR user's original message
+      const userMessage = messages[messages.length - 1]?.content || "";
+      const combinedText = content + " " + userMessage;
+      
       const fallbackPatterns: { pattern: RegExp; persona: UserRole }[] = [
-        { pattern: /\b(?:pro developer|developer persona|treating you as a (?:pro )?developer)\b/i, persona: "developer" },
-        { pattern: /\b(?:architect persona|treating you as an? architect)\b/i, persona: "architect" },
-        { pattern: /\b(?:business user|business persona|treating you as a business)\b/i, persona: "business" },
-        { pattern: /\b(?:low.?code|treating you as a low.?code)\b/i, persona: "lowcode" },
-        { pattern: /\b(?:administrator persona|treating you as an? admin)\b/i, persona: "admin" },
+        // Architect (check before developer — architects are also technical)
+        { pattern: /\b(?:architect|system design|scalability|infrastructure|microservices architecture|trade.?offs|distributed systems)\b/i, persona: "architect" },
+        // Developer — broad signals
+        { pattern: /\b(?:developer|react|node\.?js|typescript|python|javascript|API|code|programming|frontend|backend|full.?stack|debugging|git|docker|CI\/CD)\b/i, persona: "developer" },
+        // Business
+        { pattern: /\b(?:business|ROI|strategy|product adoption|analytics|stakeholder|KPI|revenue|marketing)\b/i, persona: "business" },
+        // Low-code
+        { pattern: /\b(?:low.?code|no.?code|zapier|airtable|bubble|retool|automation|drag.?and.?drop|power automate)\b/i, persona: "lowcode" },
+        // Admin
+        { pattern: /\b(?:admin(?:istrat)|compliance|governance|user management|security polic|access control|SSO|RBAC)\b/i, persona: "admin" },
       ];
       for (const { pattern, persona } of fallbackPatterns) {
-        if (pattern.test(content)) {
+        if (pattern.test(combinedText)) {
           setRole(persona);
           toast.success(`Persona detected: ${ROLE_LABELS[persona]}! Your experience is now personalized.`);
           break;
