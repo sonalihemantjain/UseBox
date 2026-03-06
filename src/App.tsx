@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Chat from "./pages/Chat";
+import SavedChats from "./pages/SavedChats";
 import Knowledge from "./pages/Knowledge";
 import Learning from "./pages/Learning";
 import Analytics from "./pages/Analytics";
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+          <Route path="/saved-chats" element={<ProtectedRoute><SavedChats /></ProtectedRoute>} />
           <Route path="/knowledge" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
           <Route path="/learning" element={<ProtectedRoute><Learning /></ProtectedRoute>} />
           <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
