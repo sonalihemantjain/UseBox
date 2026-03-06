@@ -1,8 +1,9 @@
-import { motion } from "framer-motion";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, CheckCircle2, Circle, Clock, Sparkles } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Circle, Clock, Sparkles, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import { getKnowledgeIcon } from "@/lib/knowledge-icons";
 import type { LearningPath } from "@/hooks/useLearningPaths";
 
@@ -24,6 +25,7 @@ export function LearningPathDetail({ path, onBack, onEnroll, onToggleStep }: Pro
   const enrolled = !!path.enrollment;
   const completedSteps = new Set(path.enrollment?.completed_steps || []);
   const progressPct = path.steps.length > 0 ? Math.round((completedSteps.size / path.steps.length) * 100) : 0;
+  const [expandedStep, setExpandedStep] = useState<string | null>(null);
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -80,31 +82,121 @@ export function LearningPathDetail({ path, onBack, onEnroll, onToggleStep }: Pro
           <h3 className="font-display text-lg font-semibold mb-4">Learning Steps</h3>
           {path.steps.map((step, i) => {
             const done = completedSteps.has(step.id);
+            const isExpanded = expandedStep === step.id;
+
             return (
               <motion.div
                 key={step.id}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.06 }}
-                className={`rounded-xl border p-4 transition-all ${
+                className={`rounded-xl border transition-all ${
                   done ? "bg-primary/5 border-primary/20" : "bg-card border-border"
-                } ${enrolled ? "cursor-pointer hover:border-primary/30" : ""}`}
-                onClick={() => enrolled && onToggleStep(path.id, step.id)}
+                }`}
               >
-                <div className="flex items-start gap-3">
-                  <div className="pt-0.5">
-                    {done ? (
-                      <CheckCircle2 className="h-5 w-5 text-primary" />
-                    ) : (
+                {/* Step header - always visible */}
+                <div
+                  className="flex items-start gap-3 p-4 cursor-pointer hover:bg-muted/30 transition-colors rounded-xl"
+                  onClick={() => setExpandedStep(isExpanded ? null : step.id)}
+                >
+                  {/* Completion checkbox - only when enrolled */}
+                  {enrolled && (
+                    <button
+                      className="pt-0.5 shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleStep(path.id, step.id);
+                      }}
+                    >
+                      {done ? (
+                        <CheckCircle2 className="h-5 w-5 text-primary" />
+                      ) : (
+                        <Circle className="h-5 w-5 text-muted-foreground/40 hover:text-primary/60 transition-colors" />
+                      )}
+                    </button>
+                  )}
+                  {!enrolled && (
+                    <div className="pt-0.5 shrink-0">
                       <Circle className="h-5 w-5 text-muted-foreground/40" />
-                    )}
-                  </div>
-                  <div>
+                    </div>
+                  )}
+
+                  <div className="flex-1 min-w-0">
                     <span className="text-xs text-muted-foreground font-medium">Step {step.step_order}</span>
                     <h4 className={`font-medium ${done ? "text-primary" : ""}`}>{step.title}</h4>
-                    <p className="text-sm text-muted-foreground mt-0.5">{step.description}</p>
+                    {!isExpanded && (
+                      <p className="text-sm text-muted-foreground mt-0.5 line-clamp-1">{step.description}</p>
+                    )}
+                  </div>
+
+                  <div className="pt-1 shrink-0">
+                    {isExpanded ? (
+                      <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    )}
                   </div>
                 </div>
+
+                {/* Expanded content */}
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-4 pb-4 pt-0 ml-8 border-t border-border/50 mt-0 pt-3">
+                        <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                          {step.description}
+                        </p>
+
+                        {step.article_id && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-3 gap-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.location.href = `/knowledge?article=${step.article_id}`;
+                            }}
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            View linked article
+                          </Button>
+                        )}
+
+                        {enrolled && (
+                          <div className="mt-3 flex items-center gap-2">
+                            <Button
+                              variant={done ? "outline" : "default"}
+                              size="sm"
+                              className="gap-2"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleStep(path.id, step.id);
+                              }}
+                            >
+                              {done ? (
+                                <>
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                  Mark as incomplete
+                                </>
+                              ) : (
+                                <>
+                                  <Circle className="h-3.5 w-3.5" />
+                                  Mark as complete
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             );
           })}
