@@ -257,10 +257,10 @@ const Chat = () => {
                   Hey! I'm your AI Coach 👋
                 </h2>
                 <p className="text-muted-foreground max-w-md mx-auto mb-4">
-                  {role
+                   {role
                     ? <>Ask me anything — I'll generate responses from <strong>two AI models</strong> so you can compare and pick the best one.</>
-                    : <>Let's start by getting to know you! I'll ask a few questions to personalize your experience, then we'll dive into learning.</>
-                  }
+                    : <>I'll ask you a few quick questions to understand your background, then personalize everything just for you!</>
+                   }
                 </p>
                 <div className="grid sm:grid-cols-2 gap-3 max-w-lg mx-auto">
                   {SUGGESTIONS.map((s) => (
