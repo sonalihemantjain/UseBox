@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Brain, Menu, X } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 const Navbar = () => {
