@@ -14,7 +14,7 @@ const ROLE_CONTEXTS: Record<string, string> = {
   admin: "The user is an Administrator — they focus on configuration, security, compliance, user management, and operations. Provide admin-oriented guidance with governance best practices.",
 };
 
-const BASE_PROMPT = `You are KnowlEdge AI Coach — a friendly, expert AI coaching assistant for an AI-powered knowledge platform.
+const BASE_PROMPT = `You are UseBox AI Coach — a friendly, expert AI coaching assistant for an AI-powered knowledge platform.
 
 Your role:
 - Provide clear, step-by-step coaching on product adoption, learning, and best practices
