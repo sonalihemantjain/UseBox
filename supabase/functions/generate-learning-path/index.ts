@@ -33,7 +33,7 @@ serve(async (req) => {
 - Current Role: ${role || "Not specified"}
 - Experience Level: ${experience_level || "beginner"}
 
-Create a focused, actionable learning path with 4-6 steps.`,
+Create a focused, actionable learning path with 4-6 steps. For each step, include a detailed "content" field (3-5 paragraphs in markdown) that teaches the concept thoroughly — this is what the learner will read.`,
           },
         ],
         tools: [
@@ -56,9 +56,10 @@ Create a focused, actionable learning path with 4-6 steps.`,
                       type: "object",
                       properties: {
                         title: { type: "string" },
-                        description: { type: "string" },
+                        description: { type: "string", description: "Brief one-line summary" },
+                        content: { type: "string", description: "Detailed markdown content (3-5 paragraphs) teaching this step's concept" },
                       },
-                      required: ["title", "description"],
+                      required: ["title", "description", "content"],
                       additionalProperties: false,
                     },
                   },

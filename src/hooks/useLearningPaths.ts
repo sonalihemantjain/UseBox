@@ -9,6 +9,7 @@ export interface LearningPathStep {
   step_order: number;
   title: string;
   description: string;
+  content: string;
   article_id: string | null;
 }
 
@@ -131,6 +132,7 @@ export function useLearningPaths() {
         step_order: i + 1,
         title: s.title,
         description: s.description,
+        content: s.content || '',
       }));
 
       if (steps.length > 0) {

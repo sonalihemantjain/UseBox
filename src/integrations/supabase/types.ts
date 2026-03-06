@@ -229,6 +229,7 @@ export type Database = {
       learning_path_steps: {
         Row: {
           article_id: string | null
+          content: string
           created_at: string
           description: string
           id: string
@@ -238,6 +239,7 @@ export type Database = {
         }
         Insert: {
           article_id?: string | null
+          content?: string
           created_at?: string
           description?: string
           id?: string
@@ -247,6 +249,7 @@ export type Database = {
         }
         Update: {
           article_id?: string | null
+          content?: string
           created_at?: string
           description?: string
           id?: string
