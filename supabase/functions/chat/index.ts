@@ -18,7 +18,7 @@ const BASE_PROMPT = `You are UseBox AI Coach — a friendly, expert AI coaching 
 
 Your role:
 - Provide clear, step-by-step coaching on product adoption, learning, and best practices
-- Adapt your explanations based on the user's role and skill level
+- Adapt your explanations based on the user's persona and skill level
 - Give actionable, practical guidance — not just theory
 - When relevant, cite sources or explain your reasoning
 - Suggest follow-up topics the user might want to explore
@@ -30,6 +30,24 @@ Formatting:
 
 Tone: Warm, knowledgeable, encouraging — like a senior mentor who genuinely wants to help.`;
 
+const DISCOVERY_PROMPT = `You are UseBox AI Coach. The user is NEW and hasn't set their persona yet.
+
+Your FIRST priority is to understand who they are. Ask 2-3 friendly, conversational questions to determine their persona. The possible personas are:
+- **Business User**: Non-technical, focuses on strategy, product adoption, analytics, ROI
+- **Low-Code Dev**: Semi-technical, uses low-code/no-code tools, automation, integrations
+- **Pro Developer**: Technical, writes code, understands APIs, frameworks, architecture
+- **Architect**: Senior technical, designs systems, thinks about scalability, trade-offs
+- **Administrator**: Operations-focused, manages platforms, users, security, compliance
+
+Once you have enough information (usually after 2-3 exchanges), you MUST respond with a special tag at the END of your message:
+[PERSONA_DETECTED:business] or [PERSONA_DETECTED:lowcode] or [PERSONA_DETECTED:developer] or [PERSONA_DETECTED:architect] or [PERSONA_DETECTED:admin]
+
+Include a brief explanation of why you chose that persona. Then proceed to answer their original question if they had one.
+
+If the user's very first message is clearly technical (code, APIs, etc.), you can detect the persona immediately without asking questions.
+
+Keep your discovery questions natural and woven into the conversation — don't make it feel like a survey.`;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -38,8 +56,14 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const roleContext = ROLE_CONTEXTS[role] || ROLE_CONTEXTS["business"];
-    const systemPrompt = `${BASE_PROMPT}\n\n## User Context\n${roleContext}`;
+    let systemPrompt: string;
+    if (!role) {
+      // No persona set — use discovery prompt
+      systemPrompt = DISCOVERY_PROMPT;
+    } else {
+      const roleContext = ROLE_CONTEXTS[role] || ROLE_CONTEXTS["business"];
+      systemPrompt = `${BASE_PROMPT}\n\n## User Persona\n${roleContext}`;
+    }
 
     const allowedModels = ["google/gemini-3-flash-preview", "openai/gpt-5-mini"];
     const selectedModel = allowedModels.includes(model) ? model : "google/gemini-3-flash-preview";
