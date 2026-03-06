@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserRole, ROLE_LABELS, type UserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
-import { type ChatMessage } from "@/lib/chat-stream";
+import { streamChat, type ChatMessage } from "@/lib/chat-stream";
 import { ChatHistorySidebar } from "@/components/ChatHistorySidebar";
 import { useChatHistory } from "@/hooks/useChatHistory";
 import { DualModelResponse } from "@/components/chat/DualModelResponse";
