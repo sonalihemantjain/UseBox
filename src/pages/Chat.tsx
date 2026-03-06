@@ -73,26 +73,25 @@ const Chat = () => {
   const handleToggleSave = useCallback(async () => {
     if (!activeChatId || !activeChat) return;
     if (activeChat.saved) {
-      // Unsave directly
       await toggleSaveChat(activeChatId, false);
       toast.success("Chat removed from saved");
     } else {
-      // Open dialog to let user name it
-      setSaveName(activeChat.title);
-      setSaveDialogOpen(true);
+      // Start inline editing so user can rename before saving
+      setTitleValue(activeChat.title);
+      setEditingTitle(true);
+      await toggleSaveChat(activeChatId, true);
+      toast.success("Chat saved! Edit the name above if you want.");
     }
   }, [activeChatId, activeChat, toggleSaveChat]);
 
-  const confirmSave = useCallback(async () => {
+  const commitTitleEdit = useCallback(async () => {
     if (!activeChatId) return;
-    const name = saveName.trim();
-    if (name) {
+    const name = titleValue.trim();
+    if (name && name !== activeChat?.title) {
       await renameChat(activeChatId, name);
     }
-    await toggleSaveChat(activeChatId, true);
-    setSaveDialogOpen(false);
-    toast.success("Chat saved for learning!");
-  }, [activeChatId, saveName, renameChat, toggleSaveChat]);
+    setEditingTitle(false);
+  }, [activeChatId, titleValue, activeChat, renameChat]);
 
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
