@@ -111,7 +111,6 @@ const Chat = () => {
     } else {
       // Fallback: detect persona from AI response text OR user's original message
       const combinedText = content + " " + (userMessage || "");
-      const combinedText = content + " " + userMessage;
       
       const fallbackPatterns: { pattern: RegExp; persona: UserRole }[] = [
         // Architect (check before developer — architects are also technical)
