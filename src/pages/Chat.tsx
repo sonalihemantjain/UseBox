@@ -138,6 +138,22 @@ const Chat = () => {
       }
       // Remove the tag from displayed content
       content = content.replace(/\[PERSONA_DETECTED:\w+\]/g, "").trim();
+    } else if (!role) {
+      // Fallback: detect persona from plain text if AI didn't use the tag
+      const fallbackPatterns: { pattern: RegExp; persona: UserRole }[] = [
+        { pattern: /\b(?:pro developer|developer persona|treating you as a (?:pro )?developer)\b/i, persona: "developer" },
+        { pattern: /\b(?:architect persona|treating you as an? architect)\b/i, persona: "architect" },
+        { pattern: /\b(?:business user|business persona|treating you as a business)\b/i, persona: "business" },
+        { pattern: /\b(?:low.?code|treating you as a low.?code)\b/i, persona: "lowcode" },
+        { pattern: /\b(?:administrator persona|treating you as an? admin)\b/i, persona: "admin" },
+      ];
+      for (const { pattern, persona } of fallbackPatterns) {
+        if (pattern.test(content)) {
+          setRole(persona);
+          toast.success(`Persona detected: ${ROLE_LABELS[persona]}! Your experience is now personalized.`);
+          break;
+        }
+      }
     }
 
     const assistantMsg: DisplayMessage = { role: "assistant", content };
