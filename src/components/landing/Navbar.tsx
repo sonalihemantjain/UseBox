@@ -31,10 +31,10 @@ const Navbar = () => {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
-          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={() => navigate("/auth")}>
             Sign In
           </Button>
-          <Button size="sm" className="glow-gold">
+          <Button size="sm" className="glow-gold" onClick={() => navigate("/auth")}>
             Get Started
           </Button>
         </div>
