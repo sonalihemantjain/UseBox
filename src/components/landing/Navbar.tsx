@@ -19,7 +19,7 @@ const Navbar = () => {
         <a href="/" className="flex items-center gap-2.5">
           <Brain className="h-7 w-7 text-primary" />
           <span className="font-display text-xl font-bold tracking-tight text-foreground">
-            Knowl<span className="text-gradient-gold">Edge</span>
+            Use<span className="text-gradient-gold">Box</span>
           </span>
         </a>
 

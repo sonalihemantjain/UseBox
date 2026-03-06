@@ -27,7 +27,7 @@ const HeroSection = () => {
           className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm text-primary mb-8"
         >
           <Sparkles className="h-3.5 w-3.5" />
-          AI-Powered Knowledge Platform
+          AI-Powered Learning Platform
         </motion.div>
 
         <motion.h1
