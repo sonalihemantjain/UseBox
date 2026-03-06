@@ -13,14 +13,20 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 const STORAGE_KEY = "knowledge-user-role";
 
 export function useUserRole() {
-  const [role, setRole] = useState<UserRole>(() => {
+  const [role, setRoleState] = useState<UserRole | null>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
-    return (saved as UserRole) || "business";
+    if (saved && saved in ROLE_LABELS) return saved as UserRole;
+    return null; // New users have no persona
   });
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, role);
-  }, [role]);
+  const setRole = (r: UserRole | null) => {
+    setRoleState(r);
+    if (r) {
+      localStorage.setItem(STORAGE_KEY, r);
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  };
 
   return { role, setRole };
 }

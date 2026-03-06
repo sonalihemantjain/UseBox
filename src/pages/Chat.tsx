@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
-import { useUserRole } from "@/hooks/useUserRole";
+import { useUserRole, ROLE_LABELS, type UserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { type ChatMessage } from "@/lib/chat-stream";
@@ -26,7 +26,7 @@ type DisplayMessage = ChatMessage & { comparing?: boolean };
 
 const Chat = () => {
   const { user } = useAuth();
-  const { role } = useUserRole();
+  const { role, setRole } = useUserRole();
   const { chats, createChat, renameChat, deleteChat, toggleSaveChat, loadMessages, saveMessage, autoTitle } = useChatHistory();
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
@@ -127,6 +127,19 @@ const Chat = () => {
 
   const handlePick = async (content: string, _model: string) => {
     const chatId = pendingChatIdRef.current;
+
+    // Check for persona detection tag in the response
+    const personaMatch = content.match(/\[PERSONA_DETECTED:(\w+)\]/);
+    if (personaMatch) {
+      const detected = personaMatch[1] as UserRole;
+      if (detected in ROLE_LABELS) {
+        setRole(detected);
+        toast.success(`Persona detected: ${ROLE_LABELS[detected]}! Your experience is now personalized.`);
+      }
+      // Remove the tag from displayed content
+      content = content.replace(/\[PERSONA_DETECTED:\w+\]/g, "").trim();
+    }
+
     const assistantMsg: DisplayMessage = { role: "assistant", content };
     setMessages((prev) => [...prev, assistantMsg]);
     setComparingIndex(null);
@@ -197,7 +210,10 @@ const Chat = () => {
                   Hey! I'm your AI Coach 👋
                 </h2>
                 <p className="text-muted-foreground max-w-md mx-auto mb-4">
-                  Ask me anything — I'll generate responses from <strong>two AI models</strong> so you can compare and pick the best one.
+                  {role
+                    ? <>Ask me anything — I'll generate responses from <strong>two AI models</strong> so you can compare and pick the best one.</>
+                    : <>Let's start by getting to know you! I'll ask a few questions to personalize your experience, then we'll dive into learning.</>
+                  }
                 </p>
                 <div className="grid sm:grid-cols-2 gap-3 max-w-lg mx-auto">
                   {SUGGESTIONS.map((s) => (

@@ -46,7 +46,7 @@ const Dashboard = () => {
   const { user } = useAuth();
   const { role } = useUserRole();
   const navigate = useNavigate();
-  const roleData = ROLE_DESCRIPTIONS[role] || ROLE_DESCRIPTIONS.business;
+  const roleData = role ? (ROLE_DESCRIPTIONS[role] || ROLE_DESCRIPTIONS.business) : null;
 
   return (
     <div className="h-full">
@@ -58,10 +58,10 @@ const Dashboard = () => {
           className="mb-12"
         >
           <h1 className="font-display text-3xl sm:text-4xl font-bold mb-2">
-            Welcome back, {ROLE_LABELS[role]} 👋
+            Welcome back{role ? `, ${ROLE_LABELS[role]}` : ""} 👋
           </h1>
           <p className="text-muted-foreground text-lg">
-            {roleData.greeting}
+            {roleData ? roleData.greeting : "Start a coaching session to discover your persona and unlock personalized content."}
           </p>
         </motion.div>
 
@@ -71,7 +71,7 @@ const Dashboard = () => {
             {
               icon: BookOpen,
               title: "Learn",
-              description: roleData.learnDesc,
+              description: roleData?.learnDesc || "AI-powered coaching adapts to your level. Start chatting to discover your persona.",
               color: "text-learn",
               bg: "bg-learn/5",
               border: "border-learn/20",
@@ -81,7 +81,7 @@ const Dashboard = () => {
             {
               icon: Users,
               title: "Share",
-              description: roleData.shareDesc,
+              description: roleData?.shareDesc || "Contribute your expertise to the community once your persona is set.",
               color: "text-share",
               bg: "bg-share/5",
               border: "border-share/20",
@@ -91,7 +91,7 @@ const Dashboard = () => {
             {
               icon: Coins,
               title: "Earn",
-              description: roleData.earnDesc,
+              description: roleData?.earnDesc || "Earn rewards for quality contributions after your persona is discovered.",
               color: "text-earn",
               bg: "bg-earn/5",
               border: "border-earn/20",
