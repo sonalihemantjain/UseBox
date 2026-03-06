@@ -6,11 +6,19 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are KnowlEdge AI Coach — a friendly, expert AI coaching assistant for an AI-powered knowledge platform.
+const ROLE_CONTEXTS: Record<string, string> = {
+  business: "The user is a Business User — they prefer high-level explanations, business value framing, ROI-oriented advice, and minimal technical jargon. Use analogies and real-world examples.",
+  lowcode: "The user is a Low-Code Developer — they understand basic technical concepts and work with low-code/no-code tools. Explain with visual metaphors, reference drag-and-drop builders, and provide step-by-step workflows.",
+  developer: "The user is a Pro Developer — they want precise technical details, code examples, API references, and architectural patterns. Be concise and technically rigorous.",
+  architect: "The user is an Architect — they think in systems, integrations, scalability, and trade-offs. Discuss design patterns, infrastructure considerations, and long-term maintainability.",
+  admin: "The user is an Administrator — they focus on configuration, security, compliance, user management, and operations. Provide admin-oriented guidance with governance best practices.",
+};
+
+const BASE_PROMPT = `You are KnowlEdge AI Coach — a friendly, expert AI coaching assistant for an AI-powered knowledge platform.
 
 Your role:
 - Provide clear, step-by-step coaching on product adoption, learning, and best practices
-- Adapt your explanations based on the user's apparent skill level
+- Adapt your explanations based on the user's role and skill level
 - Give actionable, practical guidance — not just theory
 - When relevant, cite sources or explain your reasoning
 - Suggest follow-up topics the user might want to explore
@@ -26,9 +34,12 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages } = await req.json();
+    const { messages, role } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    const roleContext = ROLE_CONTEXTS[role] || ROLE_CONTEXTS["business"];
+    const systemPrompt = `${BASE_PROMPT}\n\n## User Context\n${roleContext}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -39,7 +50,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: systemPrompt },
           ...messages,
         ],
         stream: true,
