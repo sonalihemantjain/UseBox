@@ -188,7 +188,7 @@ const Chat = () => {
         onDone: () => {
           setIsLoading(false);
           // Check for persona detection
-          handlePersonaDetection(buf, chatId!);
+          handlePersonaDetection(buf, chatId!, content.trim());
         },
         onError: (err) => {
           toast.error(err);
