@@ -9,6 +9,7 @@ export interface LearningPathStep {
   step_order: number;
   title: string;
   description: string;
+  content: string;
   article_id: string | null;
 }
 
