@@ -74,7 +74,7 @@ const Analytics = () => {
   const statCards = [
     { label: "Total Chats", value: data.totalChats, icon: MessageSquare, color: "text-primary" },
     { label: "Messages Sent", value: data.totalMessages, icon: TrendingUp, color: "text-accent" },
-    { label: "Articles Completed", value: data.articlesCompleted, icon: CheckCircle2, color: "text-green-400" },
+    { label: "Articles Completed", value: data.articlesCompleted, icon: CheckCircle2, color: "text-green-600" },
     { label: "Day Streak", value: data.streakDays, icon: Flame, color: "text-orange-500" },
   ];
 

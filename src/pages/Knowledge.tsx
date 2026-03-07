@@ -63,7 +63,7 @@ const Knowledge = () => {
           <div className="grid grid-cols-3 gap-3 mb-6">
             {[
               { label: "Total Articles", value: stats.total, color: "text-foreground", filter: "all" as const },
-              { label: "Completed", value: stats.completed, color: "text-green-400", filter: "completed" as const },
+              { label: "Completed", value: stats.completed, color: "text-green-600", filter: "completed" as const },
               { label: "Bookmarked", value: stats.bookmarked, color: "text-primary", filter: "bookmarked" as const },
             ].map((s) => (
               <div
