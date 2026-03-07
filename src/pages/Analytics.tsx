@@ -75,12 +75,12 @@ const Analytics = () => {
     { label: "Total Chats", value: data.totalChats, icon: MessageSquare, color: "text-primary" },
     { label: "Messages Sent", value: data.totalMessages, icon: TrendingUp, color: "text-accent" },
     { label: "Articles Completed", value: data.articlesCompleted, icon: CheckCircle2, color: "text-green-400" },
-    { label: "Day Streak", value: data.streakDays, icon: Flame, color: "text-orange-400" },
+    { label: "Day Streak", value: data.streakDays, icon: Flame, color: "text-orange-500" },
   ];
 
   const activityTypeIcons: Record<string, React.ReactNode> = {
     chat: <MessageSquare className="h-3.5 w-3.5 text-primary" />,
-    completed: <CheckCircle2 className="h-3.5 w-3.5 text-green-400" />,
+    completed: <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />,
     bookmark: <Bookmark className="h-3.5 w-3.5 text-accent" />,
   };
 
