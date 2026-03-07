@@ -13,17 +13,17 @@ import {
 } from "recharts";
 
 const PIE_COLORS = [
-  "hsl(220 14% 25%)",   // unread - muted
-  "hsl(172 66% 50%)",   // reading - accent
-  "hsl(142 70% 45%)",   // completed - green
+  "hsl(220 14% 75%)",   // unread - muted
+  "hsl(199 89% 48%)",   // reading - accent (learn blue)
+  "hsl(152 60% 42%)",   // completed - green (earn)
 ];
 
 const CAT_COLORS = [
-  "hsl(42 92% 56%)",
-  "hsl(172 66% 50%)",
-  "hsl(340 75% 62%)",
-  "hsl(220 70% 60%)",
-  "hsl(280 60% 60%)",
+  "hsl(245 58% 51%)",
+  "hsl(199 89% 48%)",
+  "hsl(280 67% 54%)",
+  "hsl(152 60% 42%)",
+  "hsl(340 65% 55%)",
   "hsl(30 80% 55%)",
   "hsl(160 50% 50%)",
 ];
