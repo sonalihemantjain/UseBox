@@ -6,15 +6,15 @@ import type { ArticleWithMeta } from "@/hooks/useKnowledge";
 import { getArticleIcon } from "@/lib/knowledge-icons";
 
 const difficultyColors: Record<string, string> = {
-  beginner: "bg-green-500/10 text-green-400 border-green-500/20",
-  intermediate: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-  advanced: "bg-red-500/10 text-red-400 border-red-500/20",
+  beginner: "bg-green-500/10 text-green-600 border-green-500/20",
+  intermediate: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
+  advanced: "bg-red-500/10 text-red-600 border-red-500/20",
 };
 
 const progressIcons: Record<string, React.ReactNode> = {
   unread: null,
   reading: <Eye className="h-3.5 w-3.5 text-accent" />,
-  completed: <CheckCircle2 className="h-3.5 w-3.5 text-green-400" />,
+  completed: <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />,
 };
 
 interface KnowledgeCardProps {

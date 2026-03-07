@@ -104,7 +104,7 @@ const SavedChats = () => {
                         autoFocus
                       />
                       <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={saveEdit}>
-                        <Check className="h-3.5 w-3.5 text-green-400" />
+                        <Check className="h-3.5 w-3.5 text-green-600" />
                       </Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={cancelEdit}>
                         <X className="h-3.5 w-3.5" />
