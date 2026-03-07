@@ -18,19 +18,19 @@ const ROLE_ICONS: Record<UserRole, React.ElementType> = {
 };
 
 const ROLE_COLORS: Record<UserRole, string> = {
-  business: "from-emerald-500/20 to-emerald-500/5 border-emerald-500/30",
-  lowcode: "from-amber-500/20 to-amber-500/5 border-amber-500/30",
-  developer: "from-blue-500/20 to-blue-500/5 border-blue-500/30",
-  architect: "from-purple-500/20 to-purple-500/5 border-purple-500/30",
-  admin: "from-red-500/20 to-red-500/5 border-red-500/30",
+  business: "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20",
+  lowcode: "from-amber-500/10 to-amber-500/5 border-amber-500/20",
+  developer: "from-blue-500/10 to-blue-500/5 border-blue-500/20",
+  architect: "from-purple-500/10 to-purple-500/5 border-purple-500/20",
+  admin: "from-red-500/10 to-red-500/5 border-red-500/20",
 };
 
 const ROLE_ICON_COLORS: Record<UserRole, string> = {
-  business: "text-emerald-400",
-  lowcode: "text-amber-400",
-  developer: "text-blue-400",
-  architect: "text-purple-400",
-  admin: "text-red-400",
+  business: "text-emerald-600",
+  lowcode: "text-amber-600",
+  developer: "text-blue-600",
+  architect: "text-purple-600",
+  admin: "text-red-600",
 };
 
 const roles: UserRole[] = ["business", "lowcode", "developer", "architect", "admin"];
