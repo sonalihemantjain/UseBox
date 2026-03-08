@@ -88,6 +88,21 @@ const HeroSection = () => {
           ))}
         </motion.div>
       </div>
+
+      {/* Demo Video Dialog */}
+      <Dialog open={showDemo} onOpenChange={setShowDemo}>
+        <DialogContent className="sm:max-w-4xl p-0 overflow-hidden bg-background border-border">
+          <div className="p-1">
+            <video
+              src="/demo-walkthrough.mp4"
+              controls
+              autoPlay
+              className="w-full rounded-lg"
+              style={{ aspectRatio: "16/9" }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };
