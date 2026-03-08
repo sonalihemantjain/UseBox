@@ -64,7 +64,7 @@ const HeroSection = () => {
             Start Learning Free
             <ArrowRight className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="lg" className="text-base px-8 h-12 border-border text-muted-foreground hover:text-foreground" onClick={() => document.getElementById("how")?.scrollIntoView({ behavior: "smooth" })}>
+          <Button variant="outline" size="lg" className="text-base px-8 h-12 border-border text-muted-foreground hover:text-foreground" onClick={() => setShowDemo(true)}>
             Watch Demo
           </Button>
         </motion.div>
