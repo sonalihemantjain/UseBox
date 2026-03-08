@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import heroBg from "@/assets/hero-bg.jpg";
 
 const HeroSection = () => {
   const navigate = useNavigate();
+  const [showDemo, setShowDemo] = useState(false);
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
       {/* Background image with overlay */}
@@ -61,7 +64,7 @@ const HeroSection = () => {
             Start Learning Free
             <ArrowRight className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="lg" className="text-base px-8 h-12 border-border text-muted-foreground hover:text-foreground" onClick={() => document.getElementById("how")?.scrollIntoView({ behavior: "smooth" })}>
+          <Button variant="outline" size="lg" className="text-base px-8 h-12 border-border text-muted-foreground hover:text-foreground" onClick={() => setShowDemo(true)}>
             Watch Demo
           </Button>
         </motion.div>
@@ -85,6 +88,21 @@ const HeroSection = () => {
           ))}
         </motion.div>
       </div>
+
+      {/* Demo Video Dialog */}
+      <Dialog open={showDemo} onOpenChange={setShowDemo}>
+        <DialogContent className="sm:max-w-4xl p-0 overflow-hidden bg-background border-border">
+          <div className="p-1">
+            <video
+              src="/demo-walkthrough.mp4"
+              controls
+              autoPlay
+              className="w-full rounded-lg"
+              style={{ aspectRatio: "16/9" }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };
