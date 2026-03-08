@@ -18,7 +18,7 @@ const Navbar = () => {
     >
       <div className="container mx-auto flex items-center justify-between px-6 py-4">
         <a href="/" className="flex items-center gap-2.5">
-          <img src={useBoxLogo} alt="UseBox" className="h-7 w-7" />
+          <img src={useBoxLogo} alt="UseBox" className="h-9 w-9" />
           <span className="font-display text-xl font-bold tracking-tight text-foreground">
             Use<span className="text-gradient-gold">Box</span>
           </span>

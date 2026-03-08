@@ -46,7 +46,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="[&_[data-sidebar=content]]:overflow-x-hidden">
       <SidebarHeader className="p-4">
         <a href="/dashboard" className="flex items-center gap-2.5">
-          <img src={useBoxLogo} alt="UseBox" className="h-7 w-7 shrink-0" />
+          <img src={useBoxLogo} alt="UseBox" className="h-9 w-9 shrink-0" />
           {!collapsed && (
             <span className="font-display text-xl font-bold tracking-tight text-foreground">
               Use<span className="text-gradient-gold">Box</span>
