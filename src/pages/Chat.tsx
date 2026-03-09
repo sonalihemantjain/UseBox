@@ -52,6 +52,13 @@ const Chat = () => {
 
   useEffect(() => { scrollToBottom(); }, [messages, comparingIndex]);
 
+  const selectChat = useCallback(async (chatId: string) => {
+    setActiveChatId(chatId);
+    setComparingIndex(null);
+    const msgs = await loadMessages(chatId);
+    setMessages(msgs);
+  }, [loadMessages]);
+
   // Auto-open chat from ?id= query param
   useEffect(() => {
     const chatIdFromUrl = searchParams.get("id");
@@ -59,18 +66,10 @@ const Chat = () => {
       const chatExists = chats.some((c) => c.id === chatIdFromUrl);
       if (chatExists) {
         selectChat(chatIdFromUrl);
-        // Clear the param so it doesn't re-trigger
         setSearchParams({}, { replace: true });
       }
     }
   }, [searchParams, chats, activeChatId, selectChat, setSearchParams]);
-
-  const selectChat = useCallback(async (chatId: string) => {
-    setActiveChatId(chatId);
-    setComparingIndex(null);
-    const msgs = await loadMessages(chatId);
-    setMessages(msgs);
-  }, [loadMessages]);
 
   const handleNewChat = useCallback(async () => {
     const id = await createChat();
