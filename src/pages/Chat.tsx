@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Loader2, Bookmark, BookmarkCheck } from "lucide-react";
@@ -43,6 +44,8 @@ const Chat = () => {
 
   const activeChat = chats.find((c) => c.id === activeChatId);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -55,6 +58,18 @@ const Chat = () => {
     const msgs = await loadMessages(chatId);
     setMessages(msgs);
   }, [loadMessages]);
+
+  // Auto-open chat from ?id= query param
+  useEffect(() => {
+    const chatIdFromUrl = searchParams.get("id");
+    if (chatIdFromUrl && chatIdFromUrl !== activeChatId && chats.length > 0) {
+      const chatExists = chats.some((c) => c.id === chatIdFromUrl);
+      if (chatExists) {
+        selectChat(chatIdFromUrl);
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [searchParams, chats, activeChatId, selectChat, setSearchParams]);
 
   const handleNewChat = useCallback(async () => {
     const id = await createChat();
