@@ -23,6 +23,10 @@ interface DualModelResponseProps {
 }
 
 export function DualModelResponse({ messages, role, onPick, onError }: DualModelResponseProps) {
+  const { selectedModels } = useModelSelection();
+  const MODEL_A = selectedModels[0];
+  const MODEL_B = selectedModels[1];
+
   const [responseA, setResponseA] = useState("");
   const [responseB, setResponseB] = useState("");
   const [doneA, setDoneA] = useState(false);
