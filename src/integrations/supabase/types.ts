@@ -14,6 +14,35 @@ export type Database = {
   }
   public: {
     Tables: {
+      article_views: {
+        Row: {
+          article_id: string
+          created_at: string
+          id: string
+          viewer_id: string
+        }
+        Insert: {
+          article_id: string
+          created_at?: string
+          id?: string
+          viewer_id: string
+        }
+        Update: {
+          article_id?: string
+          created_at?: string
+          id?: string
+          viewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_views_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_messages: {
         Row: {
           chat_id: string
@@ -69,6 +98,30 @@ export type Database = {
           saved?: boolean
           title?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      credit_redemptions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          status?: string
           user_id?: string
         }
         Relationships: []
@@ -316,6 +369,30 @@ export type Database = {
           is_curated?: boolean
           title?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_credits: {
+        Row: {
+          id: string
+          redeemed_credits: number
+          total_credits: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          redeemed_credits?: number
+          total_credits?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          redeemed_credits?: number
+          total_credits?: number
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
