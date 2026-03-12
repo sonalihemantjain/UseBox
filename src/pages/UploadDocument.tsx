@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Upload, X, FileText } from "lucide-react";
+import { Upload, X, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,111 +32,115 @@ const UploadDocument = () => {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-y-auto">
-
-      {/* Full-page content */}
-      <div className="flex-1 flex items-start justify-center px-4 sm:px-6 py-10">
+    <div className="h-full overflow-y-auto">
+      <div className="container mx-auto px-4 sm:px-6 py-8 max-w-4xl">
+        {/* Header - consistent with other pages */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-3xl"
+          className="mb-8"
         >
-          <div className="mb-10 text-center">
-            <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <Upload className="h-8 w-8 text-primary" />
-            </div>
-            <h1 className="font-display text-3xl sm:text-4xl font-bold mb-2">Upload Document</h1>
-            <p className="text-muted-foreground text-lg max-w-md mx-auto">
-              Share your expertise. When others learn from your content, you earn credits.
-            </p>
-          </div>
+          <h1 className="font-display text-3xl sm:text-4xl font-bold mb-2">Upload Document</h1>
+          <p className="text-muted-foreground text-lg">
+            Share your expertise. When others learn from your content, you earn credits.
+          </p>
+        </motion.div>
 
-          {/* File drop zone */}
-          <div className="mb-8">
-            <input
-              ref={inputRef}
-              type="file"
-              accept=".pdf,.doc,.docx,.txt,.md"
-              className="hidden"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
+        {/* File drop zone */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="mb-6"
+        >
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".pdf,.doc,.docx,.txt,.md"
+            className="hidden"
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
+          />
+          <div
+            onClick={() => inputRef.current?.click()}
+            className="border-2 border-dashed border-border rounded-xl p-10 text-center cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all"
+          >
+            {file ? (
+              <div className="flex items-center justify-center gap-3">
+                <FileText className="h-5 w-5 text-primary" />
+                <span className="text-foreground font-medium">{file.name}</span>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                  className="ml-2 p-1 rounded-full hover:bg-secondary transition-colors"
+                >
+                  <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                </button>
+              </div>
+            ) : (
+              <div>
+                <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                <p className="text-foreground font-medium mb-1">Click to select a file</p>
+                <p className="text-sm text-muted-foreground">PDF, DOC, TXT, MD supported</p>
+              </div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Form */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="space-y-5"
+        >
+          <div>
+            <Label htmlFor="upload-title">Title</Label>
+            <Input
+              id="upload-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Give your document a clear title"
+              className="mt-1.5"
             />
-            <div
-              onClick={() => inputRef.current?.click()}
-              className="border-2 border-dashed border-border rounded-2xl p-12 text-center cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all"
-            >
-              {file ? (
-                <div className="flex items-center justify-center gap-3">
-                  <FileText className="h-6 w-6 text-primary" />
-                  <span className="text-foreground font-medium">{file.name}</span>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setFile(null); }}
-                    className="ml-2 p-1 rounded-full hover:bg-secondary transition-colors"
-                  >
-                    <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-                  <p className="text-foreground font-medium mb-1">Click to select a file</p>
-                  <p className="text-sm text-muted-foreground">PDF, DOC, TXT, MD supported</p>
-                </div>
-              )}
-            </div>
           </div>
 
-          {/* Form fields */}
-          <div className="space-y-6">
-            <div>
-              <Label htmlFor="upload-title" className="text-sm font-medium">Title</Label>
-              <Input
-                id="upload-title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Give your document a clear title"
-                className="mt-2 h-12 text-base"
-              />
-            </div>
+          <div>
+            <Label htmlFor="upload-desc">Description</Label>
+            <Textarea
+              id="upload-desc"
+              value={desc}
+              onChange={(e) => setDesc(e.target.value)}
+              placeholder="Describe what this document covers and who it's for"
+              className="mt-1.5"
+              rows={4}
+            />
+          </div>
 
-            <div>
-              <Label htmlFor="upload-desc" className="text-sm font-medium">Description</Label>
-              <Textarea
-                id="upload-desc"
-                value={desc}
-                onChange={(e) => setDesc(e.target.value)}
-                placeholder="Describe what this document covers and who it's for"
-                className="mt-2 text-base"
-                rows={4}
-              />
-            </div>
+          <div>
+            <Label htmlFor="upload-tags">Tags (comma-separated)</Label>
+            <Input
+              id="upload-tags"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              placeholder="ai, tutorial, guide"
+              className="mt-1.5"
+            />
+          </div>
 
-            <div>
-              <Label htmlFor="upload-tags" className="text-sm font-medium">Tags (comma-separated)</Label>
-              <Input
-                id="upload-tags"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                placeholder="ai, tutorial, guide"
-                className="mt-2 h-12 text-base"
-              />
-            </div>
-
-            <div className="flex gap-4 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => navigate("/knowledge")}
-                className="flex-1 h-12 text-base"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSubmit}
-                disabled={uploading}
-                className="flex-1 h-12 text-base glow-gold"
-              >
-                {uploading ? "Uploading…" : "Upload & Share"}
-              </Button>
-            </div>
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate("/knowledge")}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={uploading}
+              className="flex-1 glow-gold"
+            >
+              {uploading ? "Uploading…" : "Upload & Share"}
+            </Button>
           </div>
         </motion.div>
       </div>
