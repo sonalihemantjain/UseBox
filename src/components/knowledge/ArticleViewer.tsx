@@ -10,7 +10,6 @@ import { getArticleIcon } from "@/lib/knowledge-icons";
 interface ArticleViewerProps {
   article: ArticleWithMeta | null;
   onClose: () => void;
-  onProgressChange: (id: string, status: "unread" | "reading" | "completed") => void;
 }
 
 export function ArticleViewer({ article, onClose, onProgressChange }: ArticleViewerProps) {
