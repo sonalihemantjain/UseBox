@@ -13,7 +13,7 @@ import SavedChats from "./pages/SavedChats";
 import Knowledge from "./pages/Knowledge";
 import UploadDocument from "./pages/UploadDocument";
 import Earn from "./pages/Earn";
-import Analytics from "./pages/Analytics";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,7 +40,7 @@ const App = () => (
           <Route path="/knowledge" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
           <Route path="/upload" element={<ProtectedRoute><UploadDocument /></ProtectedRoute>} />
           <Route path="/earn" element={<ProtectedRoute><Earn /></ProtectedRoute>} />
-          <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

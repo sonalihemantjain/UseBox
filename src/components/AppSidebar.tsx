@@ -1,4 +1,4 @@
-import { MessageSquare, BookOpen, GraduationCap, BarChart3, LogOut, BookmarkCheck } from "lucide-react";
+import { MessageSquare, BookOpen, GraduationCap, Settings, LogOut } from "lucide-react";
 import useBoxLogo from "@/assets/usebox-logo.png";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -23,10 +23,9 @@ import { Separator } from "@/components/ui/separator";
 
 const navItems = [
   { title: "Learn", url: "/chat", icon: MessageSquare },
-  { title: "Saved Chats", url: "/saved-chats", icon: BookmarkCheck },
   { title: "Share", url: "/knowledge", icon: BookOpen },
   { title: "Earn", url: "/earn", icon: GraduationCap },
-  { title: "Analytics", url: "/analytics", icon: BarChart3 },
+  { title: "Settings", url: "/settings", icon: Settings },
 ];
 
 export function AppSidebar() {

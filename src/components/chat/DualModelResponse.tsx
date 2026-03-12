@@ -4,13 +4,15 @@ import { Check, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 import { streamChat, type ChatMessage } from "@/lib/chat-stream";
-
-const MODEL_A = "google/gemini-3-flash-preview";
-const MODEL_B = "openai/gpt-5-mini";
+import { useModelSelection } from "@/hooks/useModelSelection";
 
 const MODEL_LABELS: Record<string, string> = {
-  [MODEL_A]: "Gemini Flash",
-  [MODEL_B]: "GPT-5 Mini",
+  "google/gemini-3-flash-preview": "Gemini Flash",
+  "google/gemini-2.5-pro": "Gemini 2.5 Pro",
+  "google/gemini-2.5-flash": "Gemini 2.5 Flash",
+  "openai/gpt-5-mini": "GPT-5 Mini",
+  "openai/gpt-5": "GPT-5",
+  "openai/gpt-5-nano": "GPT-5 Nano",
 };
 
 interface DualModelResponseProps {
@@ -21,6 +23,10 @@ interface DualModelResponseProps {
 }
 
 export function DualModelResponse({ messages, role, onPick, onError }: DualModelResponseProps) {
+  const { selectedModels } = useModelSelection();
+  const MODEL_A = selectedModels[0];
+  const MODEL_B = selectedModels[1];
+
   const [responseA, setResponseA] = useState("");
   const [responseB, setResponseB] = useState("");
   const [doneA, setDoneA] = useState(false);
