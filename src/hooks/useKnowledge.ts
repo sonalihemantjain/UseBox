@@ -133,7 +133,8 @@ export function useKnowledge() {
       file_url: publicUrl,
       icon: "file-text",
       is_public: false,
-    });
+      approval_status: "approved",
+    } as any);
 
     if (error) { toast.error("Failed to save article"); return; }
     toast.success("Document uploaded!");
@@ -156,9 +157,13 @@ export function useKnowledge() {
     return true;
   });
 
+  // User's own uploads only
+  const myUploads = articles.filter((a) => a.source_type === "uploaded" && a.user_id === user?.id);
+
   return {
     articles: filtered,
     allArticles: articles,
+    myUploads,
     loading,
     search, setSearch,
     category, setCategory,

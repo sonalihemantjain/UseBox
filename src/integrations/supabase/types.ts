@@ -75,6 +75,7 @@ export type Database = {
       }
       knowledge_articles: {
         Row: {
+          approval_status: string
           category: string
           content: string
           created_at: string
@@ -91,6 +92,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          approval_status?: string
           category?: string
           content?: string
           created_at?: string
@@ -107,6 +109,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          approval_status?: string
           category?: string
           content?: string
           created_at?: string
