@@ -1,4 +1,4 @@
-import { MessageSquare, BookOpen, GraduationCap, BarChart3, LogOut, BookmarkCheck } from "lucide-react";
+import { MessageSquare, BookOpen, GraduationCap, Settings, LogOut } from "lucide-react";
 import useBoxLogo from "@/assets/usebox-logo.png";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
