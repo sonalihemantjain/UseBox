@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { BookOpen, FileText, CheckCircle2, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useKnowledge, type ArticleWithMeta } from "@/hooks/useKnowledge";
 import { UploadDialog } from "@/components/knowledge/UploadDialog";
+import { ArticleViewer } from "@/components/knowledge/ArticleViewer";
 
 const statusBadge: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
   approved: { label: "Approved", className: "bg-green-500/10 text-green-600 border-green-500/20", icon: <CheckCircle2 className="h-3 w-3" /> },
@@ -12,7 +14,17 @@ const statusBadge: Record<string, { label: string; className: string; icon: Reac
 };
 
 const Knowledge = () => {
-  const { myUploads, loading, uploadDocument } = useKnowledge();
+  const { myUploads, loading, uploadDocument, updateProgress } = useKnowledge();
+  const [selectedArticle, setSelectedArticle] = useState<ArticleWithMeta | null>(null);
+
+  const handleArticleClick = (article: ArticleWithMeta) => {
+    setSelectedArticle(article);
+  };
+
+  const handleProgressChange = (id: string, status: "unread" | "reading" | "completed") => {
+    updateProgress(id, status);
+    setSelectedArticle((prev) => (prev && prev.id === id ? { ...prev, progress: status } : prev));
+  };
 
   return (
     <div className="h-full overflow-y-auto">
@@ -55,7 +67,8 @@ const Knowledge = () => {
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 hover:border-primary/30 transition-colors"
+                  onClick={() => handleArticleClick(article)}
+                  className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 hover:border-primary/30 transition-colors cursor-pointer"
                 >
                   <div className="h-10 w-10 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
                     <FileText className="h-5 w-5 text-primary" />
@@ -76,6 +89,13 @@ const Knowledge = () => {
           </div>
         )}
       </div>
+
+      {/* Article viewer modal */}
+      <ArticleViewer
+        article={selectedArticle}
+        onClose={() => setSelectedArticle(null)}
+        onProgressChange={handleProgressChange}
+      />
     </div>
   );
 };
