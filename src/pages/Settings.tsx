@@ -60,7 +60,7 @@ const Settings = () => {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="container mx-auto px-4 sm:px-6 py-8 max-w-4xl">
+      <div className="container mx-auto px-4 sm:px-6 py-8 max-w-6xl">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <h1 className="font-display text-3xl sm:text-4xl font-bold mb-2">Settings</h1>
