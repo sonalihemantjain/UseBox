@@ -1,19 +1,22 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { BookOpen, FileText, CheckCircle2, Clock } from "lucide-react";
+import { BookOpen, FileText, Eye, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useKnowledge, type ArticleWithMeta } from "@/hooks/useKnowledge";
 import { UploadDialog } from "@/components/knowledge/UploadDialog";
 import { ArticleViewer } from "@/components/knowledge/ArticleViewer";
 
-const statusBadge: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
-  approved: { label: "Approved", className: "bg-green-500/10 text-green-600 border-green-500/20", icon: <CheckCircle2 className="h-3 w-3" /> },
-  pending: { label: "Pending Review", className: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20", icon: <Clock className="h-3 w-3" /> },
-  rejected: { label: "Rejected", className: "bg-red-500/10 text-red-600 border-red-500/20", icon: null },
-};
+// Dummy hit data for demonstration
+const DUMMY_HITS: Record<string, { hits: number; credits: number }> = {};
+function getDummyHits(id: string) {
+  if (!DUMMY_HITS[id]) {
+    const hits = Math.floor(Math.random() * 120) + 5;
+    DUMMY_HITS[id] = { hits, credits: hits };
+  }
+  return DUMMY_HITS[id];
+}
 
 const Knowledge = () => {
   const { user } = useAuth();
@@ -22,7 +25,6 @@ const Knowledge = () => {
 
   const handleArticleClick = async (article: ArticleWithMeta) => {
     setSelectedArticle(article);
-    // Record view
     if (user) {
       await supabase.from("article_views").insert({ article_id: article.id, viewer_id: user.id } as any);
     }
@@ -45,7 +47,9 @@ const Knowledge = () => {
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-2">
             <div>
               <h1 className="font-display text-3xl sm:text-4xl font-bold mb-2">Share Knowledge</h1>
-              <p className="text-muted-foreground text-lg">Upload documents to share your expertise</p>
+              <p className="text-muted-foreground text-lg">
+                Upload documents to share your expertise. When others learn from your content, you earn credits.
+              </p>
             </div>
             <UploadDialog onUpload={uploadDocument} />
           </div>
@@ -62,12 +66,12 @@ const Knowledge = () => {
           <div className="text-center py-16">
             <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-30" />
             <p className="text-lg text-muted-foreground mb-1">No documents shared yet</p>
-            <p className="text-sm text-muted-foreground">Upload your first document to start sharing knowledge</p>
+            <p className="text-sm text-muted-foreground">Upload your first document to start earning from your knowledge</p>
           </div>
         ) : (
           <div className="space-y-3">
             {myUploads.map((article, i) => {
-              const status = statusBadge[(article as any).approval_status ?? "approved"] ?? statusBadge.approved;
+              const { hits, credits } = getDummyHits(article.id);
               return (
                 <motion.div
                   key={article.id}
@@ -86,10 +90,16 @@ const Knowledge = () => {
                       <p className="text-sm text-muted-foreground truncate">{article.description}</p>
                     )}
                   </div>
-                  <Badge variant="outline" className={`shrink-0 gap-1 ${status.className}`}>
-                    {status.icon}
-                    {status.label}
-                  </Badge>
+                  <div className="flex items-center gap-4 shrink-0 text-sm text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Eye className="h-4 w-4" />
+                      {hits}
+                    </span>
+                    <span className="flex items-center gap-1 text-primary font-medium">
+                      <TrendingUp className="h-4 w-4" />
+                      {credits} cr
+                    </span>
+                  </div>
                 </motion.div>
               );
             })}
@@ -97,7 +107,6 @@ const Knowledge = () => {
         )}
       </div>
 
-      {/* Article viewer modal */}
       <ArticleViewer
         article={selectedArticle}
         onClose={() => setSelectedArticle(null)}
