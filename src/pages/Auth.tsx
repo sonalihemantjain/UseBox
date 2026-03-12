@@ -73,6 +73,22 @@ const Auth = () => {
           </span>
         </a>
 
+        {/* Animated tagline */}
+        <div className="flex items-center justify-center gap-1.5 mb-8 h-8">
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={taglineIndex}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.4 }}
+              className="text-lg font-display font-semibold text-gradient-gold"
+            >
+              {taglines[taglineIndex]}
+            </motion.span>
+          </AnimatePresence>
+        </div>
+
         <div className="bg-glass rounded-2xl p-8">
           <h2 className="font-display text-2xl font-bold text-center mb-2">
             {isLogin ? "Welcome back" : "Create account"}
