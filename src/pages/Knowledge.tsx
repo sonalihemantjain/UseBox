@@ -32,10 +32,7 @@ const Knowledge = () => {
     }
   };
 
-  const handleProgressChange = (id: string, status: "unread" | "reading" | "completed") => {
-    updateProgress(id, status);
-    setSelectedArticle((prev) => (prev && prev.id === id ? { ...prev, progress: status } : prev));
-  };
+  const handleProgressChange = () => {};
 
   return (
     <div className="h-full overflow-y-auto">
