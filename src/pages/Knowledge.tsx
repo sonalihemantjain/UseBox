@@ -110,7 +110,6 @@ const Knowledge = () => {
       <ArticleViewer
         article={selectedArticle}
         onClose={() => setSelectedArticle(null)}
-        onProgressChange={handleProgressChange}
       />
     </div>
   );

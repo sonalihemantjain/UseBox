@@ -10,10 +10,9 @@ import { getArticleIcon } from "@/lib/knowledge-icons";
 interface ArticleViewerProps {
   article: ArticleWithMeta | null;
   onClose: () => void;
-  onProgressChange: (id: string, status: "unread" | "reading" | "completed") => void;
 }
 
-export function ArticleViewer({ article, onClose, onProgressChange }: ArticleViewerProps) {
+export function ArticleViewer({ article, onClose }: ArticleViewerProps) {
   if (!article) return null;
 
   const Icon = getArticleIcon(article.icon);
@@ -75,36 +74,6 @@ export function ArticleViewer({ article, onClose, onProgressChange }: ArticleVie
             </div>
           </div>
 
-          {/* Footer: progress controls */}
-          <div className="flex items-center justify-between p-6 border-t border-border">
-            <p className="text-sm text-muted-foreground">
-              {article.progress === "completed"
-                ? "✓ Completed"
-                : article.progress === "reading"
-                ? "Currently reading"
-                : "Not started"}
-            </p>
-            <div className="flex gap-2">
-              {article.progress !== "reading" && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onProgressChange(article.id, "reading")}
-                >
-                  <Eye className="h-4 w-4 mr-1.5" /> Mark as Reading
-                </Button>
-              )}
-              {article.progress !== "completed" && (
-                <Button
-                  size="sm"
-                  onClick={() => onProgressChange(article.id, "completed")}
-                  className="glow-gold"
-                >
-                  <CheckCircle2 className="h-4 w-4 mr-1.5" /> Mark Completed
-                </Button>
-              )}
-            </div>
-          </div>
         </motion.div>
       </motion.div>
     </AnimatePresence>
