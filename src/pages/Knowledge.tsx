@@ -20,8 +20,12 @@ const Knowledge = () => {
   const { myUploads, loading, uploadDocument, updateProgress } = useKnowledge();
   const [selectedArticle, setSelectedArticle] = useState<ArticleWithMeta | null>(null);
 
-  const handleArticleClick = (article: ArticleWithMeta) => {
+  const handleArticleClick = async (article: ArticleWithMeta) => {
     setSelectedArticle(article);
+    // Record view
+    if (user) {
+      await supabase.from("article_views").insert({ article_id: article.id, viewer_id: user.id } as any);
+    }
   };
 
   const handleProgressChange = (id: string, status: "unread" | "reading" | "completed") => {
