@@ -12,7 +12,7 @@ interface ArticleViewerProps {
   onClose: () => void;
 }
 
-export function ArticleViewer({ article, onClose, onProgressChange }: ArticleViewerProps) {
+export function ArticleViewer({ article, onClose }: ArticleViewerProps) {
   if (!article) return null;
 
   const Icon = getArticleIcon(article.icon);
