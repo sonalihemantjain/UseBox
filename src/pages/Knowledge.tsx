@@ -1,11 +1,12 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { BookOpen, FileText, Eye, TrendingUp } from "lucide-react";
+import { BookOpen, FileText, Eye, TrendingUp, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { useKnowledge, type ArticleWithMeta } from "@/hooks/useKnowledge";
-import { UploadDialog } from "@/components/knowledge/UploadDialog";
 import { ArticleViewer } from "@/components/knowledge/ArticleViewer";
 
 // Dummy hit data for demonstration
@@ -19,8 +20,9 @@ function getDummyHits(id: string) {
 }
 
 const Knowledge = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
-  const { myUploads, loading, uploadDocument, updateProgress } = useKnowledge();
+  const { myUploads, loading } = useKnowledge();
   const [selectedArticle, setSelectedArticle] = useState<ArticleWithMeta | null>(null);
 
   const handleArticleClick = async (article: ArticleWithMeta) => {
@@ -30,10 +32,7 @@ const Knowledge = () => {
     }
   };
 
-  const handleProgressChange = (id: string, status: "unread" | "reading" | "completed") => {
-    updateProgress(id, status);
-    setSelectedArticle((prev) => (prev && prev.id === id ? { ...prev, progress: status } : prev));
-  };
+  const handleProgressChange = () => {};
 
   return (
     <div className="h-full overflow-y-auto">
@@ -51,7 +50,9 @@ const Knowledge = () => {
                 Upload documents to share your expertise. When others learn from your content, you earn credits.
               </p>
             </div>
-            <UploadDialog onUpload={uploadDocument} />
+            <Button onClick={() => navigate("/upload")} className="gap-2">
+              <Upload className="h-4 w-4" /> Upload Document
+            </Button>
           </div>
         </motion.div>
 
