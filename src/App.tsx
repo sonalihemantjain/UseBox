@@ -11,7 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Chat from "./pages/Chat";
 import SavedChats from "./pages/SavedChats";
 import Knowledge from "./pages/Knowledge";
-import Learning from "./pages/Learning";
+import Earn from "./pages/Earn";
 import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 
