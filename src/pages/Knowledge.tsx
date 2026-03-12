@@ -16,6 +16,7 @@ const statusBadge: Record<string, { label: string; className: string; icon: Reac
 };
 
 const Knowledge = () => {
+  const { user } = useAuth();
   const { myUploads, loading, uploadDocument, updateProgress } = useKnowledge();
   const [selectedArticle, setSelectedArticle] = useState<ArticleWithMeta | null>(null);
 
