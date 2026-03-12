@@ -33,17 +33,6 @@ const UploadDocument = () => {
 
   return (
     <div className="h-full flex flex-col overflow-y-auto">
-      {/* Top bar */}
-      <div className="border-b border-border bg-card/50 px-6 py-4 shrink-0">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate("/knowledge")}
-          className="gap-2 text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back
-        </Button>
-      </div>
 
       {/* Full-page content */}
       <div className="flex-1 flex items-start justify-center px-4 sm:px-6 py-10">
