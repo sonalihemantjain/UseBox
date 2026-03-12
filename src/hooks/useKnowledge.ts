@@ -156,9 +156,13 @@ export function useKnowledge() {
     return true;
   });
 
+  // User's own uploads only
+  const myUploads = articles.filter((a) => a.source_type === "uploaded" && a.user_id === user?.id);
+
   return {
     articles: filtered,
     allArticles: articles,
+    myUploads,
     loading,
     search, setSearch,
     category, setCategory,
