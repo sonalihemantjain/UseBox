@@ -16,7 +16,7 @@ import { useNavigate } from "react-router-dom";
 const Settings = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { selectedModels, setModel, availableModels } = useModelSelection();
+  const { selectedModels, toggleModel, availableModels } = useModelSelection();
   const { chats, toggleSaveChat, renameChat } = useChatHistory();
 
   // Password reset
