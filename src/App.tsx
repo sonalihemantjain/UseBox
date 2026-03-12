@@ -38,6 +38,7 @@ const App = () => (
           <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
           <Route path="/saved-chats" element={<ProtectedRoute><SavedChats /></ProtectedRoute>} />
           <Route path="/knowledge" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
+          <Route path="/upload" element={<ProtectedRoute><UploadDocument /></ProtectedRoute>} />
           <Route path="/earn" element={<ProtectedRoute><Earn /></ProtectedRoute>} />
           <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />

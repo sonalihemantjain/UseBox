@@ -50,7 +50,9 @@ const Knowledge = () => {
                 Upload documents to share your expertise. When others learn from your content, you earn credits.
               </p>
             </div>
-            <UploadDialog onUpload={uploadDocument} />
+            <Button onClick={() => navigate("/upload")} className="gap-2">
+              <Upload className="h-4 w-4" /> Upload Document
+            </Button>
           </div>
         </motion.div>
 
