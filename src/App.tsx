@@ -11,7 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Chat from "./pages/Chat";
 import SavedChats from "./pages/SavedChats";
 import Knowledge from "./pages/Knowledge";
-import Learning from "./pages/Learning";
+import Earn from "./pages/Earn";
 import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 
@@ -37,7 +37,7 @@ const App = () => (
           <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
           <Route path="/saved-chats" element={<ProtectedRoute><SavedChats /></ProtectedRoute>} />
           <Route path="/knowledge" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
-          <Route path="/learning" element={<ProtectedRoute><Learning /></ProtectedRoute>} />
+          <Route path="/earn" element={<ProtectedRoute><Earn /></ProtectedRoute>} />
           <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>

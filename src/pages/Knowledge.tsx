@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { BookOpen, FileText, CheckCircle2, Clock } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useKnowledge, type ArticleWithMeta } from "@/hooks/useKnowledge";
@@ -14,11 +16,16 @@ const statusBadge: Record<string, { label: string; className: string; icon: Reac
 };
 
 const Knowledge = () => {
+  const { user } = useAuth();
   const { myUploads, loading, uploadDocument, updateProgress } = useKnowledge();
   const [selectedArticle, setSelectedArticle] = useState<ArticleWithMeta | null>(null);
 
-  const handleArticleClick = (article: ArticleWithMeta) => {
+  const handleArticleClick = async (article: ArticleWithMeta) => {
     setSelectedArticle(article);
+    // Record view
+    if (user) {
+      await supabase.from("article_views").insert({ article_id: article.id, viewer_id: user.id } as any);
+    }
   };
 
   const handleProgressChange = (id: string, status: "unread" | "reading" | "completed") => {
