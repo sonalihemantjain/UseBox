@@ -36,5 +36,15 @@ export function useModelSelection() {
     });
   };
 
-  return { selectedModels, setModel, availableModels: AVAILABLE_MODELS };
+  const toggleModel = (modelId: string) => {
+    setSelectedModels((prev) => {
+      if (prev.includes(modelId)) {
+        return prev.filter((id) => id !== modelId);
+      }
+      if (prev.length >= 2) return prev;
+      return [...prev, modelId];
+    });
+  };
+
+  return { selectedModels, setModel, toggleModel, availableModels: AVAILABLE_MODELS };
 }
