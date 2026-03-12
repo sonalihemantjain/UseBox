@@ -133,7 +133,8 @@ export function useKnowledge() {
       file_url: publicUrl,
       icon: "file-text",
       is_public: false,
-    });
+      approval_status: "approved",
+    } as any);
 
     if (error) { toast.error("Failed to save article"); return; }
     toast.success("Document uploaded!");
