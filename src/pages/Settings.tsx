@@ -4,7 +4,7 @@ import { Settings as SettingsIcon, KeyRound, User, Cpu, BookmarkCheck, MessageSq
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
 import { useModelSelection } from "@/hooks/useModelSelection";
