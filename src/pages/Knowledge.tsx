@@ -1,11 +1,12 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { BookOpen, FileText, Eye, TrendingUp } from "lucide-react";
+import { BookOpen, FileText, Eye, TrendingUp, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { useKnowledge, type ArticleWithMeta } from "@/hooks/useKnowledge";
-import { UploadDialog } from "@/components/knowledge/UploadDialog";
 import { ArticleViewer } from "@/components/knowledge/ArticleViewer";
 
 // Dummy hit data for demonstration
