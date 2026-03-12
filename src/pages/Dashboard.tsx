@@ -141,7 +141,7 @@ const Dashboard = () => {
                 <MessageSquare className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h3 className="font-display text-lg font-semibold">Start AI Coaching</h3>
+                <h3 className="font-display text-lg font-semibold">Learn</h3>
                 <p className="text-sm text-muted-foreground">Compare answers from two AI models side-by-side</p>
               </div>
             </div>
