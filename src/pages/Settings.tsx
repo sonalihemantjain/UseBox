@@ -121,37 +121,44 @@ const Settings = () => {
               <h2 className="font-display text-xl font-semibold">Model Selection</h2>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Choose 2 AI models for the comparison view in Learn. Responses from both models will appear side-by-side.
+              Select exactly 2 AI models for the comparison view in Learn.
             </p>
             <div className="rounded-xl border border-border bg-card p-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm mb-1.5 block">Model A</Label>
-                  <Select value={selectedModels[0]} onValueChange={(v) => setModel(0, v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {availableModels.map((m) => (
-                        <SelectItem key={m.id} value={m.id} disabled={m.id === selectedModels[1]}>
-                          {m.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-sm mb-1.5 block">Model B</Label>
-                  <Select value={selectedModels[1]} onValueChange={(v) => setModel(1, v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {availableModels.map((m) => (
-                        <SelectItem key={m.id} value={m.id} disabled={m.id === selectedModels[0]}>
-                          {m.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-3">
+                {availableModels.map((m) => {
+                  const isSelected = selectedModels.includes(m.id);
+                  const isDisabled = !isSelected && selectedModels.length >= 2;
+                  return (
+                    <label
+                      key={m.id}
+                      className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${
+                        isSelected
+                          ? "border-primary/30 bg-primary/5"
+                          : isDisabled
+                          ? "border-border opacity-50 cursor-not-allowed"
+                          : "border-border hover:border-primary/20"
+                      }`}
+                    >
+                      <Checkbox
+                        checked={isSelected}
+                        disabled={isDisabled}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            toggleModel(m.id);
+                          } else {
+                            toggleModel(m.id);
+                          }
+                        }}
+                      />
+                      <span className="text-sm font-medium text-foreground">{m.label}</span>
+                      <span className="text-xs text-muted-foreground ml-auto">{m.id.split("/")[0]}</span>
+                    </label>
+                  );
+                })}
               </div>
+              {selectedModels.length < 2 && (
+                <p className="text-xs text-destructive mt-3">Please select 2 models for comparison.</p>
+              )}
             </div>
           </motion.section>
 
