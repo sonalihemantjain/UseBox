@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
+import { motion } from "framer-motion";
 import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 import useBoxLogo from "@/assets/usebox-logo.png";
 import { Button } from "@/components/ui/button";
@@ -9,23 +9,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-const taglines = ["Learn.", "Share.", "Earn."];
-
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [taglineIndex, setTaglineIndex] = useState(0);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTaglineIndex((prev) => (prev + 1) % taglines.length);
-    }, 2000);
-    return () => clearInterval(interval);
-  }, []);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,21 +63,16 @@ const Auth = () => {
           </span>
         </a>
 
-        {/* Animated tagline */}
-        <div className="flex items-center justify-center gap-1.5 mb-8 h-8">
-          <AnimatePresence mode="wait">
-            <motion.span
-              key={taglineIndex}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.4 }}
-              className="text-lg font-display font-semibold text-gradient-gold"
-            >
-              {taglines[taglineIndex]}
-            </motion.span>
-          </AnimatePresence>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="flex items-center justify-center gap-2 mb-8"
+        >
+          <span className="text-lg font-display font-semibold text-gradient-learn">Learn.</span>
+          <span className="text-lg font-display font-semibold text-gradient-share">Share.</span>
+          <span className="text-lg font-display font-semibold text-gradient-gold">Earn.</span>
+        </motion.div>
 
         <div className="bg-glass rounded-2xl p-8">
           <h2 className="font-display text-2xl font-bold text-center mb-2">
