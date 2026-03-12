@@ -20,8 +20,9 @@ function getDummyHits(id: string) {
 }
 
 const Knowledge = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
-  const { myUploads, loading, uploadDocument, updateProgress } = useKnowledge();
+  const { myUploads, loading } = useKnowledge();
   const [selectedArticle, setSelectedArticle] = useState<ArticleWithMeta | null>(null);
 
   const handleArticleClick = async (article: ArticleWithMeta) => {
