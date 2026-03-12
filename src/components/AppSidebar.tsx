@@ -22,10 +22,10 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
 const navItems = [
-  { title: "AI Coaching", url: "/chat", icon: MessageSquare },
+  { title: "Learn", url: "/chat", icon: MessageSquare },
   { title: "Saved Chats", url: "/saved-chats", icon: BookmarkCheck },
-  { title: "Knowledge", url: "/knowledge", icon: BookOpen },
-  { title: "Learning Paths", url: "/learning", icon: GraduationCap },
+  { title: "Share", url: "/knowledge", icon: BookOpen },
+  { title: "Earn", url: "/learning", icon: GraduationCap },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
 ];
 
