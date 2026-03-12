@@ -23,10 +23,9 @@ import { Separator } from "@/components/ui/separator";
 
 const navItems = [
   { title: "Learn", url: "/chat", icon: MessageSquare },
-  { title: "Saved Chats", url: "/saved-chats", icon: BookmarkCheck },
   { title: "Share", url: "/knowledge", icon: BookOpen },
   { title: "Earn", url: "/earn", icon: GraduationCap },
-  { title: "Analytics", url: "/analytics", icon: BarChart3 },
+  { title: "Settings", url: "/settings", icon: Settings },
 ];
 
 export function AppSidebar() {
