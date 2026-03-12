@@ -38,7 +38,7 @@ const Earn = () => {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="container mx-auto px-4 sm:px-6 py-8 max-w-5xl">
+      <div className="container mx-auto px-4 sm:px-6 py-8 max-w-6xl">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
