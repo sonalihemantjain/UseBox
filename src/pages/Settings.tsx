@@ -129,30 +129,25 @@ const Settings = () => {
                   const isSelected = selectedModels.includes(m.id);
                   const isDisabled = !isSelected && selectedModels.length >= 2;
                   return (
-                    <label
+                    <div
                       key={m.id}
-                      className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${
+                      onClick={() => !isDisabled && toggleModel(m.id)}
+                      className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
                         isSelected
-                          ? "border-primary/30 bg-primary/5"
+                          ? "border-primary/30 bg-primary/5 cursor-pointer"
                           : isDisabled
                           ? "border-border opacity-50 cursor-not-allowed"
-                          : "border-border hover:border-primary/20"
+                          : "border-border hover:border-primary/20 cursor-pointer"
                       }`}
                     >
                       <Checkbox
                         checked={isSelected}
                         disabled={isDisabled}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            toggleModel(m.id);
-                          } else {
-                            toggleModel(m.id);
-                          }
-                        }}
+                        onCheckedChange={() => toggleModel(m.id)}
                       />
                       <span className="text-sm font-medium text-foreground">{m.label}</span>
                       <span className="text-xs text-muted-foreground ml-auto">{m.id.split("/")[0]}</span>
-                    </label>
+                    </div>
                   );
                 })}
               </div>
