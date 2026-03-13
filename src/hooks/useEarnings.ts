@@ -33,7 +33,7 @@ export function useEarnings() {
 
     // Fetch all articles (user's own + public ones for demo)
     const [{ data: articles }, { data: views }, { data: likes }, { data: credits }, { data: redemptions }] = await Promise.all([
-      supabase.from("knowledge_articles").select("id, title, user_id"),
+      supabase.from("knowledge_articles").select("id, title").eq("user_id", user.id),
       supabase.from("article_views").select("article_id"),
       supabase.from("article_likes").select("article_id"),
       supabase.from("user_credits").select("*").eq("user_id", user.id).maybeSingle(),
