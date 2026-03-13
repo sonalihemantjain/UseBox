@@ -103,43 +103,41 @@ serve(async (req) => {
     } else {
       const roleContext = ROLE_CONTEXTS[role] || ROLE_CONTEXTS["business"];
       systemPrompt = `${BASE_PROMPT}\n\n## User Persona\n${roleContext}`;
+    }
 
-      // RAG: Search knowledge base for relevant content
-      const lastUserMessage = [...messages].reverse().find((m: any) => m.role === "user");
-      if (lastUserMessage) {
-        try {
-          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-          const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-          const supabase = createClient(supabaseUrl, supabaseKey);
+    // RAG: Search knowledge base for relevant content (works with or without persona)
+    const lastUserMessage = [...messages].reverse().find((m: any) => m.role === "user");
+    if (lastUserMessage) {
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
-          const { data: results } = await supabase.rpc("search_knowledge", {
-            search_query: lastUserMessage.content,
-            max_results: 3,
-          });
+        const { data: results } = await supabase.rpc("search_knowledge", {
+          search_query: lastUserMessage.content,
+          max_results: 3,
+        });
 
-          if (results && results.length > 0) {
-            let ragContext = RAG_INSTRUCTION;
-            for (const article of results) {
-              ragContext += `\n### "${article.title}" (ID: ${article.id})\n`;
-              ragContext += `Category: ${article.category} | Tags: ${(article.tags || []).join(", ")}\n`;
-              // Truncate content to ~1500 chars per article
-              const truncated = article.content.length > 1500
-                ? article.content.substring(0, 1500) + "..."
-                : article.content;
-              ragContext += `Content:\n${truncated}\n`;
+        if (results && results.length > 0) {
+          let ragContext = RAG_INSTRUCTION;
+          for (const article of results) {
+            ragContext += `\n### "${article.title}" (ID: ${article.id})\n`;
+            ragContext += `Category: ${article.category} | Tags: ${(article.tags || []).join(", ")}\n`;
+            const truncated = article.content.length > 1500
+              ? article.content.substring(0, 1500) + "..."
+              : article.content;
+            ragContext += `Content:\n${truncated}\n`;
 
-              sourcesMetadata.push({
-                id: article.id,
-                title: article.title,
-                description: article.description || "",
-              });
-            }
-            systemPrompt += "\n" + ragContext;
+            sourcesMetadata.push({
+              id: article.id,
+              title: article.title,
+              description: article.description || "",
+            });
           }
-        } catch (e) {
-          console.error("RAG search error:", e);
-          // Continue without RAG if search fails
+          systemPrompt += "\n" + ragContext;
         }
+      } catch (e) {
+        console.error("RAG search error:", e);
       }
     }
 
