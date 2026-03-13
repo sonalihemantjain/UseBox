@@ -15,6 +15,7 @@ export interface KnowledgeArticle {
   file_url: string | null;
   icon: string;
   is_public: boolean;
+  approval_status: string;
   user_id: string | null;
   created_at: string;
 }
