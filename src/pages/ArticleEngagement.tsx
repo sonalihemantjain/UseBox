@@ -133,7 +133,7 @@ const ArticleEngagement = () => {
   };
 
   const handleShare = async () => {
-    if (!user || !id) return;
+    if (!id || requireAuth()) return;
 
     await supabase.from("article_shares").insert({ user_id: user.id, article_id: id });
     setShareCount((c) => c + 1);
