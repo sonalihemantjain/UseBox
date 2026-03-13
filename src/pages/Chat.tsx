@@ -25,6 +25,12 @@ const SUGGESTIONS = [
   "Help me create a learning path for my team",
 ];
 
+// Strip the AI's "📚 Sources" markdown section since we render SourceLinks separately
+function stripSourcesSection(content: string): string {
+  return content.replace(/\n---\n📚[\s\S]*$/m, "").replace(/\n📚 \*\*Sources[:\s]*\*\*[\s\S]*$/m, "").trim();
+}
+
+
 type DisplayMessage = ChatMessage & { comparing?: boolean; sources?: SourceReference[] };
 
 const Chat = () => {
