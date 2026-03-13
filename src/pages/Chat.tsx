@@ -25,7 +25,7 @@ const SUGGESTIONS = [
   "Help me create a learning path for my team",
 ];
 
-type DisplayMessage = ChatMessage & { comparing?: boolean };
+type DisplayMessage = ChatMessage & { comparing?: boolean; sources?: SourceReference[] };
 
 const Chat = () => {
   const { user } = useAuth();
