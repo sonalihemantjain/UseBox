@@ -15,6 +15,7 @@ import UploadDocument from "./pages/UploadDocument";
 import Earn from "./pages/Earn";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import ArticleEngagement from "./pages/ArticleEngagement";
 
 const queryClient = new QueryClient();
 
