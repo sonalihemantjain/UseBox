@@ -81,18 +81,21 @@ const ArticleEngagement = () => {
 
   useEffect(() => {
     if (isReady) {
-      if (!user) {
-        // Redirect to auth with return URL
-        const returnUrl = `/article/${id}`;
-        navigate(`/auth?redirect=${encodeURIComponent(returnUrl)}`, { replace: true });
-        return;
-      }
       fetchArticle();
     }
-  }, [isReady, user, fetchArticle, navigate, id]);
+  }, [isReady, fetchArticle]);
+
+  const requireAuth = () => {
+    if (!user) {
+      const returnUrl = `/article/${id}`;
+      navigate(`/auth?redirect=${encodeURIComponent(returnUrl)}`);
+      return true;
+    }
+    return false;
+  };
 
   const handleLike = async () => {
-    if (!user || !id) return;
+    if (!id || requireAuth()) return;
     setSubmitting(true);
 
     if (liked) {
@@ -110,7 +113,7 @@ const ArticleEngagement = () => {
   };
 
   const handleComment = async () => {
-    if (!user || !id || !commentText.trim()) return;
+    if (!id || !commentText.trim() || requireAuth()) return;
     setSubmitting(true);
 
     const { data, error } = await supabase
@@ -130,7 +133,7 @@ const ArticleEngagement = () => {
   };
 
   const handleShare = async () => {
-    if (!user || !id) return;
+    if (!id || requireAuth()) return;
 
     await supabase.from("article_shares").insert({ user_id: user.id, article_id: id });
     setShareCount((c) => c + 1);
