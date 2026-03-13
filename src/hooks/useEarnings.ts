@@ -33,7 +33,7 @@ export function useEarnings() {
 
     // Fetch all articles (user's own + public ones for demo)
     const [{ data: articles }, { data: views }, { data: likes }, { data: credits }, { data: redemptions }] = await Promise.all([
-      supabase.from("knowledge_articles").select("id, title, user_id"),
+      supabase.from("knowledge_articles").select("id, title").eq("user_id", user.id),
       supabase.from("article_views").select("article_id"),
       supabase.from("article_likes").select("article_id"),
       supabase.from("user_credits").select("*").eq("user_id", user.id).maybeSingle(),
@@ -50,11 +50,8 @@ export function useEarnings() {
       likeCounts.set(l.article_id, (likeCounts.get(l.article_id) || 0) + 1);
     });
 
-    // Show stats for user's own articles OR all articles if user has none
-    const userArticles = (articles ?? []).filter((a: any) => a.user_id === user.id);
-    const displayArticles = userArticles.length > 0 ? userArticles : (articles ?? []);
-
-    const articleStats = displayArticles.map((a: any) => {
+    // Only show stats for user's own articles
+    const articleStats = (articles ?? []).map((a: any) => {
       const viewCount = viewCounts.get(a.id) || 0;
       const likeCount = likeCounts.get(a.id) || 0;
       return {
