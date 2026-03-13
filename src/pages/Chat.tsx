@@ -312,7 +312,7 @@ const Chat = () => {
                     {msg.role === "assistant" ? (
                       <>
                         <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-muted [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_li]:text-muted-foreground [&_p]:text-card-foreground">
-                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                          <ReactMarkdown>{stripSourcesSection(msg.content)}</ReactMarkdown>
                         </div>
                         {msg.sources && msg.sources.length > 0 && (
                           <SourceLinks sources={msg.sources} />
