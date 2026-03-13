@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -68,6 +69,24 @@ Replace "keyword" with one of: business, lowcode, developer, architect, admin
 
 Tone: Warm, friendly, like a helpful onboarding guide.`;
 
+const RAG_INSTRUCTION = `
+## Knowledge Base Sources
+The following knowledge articles from the UseBox platform are relevant to the user's question. Use them to provide accurate, grounded answers. When you use information from these sources, you MUST cite them.
+
+CITATION FORMAT - You MUST follow this exactly:
+- At the END of your response, add a "---" separator followed by a "📚 Sources" section
+- List each source as: [Source Title](ARTICLE_ID)
+- Example:
+---
+📚 **Sources:**
+- [Introduction to RAG](abc-123-def)
+- [AI Best Practices](xyz-789-ghi)
+
+IMPORTANT: Always use the exact article IDs provided. Only cite sources you actually used.
+
+## Relevant Articles:
+`;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -77,12 +96,51 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     let systemPrompt: string;
+    let sourcesMetadata: any[] = [];
+
     if (!role) {
-      // No persona set — use discovery prompt
       systemPrompt = DISCOVERY_PROMPT;
     } else {
       const roleContext = ROLE_CONTEXTS[role] || ROLE_CONTEXTS["business"];
       systemPrompt = `${BASE_PROMPT}\n\n## User Persona\n${roleContext}`;
+
+      // RAG: Search knowledge base for relevant content
+      const lastUserMessage = [...messages].reverse().find((m: any) => m.role === "user");
+      if (lastUserMessage) {
+        try {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+          const supabase = createClient(supabaseUrl, supabaseKey);
+
+          const { data: results } = await supabase.rpc("search_knowledge", {
+            search_query: lastUserMessage.content,
+            max_results: 3,
+          });
+
+          if (results && results.length > 0) {
+            let ragContext = RAG_INSTRUCTION;
+            for (const article of results) {
+              ragContext += `\n### "${article.title}" (ID: ${article.id})\n`;
+              ragContext += `Category: ${article.category} | Tags: ${(article.tags || []).join(", ")}\n`;
+              // Truncate content to ~1500 chars per article
+              const truncated = article.content.length > 1500
+                ? article.content.substring(0, 1500) + "..."
+                : article.content;
+              ragContext += `Content:\n${truncated}\n`;
+
+              sourcesMetadata.push({
+                id: article.id,
+                title: article.title,
+                description: article.description || "",
+              });
+            }
+            systemPrompt += "\n" + ragContext;
+          }
+        } catch (e) {
+          console.error("RAG search error:", e);
+          // Continue without RAG if search fails
+        }
+      }
     }
 
     const allowedModels = ["google/gemini-3-flash-preview", "openai/gpt-5-mini"];
@@ -122,6 +180,33 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "AI service temporarily unavailable." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // If we have sources, prepend them as a custom SSE event before the AI stream
+    if (sourcesMetadata.length > 0) {
+      const sourceLine = `data: ${JSON.stringify({ sources: sourcesMetadata })}\n\n`;
+      const encoder = new TextEncoder();
+      const sourceChunk = encoder.encode(sourceLine);
+
+      const stream = new ReadableStream({
+        async start(controller) {
+          // Send sources metadata first
+          controller.enqueue(sourceChunk);
+
+          // Then pipe the AI response
+          const reader = response.body!.getReader();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            controller.enqueue(value);
+          }
+          controller.close();
+        },
+      });
+
+      return new Response(stream, {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
       });
     }
 

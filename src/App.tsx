@@ -15,6 +15,7 @@ import UploadDocument from "./pages/UploadDocument";
 import Earn from "./pages/Earn";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import ArticleEngagement from "./pages/ArticleEngagement";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
           <Route path="/upload" element={<ProtectedRoute><UploadDocument /></ProtectedRoute>} />
           <Route path="/earn" element={<ProtectedRoute><Earn /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/article/:id" element={<ArticleEngagement />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
