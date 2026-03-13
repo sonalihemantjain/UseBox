@@ -85,8 +85,17 @@ const ArticleEngagement = () => {
     }
   }, [isReady, fetchArticle]);
 
+  const requireAuth = () => {
+    if (!user) {
+      const returnUrl = `/article/${id}`;
+      navigate(`/auth?redirect=${encodeURIComponent(returnUrl)}`);
+      return true;
+    }
+    return false;
+  };
+
   const handleLike = async () => {
-    if (!user || !id) return;
+    if (!id || requireAuth()) return;
     setSubmitting(true);
 
     if (liked) {
