@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { BookOpen, FileText, Eye, Heart, MessageCircle, Share2, Upload } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,27 +10,13 @@ import { ArticleViewer } from "@/components/knowledge/ArticleViewer";
 
 const Knowledge = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { sharedArticles, myUploads, loading } = useKnowledge();
+  const { myUploads, loading } = useKnowledge();
   const [selectedArticle, setSelectedArticle] = useState<ArticleWithMeta | null>(null);
-
-  // Show shared community articles + user's own uploads (deduplicated)
-  const allArticles = [...sharedArticles];
-  myUploads.forEach((u) => {
-    if (!allArticles.find((a) => a.id === u.id)) {
-      allArticles.push(u);
-    }
-  });
 
   return (
     <div className="h-full overflow-y-auto">
       <div className="container mx-auto px-4 sm:px-6 py-8 max-w-6xl">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-2">
             <div>
               <h1 className="font-display text-3xl sm:text-4xl font-bold mb-2">Share Knowledge</h1>
@@ -45,14 +30,13 @@ const Knowledge = () => {
           </div>
         </motion.div>
 
-        {/* Articles list */}
         {loading ? (
           <div className="space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <Skeleton key={i} className="h-24 rounded-xl" />
             ))}
           </div>
-        ) : allArticles.length === 0 ? (
+        ) : myUploads.length === 0 ? (
           <div className="text-center py-16">
             <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-30" />
             <p className="text-lg text-muted-foreground mb-1">No documents shared yet</p>
@@ -60,7 +44,7 @@ const Knowledge = () => {
           </div>
         ) : (
           <div className="space-y-3">
-            {allArticles.map((article, i) => (
+            {myUploads.map((article, i) => (
               <motion.div
                 key={article.id}
                 initial={{ opacity: 0, y: 12 }}
@@ -83,22 +67,10 @@ const Knowledge = () => {
                   )}
                 </div>
                 <div className="flex items-center gap-3 shrink-0 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Eye className="h-3.5 w-3.5" />
-                    {article.viewCount}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Heart className="h-3.5 w-3.5" />
-                    {article.likeCount}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <MessageCircle className="h-3.5 w-3.5" />
-                    {article.commentCount}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Share2 className="h-3.5 w-3.5" />
-                    {article.shareCount}
-                  </span>
+                  <span className="flex items-center gap-1"><Eye className="h-3.5 w-3.5" />{article.viewCount}</span>
+                  <span className="flex items-center gap-1"><Heart className="h-3.5 w-3.5" />{article.likeCount}</span>
+                  <span className="flex items-center gap-1"><MessageCircle className="h-3.5 w-3.5" />{article.commentCount}</span>
+                  <span className="flex items-center gap-1"><Share2 className="h-3.5 w-3.5" />{article.shareCount}</span>
                 </div>
               </motion.div>
             ))}
