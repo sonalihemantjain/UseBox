@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Coins, Eye, TrendingUp, Wallet, ArrowDownToLine, FileText, Clock, CheckCircle2 } from "lucide-react";
+import { Coins, Eye, Heart, TrendingUp, Wallet, ArrowDownToLine, FileText, Clock, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -128,6 +128,7 @@ const Earn = () => {
                       </div>
                       <div className="flex items-center gap-4 shrink-0 text-sm">
                         <span className="flex items-center gap-1 text-muted-foreground"><Eye className="h-3 w-3" />{a.views}</span>
+                        <span className="flex items-center gap-1 text-muted-foreground"><Heart className="h-3 w-3" />{a.likes}</span>
                         <span className="flex items-center gap-1 text-amber-500 font-medium"><Coins className="h-3 w-3" />{a.credits}</span>
                       </div>
                     </div>

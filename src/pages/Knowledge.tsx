@@ -1,38 +1,27 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { BookOpen, FileText, Eye, TrendingUp, Upload } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { BookOpen, FileText, Eye, Heart, MessageCircle, Share2, Upload } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useKnowledge, type ArticleWithMeta } from "@/hooks/useKnowledge";
 import { ArticleViewer } from "@/components/knowledge/ArticleViewer";
-
-// Dummy hit data for demonstration
-const DUMMY_HITS: Record<string, { hits: number; credits: number }> = {};
-function getDummyHits(id: string) {
-  if (!DUMMY_HITS[id]) {
-    const hits = Math.floor(Math.random() * 120) + 5;
-    DUMMY_HITS[id] = { hits, credits: hits };
-  }
-  return DUMMY_HITS[id];
-}
 
 const Knowledge = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { myUploads, loading } = useKnowledge();
+  const { sharedArticles, myUploads, loading } = useKnowledge();
   const [selectedArticle, setSelectedArticle] = useState<ArticleWithMeta | null>(null);
 
-  const handleArticleClick = async (article: ArticleWithMeta) => {
-    setSelectedArticle(article);
-    if (user) {
-      await supabase.from("article_views").insert({ article_id: article.id, viewer_id: user.id } as any);
+  // Show shared community articles + user's own uploads (deduplicated)
+  const allArticles = [...sharedArticles];
+  myUploads.forEach((u) => {
+    if (!allArticles.find((a) => a.id === u.id)) {
+      allArticles.push(u);
     }
-  };
-
-  const handleProgressChange = () => {};
+  });
 
   return (
     <div className="h-full overflow-y-auto">
@@ -56,14 +45,14 @@ const Knowledge = () => {
           </div>
         </motion.div>
 
-        {/* User's uploads */}
+        {/* Articles list */}
         {loading ? (
           <div className="space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-20 rounded-xl" />
+              <Skeleton key={i} className="h-24 rounded-xl" />
             ))}
           </div>
-        ) : myUploads.length === 0 ? (
+        ) : allArticles.length === 0 ? (
           <div className="text-center py-16">
             <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-30" />
             <p className="text-lg text-muted-foreground mb-1">No documents shared yet</p>
@@ -71,39 +60,48 @@ const Knowledge = () => {
           </div>
         ) : (
           <div className="space-y-3">
-            {myUploads.map((article, i) => {
-              const { hits, credits } = getDummyHits(article.id);
-              return (
-                <motion.div
-                  key={article.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  onClick={() => handleArticleClick(article)}
-                  className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 hover:border-primary/30 transition-colors cursor-pointer"
-                >
-                  <div className="h-10 w-10 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <FileText className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
+            {allArticles.map((article, i) => (
+              <motion.div
+                key={article.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                onClick={() => navigate(`/article/${article.id}`)}
+                className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 hover:border-primary/30 transition-colors cursor-pointer"
+              >
+                <div className="h-10 w-10 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
                     <h3 className="font-semibold text-foreground truncate">{article.title}</h3>
-                    {article.description && (
-                      <p className="text-sm text-muted-foreground truncate">{article.description}</p>
-                    )}
+                    <Badge variant="outline" className="text-[10px] shrink-0">{article.category}</Badge>
+                    <Badge variant="secondary" className="text-[10px] shrink-0">{article.difficulty}</Badge>
                   </div>
-                  <div className="flex items-center gap-4 shrink-0 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Eye className="h-4 w-4" />
-                      {hits}
-                    </span>
-                    <span className="flex items-center gap-1 text-primary font-medium">
-                      <TrendingUp className="h-4 w-4" />
-                      {credits} cr
-                    </span>
-                  </div>
-                </motion.div>
-              );
-            })}
+                  {article.description && (
+                    <p className="text-sm text-muted-foreground truncate">{article.description}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 shrink-0 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Eye className="h-3.5 w-3.5" />
+                    {article.viewCount}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Heart className="h-3.5 w-3.5" />
+                    {article.likeCount}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <MessageCircle className="h-3.5 w-3.5" />
+                    {article.commentCount}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Share2 className="h-3.5 w-3.5" />
+                    {article.shareCount}
+                  </span>
+                </div>
+              </motion.div>
+            ))}
           </div>
         )}
       </div>

@@ -15,6 +15,7 @@ export interface KnowledgeArticle {
   file_url: string | null;
   icon: string;
   is_public: boolean;
+  approval_status: string;
   user_id: string | null;
   created_at: string;
 }
@@ -22,6 +23,10 @@ export interface KnowledgeArticle {
 export interface ArticleWithMeta extends KnowledgeArticle {
   bookmarked: boolean;
   progress: "unread" | "reading" | "completed";
+  viewCount: number;
+  likeCount: number;
+  commentCount: number;
+  shareCount: number;
 }
 
 const CATEGORIES = [
@@ -49,19 +54,39 @@ export function useKnowledge() {
     if (!user) return;
     setLoading(true);
 
-    const [{ data: arts }, { data: bmarks }, { data: prog }] = await Promise.all([
+    const [{ data: arts }, { data: bmarks }, { data: prog }, { data: views }, { data: likes }, { data: comments }, { data: shares }] = await Promise.all([
       supabase.from("knowledge_articles").select("*").order("created_at", { ascending: false }),
       supabase.from("knowledge_bookmarks").select("article_id").eq("user_id", user.id),
       supabase.from("knowledge_progress").select("article_id, status").eq("user_id", user.id),
+      supabase.from("article_views").select("article_id"),
+      supabase.from("article_likes").select("article_id"),
+      supabase.from("article_comments").select("article_id"),
+      supabase.from("article_shares").select("article_id"),
     ]);
 
     const bookmarkedIds = new Set((bmarks ?? []).map((b: any) => b.article_id));
     const progressMap = new Map((prog ?? []).map((p: any) => [p.article_id, p.status]));
 
+    // Count engagement per article
+    const countByArticle = (data: any[] | null) => {
+      const map = new Map<string, number>();
+      (data ?? []).forEach((r: any) => map.set(r.article_id, (map.get(r.article_id) || 0) + 1));
+      return map;
+    };
+
+    const viewCounts = countByArticle(views);
+    const likeCounts = countByArticle(likes);
+    const commentCounts = countByArticle(comments);
+    const shareCounts = countByArticle(shares);
+
     const enriched: ArticleWithMeta[] = (arts ?? []).map((a: any) => ({
       ...a,
       bookmarked: bookmarkedIds.has(a.id),
       progress: (progressMap.get(a.id) as any) || "unread",
+      viewCount: viewCounts.get(a.id) || 0,
+      likeCount: likeCounts.get(a.id) || 0,
+      commentCount: commentCounts.get(a.id) || 0,
+      shareCount: shareCounts.get(a.id) || 0,
     }));
 
     setArticles(enriched);
@@ -95,7 +120,6 @@ export function useKnowledge() {
       ...(status === "completed" ? { completed_at: new Date().toISOString() } : {}),
     };
 
-    // Upsert
     const { data: existing } = await supabase
       .from("knowledge_progress")
       .select("id")
@@ -157,12 +181,16 @@ export function useKnowledge() {
     return true;
   });
 
+  // All public approved articles for the Share page
+  const sharedArticles = articles.filter((a) => a.is_public && a.approval_status === "approved");
+
   // User's own uploads only
   const myUploads = articles.filter((a) => a.source_type === "uploaded" && a.user_id === user?.id);
 
   return {
     articles: filtered,
     allArticles: articles,
+    sharedArticles,
     myUploads,
     loading,
     search, setSearch,
