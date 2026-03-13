@@ -3,8 +3,9 @@ import { motion } from "framer-motion";
 import { Check, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
-import { streamChat, type ChatMessage } from "@/lib/chat-stream";
+import { streamChat, type ChatMessage, type SourceReference } from "@/lib/chat-stream";
 import { useModelSelection } from "@/hooks/useModelSelection";
+import { SourceLinks } from "./SourceLinks";
 
 const MODEL_LABELS: Record<string, string> = {
   "google/gemini-3-flash-preview": "Gemini Flash",
@@ -15,10 +16,15 @@ const MODEL_LABELS: Record<string, string> = {
   "openai/gpt-5-nano": "GPT-5 Nano",
 };
 
+// Strip the AI's "📚 Sources" markdown section since we render SourceLinks separately
+function stripSourcesSection(content: string): string {
+  return content.replace(/\n---\n📚[\s\S]*$/m, "").replace(/\n📚 \*\*Sources[:\s]*\*\*[\s\S]*$/m, "").trim();
+}
+
 interface DualModelResponseProps {
   messages: ChatMessage[];
   role?: string | null;
-  onPick: (content: string, model: string) => void;
+  onPick: (content: string, model: string, sources?: SourceReference[]) => void;
   onError: (err: string) => void;
 }
 
@@ -32,6 +38,8 @@ export function DualModelResponse({ messages, role, onPick, onError }: DualModel
   const [doneA, setDoneA] = useState(false);
   const [doneB, setDoneB] = useState(false);
   const [picked, setPicked] = useState<"A" | "B" | null>(null);
+  const [sourcesA, setSourcesA] = useState<SourceReference[]>([]);
+  const [sourcesB, setSourcesB] = useState<SourceReference[]>([]);
   const bufA = useRef("");
   const bufB = useRef("");
 
@@ -46,6 +54,7 @@ export function DualModelResponse({ messages, role, onPick, onError }: DualModel
       onDelta: (t) => { bufA.current += t; setResponseA(bufA.current); },
       onDone: () => setDoneA(true),
       onError,
+      onSources: (sources) => setSourcesA(sources),
     });
 
     streamChat({
@@ -55,6 +64,7 @@ export function DualModelResponse({ messages, role, onPick, onError }: DualModel
       onDelta: (t) => { bufB.current += t; setResponseB(bufB.current); },
       onDone: () => setDoneB(true),
       onError,
+      onSources: (sources) => setSourcesB(sources),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -63,8 +73,14 @@ export function DualModelResponse({ messages, role, onPick, onError }: DualModel
     setPicked(side);
     const content = side === "A" ? responseA : responseB;
     const model = side === "A" ? MODEL_A : MODEL_B;
-    onPick(content, model);
+    const sources = side === "A" ? sourcesA : sourcesB;
+    onPick(content, model, sources);
   };
+
+  // Merge sources from both models (deduplicate by id)
+  const allSources = [...sourcesA, ...sourcesB].filter(
+    (s, i, arr) => arr.findIndex((x) => x.id === s.id) === i
+  );
 
   const bothDone = doneA && doneB;
 
@@ -100,7 +116,7 @@ export function DualModelResponse({ messages, role, onPick, onError }: DualModel
             {picked === "A" && <Check className="h-4 w-4 text-primary" />}
           </div>
           <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-secondary [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-secondary [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_li]:text-muted-foreground [&_p]:text-card-foreground min-h-[60px] max-h-[400px] overflow-y-auto">
-            {responseA ? <ReactMarkdown>{responseA}</ReactMarkdown> : (
+            {responseA ? <ReactMarkdown>{stripSourcesSection(responseA)}</ReactMarkdown> : (
               <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating…
               </div>
@@ -136,7 +152,7 @@ export function DualModelResponse({ messages, role, onPick, onError }: DualModel
             {picked === "B" && <Check className="h-4 w-4 text-primary" />}
           </div>
           <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-secondary [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-secondary [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_li]:text-muted-foreground [&_p]:text-card-foreground min-h-[60px] max-h-[400px] overflow-y-auto">
-            {responseB ? <ReactMarkdown>{responseB}</ReactMarkdown> : (
+            {responseB ? <ReactMarkdown>{stripSourcesSection(responseB)}</ReactMarkdown> : (
               <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating…
               </div>
@@ -154,6 +170,13 @@ export function DualModelResponse({ messages, role, onPick, onError }: DualModel
           )}
         </div>
       </div>
+
+      {/* Source links below both responses */}
+      {allSources.length > 0 && (
+        <div className="mt-3">
+          <SourceLinks sources={allSources} />
+        </div>
+      )}
     </motion.div>
   );
 }
