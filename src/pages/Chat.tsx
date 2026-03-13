@@ -204,13 +204,13 @@ const Chat = () => {
     setComparingIndex(newMessages.length);
   };
 
-  const handlePick = async (content: string, _model: string) => {
+  const handlePick = async (content: string, _model: string, sources?: SourceReference[]) => {
     const chatId = pendingChatIdRef.current;
 
     // Clean any persona tag (shouldn't happen in dual mode, but just in case)
     content = content.replace(/\[PERSONA_DETECTED:\w+\]/g, "").trim();
 
-    const assistantMsg: DisplayMessage = { role: "assistant", content };
+    const assistantMsg: DisplayMessage = { role: "assistant", content, sources };
     setMessages((prev) => [...prev, assistantMsg]);
     setComparingIndex(null);
     setIsLoading(false);
