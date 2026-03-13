@@ -164,23 +164,24 @@ const Chat = () => {
     if (!role) {
       const apiMessages = newMessages.map(({ role, content }) => ({ role, content }));
       let buf = "";
+      let msgSources: SourceReference[] = [];
       streamChat({
         messages: apiMessages,
         role: null,
         model: "google/gemini-3-flash-preview",
+        onSources: (sources) => { msgSources = sources; },
         onDelta: (t) => {
           buf += t;
           setMessages((prev) => {
             const last = prev[prev.length - 1];
             if (last?.role === "assistant") {
-              return [...prev.slice(0, -1), { role: "assistant", content: buf }];
+              return [...prev.slice(0, -1), { role: "assistant", content: buf, sources: msgSources }];
             }
-            return [...prev, { role: "assistant", content: buf }];
+            return [...prev, { role: "assistant", content: buf, sources: msgSources }];
           });
         },
         onDone: () => {
           setIsLoading(false);
-          // Check for persona detection
           handlePersonaDetection(buf, chatId!);
         },
         onError: (err) => {
