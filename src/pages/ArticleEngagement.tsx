@@ -113,7 +113,7 @@ const ArticleEngagement = () => {
   };
 
   const handleComment = async () => {
-    if (!user || !id || !commentText.trim()) return;
+    if (!id || !commentText.trim() || requireAuth()) return;
     setSubmitting(true);
 
     const { data, error } = await supabase
