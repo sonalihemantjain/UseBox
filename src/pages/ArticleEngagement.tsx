@@ -81,15 +81,9 @@ const ArticleEngagement = () => {
 
   useEffect(() => {
     if (isReady) {
-      if (!user) {
-        // Redirect to auth with return URL
-        const returnUrl = `/article/${id}`;
-        navigate(`/auth?redirect=${encodeURIComponent(returnUrl)}`, { replace: true });
-        return;
-      }
       fetchArticle();
     }
-  }, [isReady, user, fetchArticle, navigate, id]);
+  }, [isReady, fetchArticle]);
 
   const handleLike = async () => {
     if (!user || !id) return;
