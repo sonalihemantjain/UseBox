@@ -69,7 +69,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r-0 [&_[data-sidebar=content]]:overflow-x-hidden">
-      <SidebarHeader className="p-3">
+      <SidebarHeader className={cn("p-3", collapsed && "p-1.5 flex items-center justify-center")}>
         <div className="flex items-center justify-between">
           <a href="/dashboard" className="flex items-center gap-2.5">
             <img src={useBoxLogo} alt="UseBox" className="h-8 w-8 shrink-0" />
