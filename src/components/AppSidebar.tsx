@@ -87,7 +87,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2">
+      <SidebarContent className={cn("px-2", collapsed && "px-0")}>
         {/* New Chat button */}
         {!collapsed && (
           <Button
