@@ -47,14 +47,11 @@ export function RoleSelector({ value, onChange, collapsed }: RoleSelectorProps) 
   if (!value) {
     return (
       <div className="mx-3 my-2">
-        <div className="flex items-center gap-2.5 px-3 py-3 rounded-xl bg-gradient-to-b from-muted/60 to-muted/20 border border-dashed border-border">
-          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <HelpCircle className="h-4 w-4 text-primary" />
+        <div className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-gradient-to-b from-muted/60 to-muted/20 border border-dashed border-border">
+          <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+            <HelpCircle className="h-3.5 w-3.5 text-primary" />
           </div>
-          <div className="min-w-0">
-            <p className="text-xs font-medium text-foreground leading-tight">No persona yet</p>
-            <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">Chat with AI to discover yours</p>
-          </div>
+          <p className="text-[11px] font-medium text-muted-foreground leading-tight truncate">No persona yet</p>
         </div>
       </div>
     );
