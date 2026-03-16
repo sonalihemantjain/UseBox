@@ -69,7 +69,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r-0 [&_[data-sidebar=content]]:overflow-x-hidden">
-      <SidebarHeader className="p-3">
+      <SidebarHeader className={cn("p-3", collapsed && "p-1.5 flex items-center justify-center")}>
         <div className="flex items-center justify-between">
           <a href="/dashboard" className="flex items-center gap-2.5">
             <img src={useBoxLogo} alt="UseBox" className="h-8 w-8 shrink-0" />
@@ -87,7 +87,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2">
+      <SidebarContent className={cn("px-2", collapsed && "px-0")}>
         {/* New Chat button */}
         {!collapsed && (
           <Button
@@ -113,7 +113,7 @@ export function AppSidebar() {
                       className="hover:bg-sidebar-accent/50 text-sidebar-foreground/70"
                       activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
                     >
-                      <item.icon className="mr-2 h-4 w-4 shrink-0" />
+                      <item.icon className="h-4 w-4 shrink-0" />
                       {!collapsed && <span>{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
@@ -187,7 +187,7 @@ export function AppSidebar() {
         <RoleSelector value={role} onChange={setRole as (r: import("@/hooks/useUserRole").UserRole | null) => void} collapsed={collapsed} />
       </SidebarContent>
 
-      <SidebarFooter className="p-3">
+      <SidebarFooter className={cn("p-3", collapsed && "p-1.5 items-center")}>
         {collapsed && (
           <Button variant="ghost" size="icon" className="w-full h-8 text-sidebar-foreground/60 hover:text-sidebar-foreground mb-2" onClick={toggleSidebar}>
             <PanelLeft className="h-4 w-4" />
@@ -200,11 +200,14 @@ export function AppSidebar() {
         )}
         <Button
           variant="ghost"
-          size="sm"
+          size={collapsed ? "icon" : "sm"}
           onClick={handleSignOut}
-          className="w-full justify-start text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+          className={cn(
+            "w-full text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50",
+            collapsed ? "justify-center" : "justify-start"
+          )}
         >
-          <LogOut className="h-4 w-4 mr-2 shrink-0" />
+          <LogOut className={cn("h-4 w-4 shrink-0", !collapsed && "mr-2")} />
           {!collapsed && <span>Sign Out</span>}
         </Button>
       </SidebarFooter>
