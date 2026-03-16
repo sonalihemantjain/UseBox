@@ -203,11 +203,14 @@ export function AppSidebar() {
         )}
         <Button
           variant="ghost"
-          size="sm"
+          size={collapsed ? "icon" : "sm"}
           onClick={handleSignOut}
-          className="w-full justify-start text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+          className={cn(
+            "w-full text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50",
+            collapsed ? "justify-center" : "justify-start"
+          )}
         >
-          <LogOut className="h-4 w-4 mr-2 shrink-0" />
+          <LogOut className={cn("h-4 w-4 shrink-0", !collapsed && "mr-2")} />
           {!collapsed && <span>Sign Out</span>}
         </Button>
       </SidebarFooter>
