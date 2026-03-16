@@ -37,7 +37,7 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { role, setRole } = useUserRole();
-  const { chats, createChat, renameChat, deleteChat } = useChatHistory();
+  const { chats, createChat, renameChat, deleteChat, toggleSaveChat } = useChatHistory();
   const isOnChat = location.pathname === "/chat";
 
   const [editingId, setEditingId] = useState<string | null>(null);
