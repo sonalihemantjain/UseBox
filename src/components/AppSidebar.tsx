@@ -159,7 +159,7 @@ export function AppSidebar() {
                     ) : (
                       <>
                         <span className="flex-1 truncate">{chat.title}</span>
-                        <div className="hidden group-hover:flex items-center shrink-0">
+                        <div className="hidden group-hover/chatitem:flex items-center shrink-0">
                           <button
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleSaveChat(chat.id, !chat.saved); }}
                             className={cn("p-1 rounded", chat.saved ? "text-primary" : "hover:bg-sidebar-accent")}
