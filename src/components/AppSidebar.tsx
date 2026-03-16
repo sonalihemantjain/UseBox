@@ -134,7 +134,7 @@ export function AppSidebar() {
                   <div
                     key={chat.id}
                     className={cn(
-                      "group flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] cursor-pointer transition-colors",
+                      "group/chatitem flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] cursor-pointer transition-colors",
                       "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                     )}
                     onClick={() => editingId !== chat.id && navigate(`/chat?id=${chat.id}`)}
