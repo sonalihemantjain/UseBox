@@ -48,12 +48,12 @@ export function AppSidebar() {
     navigate("/");
   };
 
-  const handleNewChat = useCallback(async () => {
-    const id = await createChat();
-    if (id) {
-      navigate(`/chat?id=${id}`);
-    }
-  }, [createChat, navigate]);
+  const handleNewChat = useCallback(() => {
+    // Navigate to /chat without an id — the Chat page creates the DB entry on first message
+    navigate("/chat");
+    // Force a page-level reset by dispatching a custom event
+    window.dispatchEvent(new Event("usebox-new-chat"));
+  }, [navigate]);
 
   const startEdit = (chat: ChatSession) => {
     setEditingId(chat.id);
