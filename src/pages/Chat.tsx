@@ -73,14 +73,17 @@ const Chat = () => {
     }
   }, [searchParams, chats, activeChatId, selectChat, setSearchParams]);
 
-  const handleNewChat = useCallback(async () => {
-    const id = await createChat();
-    if (id) {
-      setActiveChatId(id);
+  // Listen for new-chat event from sidebar
+  useEffect(() => {
+    const handler = () => {
+      setActiveChatId(null);
       setMessages([]);
       setComparingIndex(null);
-    }
-  }, [createChat]);
+      setInput("");
+    };
+    window.addEventListener("usebox-new-chat", handler);
+    return () => window.removeEventListener("usebox-new-chat", handler);
+  }, []);
 
   const handleToggleSave = useCallback(async () => {
     if (!activeChatId || !activeChat) return;
