@@ -160,6 +160,13 @@ export function AppSidebar() {
                       <>
                         <span className="flex-1 truncate">{chat.title}</span>
                         <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); toggleSaveChat(chat.id, !chat.saved); }}
+                            className={cn("p-0.5 rounded", chat.saved ? "text-primary" : "hover:bg-sidebar-accent")}
+                            title={chat.saved ? "Unsave" : "Save"}
+                          >
+                            {chat.saved ? <BookmarkCheck className="h-3 w-3" /> : <Bookmark className="h-3 w-3" />}
+                          </button>
                           <button onClick={(e) => { e.stopPropagation(); startEdit(chat); }} className="p-0.5 rounded hover:bg-sidebar-accent">
                             <Pencil className="h-3 w-3" />
                           </button>
