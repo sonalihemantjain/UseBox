@@ -1,4 +1,4 @@
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 
 export function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
@@ -6,14 +6,9 @@ export function AuthenticatedLayout({ children }: { children: React.ReactNode })
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <AppSidebar />
-        <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-12 flex items-center border-b border-border bg-card/60 backdrop-blur-xl sticky top-0 z-50">
-            <SidebarTrigger className="ml-3" />
-          </header>
-          <main className="flex-1">
-            {children}
-          </main>
-        </div>
+        <main className="flex-1 flex flex-col min-w-0 h-screen">
+          {children}
+        </main>
       </div>
     </SidebarProvider>
   );

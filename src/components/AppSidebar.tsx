@@ -1,16 +1,18 @@
-import { MessageSquare, BookOpen, GraduationCap, Settings, LogOut } from "lucide-react";
+import { MessageSquare, BookOpen, GraduationCap, Settings, LogOut, Plus, Pencil, Trash2, Check, X, PanelLeftClose, PanelLeft } from "lucide-react";
+import { useState, useCallback } from "react";
 import useBoxLogo from "@/assets/usebox-logo.png";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { RoleSelector } from "@/components/RoleSelector";
+import { useChatHistory, type ChatSession } from "@/hooks/useChatHistory";
+import { cn } from "@/lib/utils";
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -29,32 +31,77 @@ const navItems = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { role, setRole } = useUserRole();
+  const { chats, createChat, renameChat, deleteChat } = useChatHistory();
+  const isOnChat = location.pathname === "/chat";
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
 
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
   };
 
+  const handleNewChat = useCallback(async () => {
+    const id = await createChat();
+    if (id) {
+      navigate(`/chat?id=${id}`);
+    }
+  }, [createChat, navigate]);
+
+  const startEdit = (chat: ChatSession) => {
+    setEditingId(chat.id);
+    setEditTitle(chat.title);
+  };
+
+  const confirmEdit = () => {
+    if (editingId && editTitle.trim()) {
+      renameChat(editingId, editTitle.trim());
+    }
+    setEditingId(null);
+  };
+
   return (
-    <Sidebar collapsible="icon" className="[&_[data-sidebar=content]]:overflow-x-hidden">
+    <Sidebar collapsible="icon" className="border-r-0 [&_[data-sidebar=content]]:overflow-x-hidden">
       <SidebarHeader className="p-3">
-        <a href="/dashboard" className="flex items-center gap-2.5">
-          <img src={useBoxLogo} alt="UseBox" className="h-9 w-9 shrink-0" />
+        <div className="flex items-center justify-between">
+          <a href="/dashboard" className="flex items-center gap-2.5">
+            <img src={useBoxLogo} alt="UseBox" className="h-8 w-8 shrink-0" />
+            {!collapsed && (
+              <span className="font-display text-lg font-bold tracking-tight text-sidebar-foreground">
+                Use<span className="text-gradient-gold">Box</span>
+              </span>
+            )}
+          </a>
           {!collapsed && (
-            <span className="font-display text-xl font-bold tracking-tight text-foreground">
-              Use<span className="text-gradient-gold">Box</span>
-            </span>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-sidebar-foreground/60 hover:text-sidebar-foreground" onClick={toggleSidebar}>
+              <PanelLeftClose className="h-4 w-4" />
+            </Button>
           )}
-        </a>
+        </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="px-2">
+        {/* New Chat button */}
+        {!collapsed && (
+          <Button
+            onClick={handleNewChat}
+            variant="outline"
+            size="sm"
+            className="w-full justify-start gap-2 mb-2 border-sidebar-border text-sidebar-foreground bg-sidebar-accent/50 hover:bg-sidebar-accent"
+          >
+            <Plus className="h-4 w-4" />
+            New Chat
+          </Button>
+        )}
+
+        {/* Main Navigation */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -63,8 +110,8 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      className="hover:bg-muted/50"
-                      activeClassName="bg-primary/10 text-primary font-medium"
+                      className="hover:bg-sidebar-accent/50 text-sidebar-foreground/70"
+                      activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
                     >
                       <item.icon className="mr-2 h-4 w-4 shrink-0" />
                       {!collapsed && <span>{item.title}</span>}
@@ -76,14 +123,92 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* Chat History - only show when expanded and on chat page */}
+        {!collapsed && isOnChat && chats.length > 0 && (
+          <>
+            <Separator className="my-2 bg-sidebar-border" />
+            <div className="px-1">
+              <p className="text-[11px] font-medium text-sidebar-foreground/40 uppercase tracking-wider px-2 mb-1.5">Recent</p>
+              <div className="space-y-0.5 max-h-[40vh] overflow-y-auto">
+                {chats.slice(0, 20).map((chat) => (
+                  <div
+                    key={chat.id}
+                    className={cn(
+                      "group flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] cursor-pointer transition-colors",
+                      "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                    )}
+                    onClick={() => editingId !== chat.id && navigate(`/chat?id=${chat.id}`)}
+                  >
+                    {editingId === chat.id ? (
+                      <div className="flex-1 flex items-center gap-1">
+                        <input
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && confirmEdit()}
+                          className="flex-1 bg-transparent border-b border-primary outline-none text-sidebar-foreground text-[13px]"
+                          autoFocus
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <button onClick={(e) => { e.stopPropagation(); confirmEdit(); }} className="text-primary">
+                          <Check className="h-3 w-3" />
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); setEditingId(null); }} className="text-sidebar-foreground/40">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="flex-1 truncate">{chat.title}</span>
+                        <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
+                          <button onClick={(e) => { e.stopPropagation(); startEdit(chat); }} className="p-0.5 rounded hover:bg-sidebar-accent">
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); deleteChat(chat.id); }} className="p-0.5 rounded hover:bg-destructive/20 text-destructive">
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Chat history on non-chat pages - show condensed */}
+        {!collapsed && !isOnChat && chats.length > 0 && (
+          <>
+            <Separator className="my-2 bg-sidebar-border" />
+            <div className="px-1">
+              <p className="text-[11px] font-medium text-sidebar-foreground/40 uppercase tracking-wider px-2 mb-1.5">Recent Chats</p>
+              <div className="space-y-0.5">
+                {chats.slice(0, 5).map((chat) => (
+                  <div
+                    key={chat.id}
+                    className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] cursor-pointer text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
+                    onClick={() => navigate(`/chat?id=${chat.id}`)}
+                  >
+                    <MessageSquare className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{chat.title}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
 
         <RoleSelector value={role} onChange={setRole as (r: import("@/hooks/useUserRole").UserRole | null) => void} collapsed={collapsed} />
-
       </SidebarContent>
 
       <SidebarFooter className="p-3">
+        {collapsed && (
+          <Button variant="ghost" size="icon" className="w-full h-8 text-sidebar-foreground/60 hover:text-sidebar-foreground mb-2" onClick={toggleSidebar}>
+            <PanelLeft className="h-4 w-4" />
+          </Button>
+        )}
         {!collapsed && user && (
-          <p className="text-xs text-muted-foreground truncate px-2 mb-2">
+          <p className="text-xs text-sidebar-foreground/40 truncate px-2 mb-2">
             {user.email}
           </p>
         )}
@@ -91,7 +216,7 @@ export function AppSidebar() {
           variant="ghost"
           size="sm"
           onClick={handleSignOut}
-          className="w-full justify-start text-muted-foreground hover:text-foreground"
+          className="w-full justify-start text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
         >
           <LogOut className="h-4 w-4 mr-2 shrink-0" />
           {!collapsed && <span>Sign Out</span>}
