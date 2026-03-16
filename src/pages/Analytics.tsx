@@ -86,7 +86,7 @@ const Analytics = () => {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="container mx-auto px-4 sm:px-6 py-8 max-w-6xl">
+      <div className="container mx-auto px-6 lg:px-10 py-8 max-w-7xl">
         {/* Header */}
         <motion.div {...anim(0)} className="mb-8">
           <h1 className="font-display text-3xl sm:text-4xl font-bold mb-2">Analytics</h1>

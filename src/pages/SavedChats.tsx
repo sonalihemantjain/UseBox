@@ -38,7 +38,7 @@ const SavedChats = () => {
   }, []);
 
   return (
-    <div className="container mx-auto max-w-6xl px-4 sm:px-6 py-8">
+    <div className="container mx-auto max-w-7xl px-6 lg:px-10 py-8">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-center gap-3 mb-2">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
