@@ -159,19 +159,27 @@ export function AppSidebar() {
                     ) : (
                       <>
                         <span className="flex-1 truncate">{chat.title}</span>
-                        <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
+                        <div className="hidden group-hover:flex items-center shrink-0">
                           <button
-                            onClick={(e) => { e.stopPropagation(); toggleSaveChat(chat.id, !chat.saved); }}
-                            className={cn("p-0.5 rounded", chat.saved ? "text-primary" : "hover:bg-sidebar-accent")}
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleSaveChat(chat.id, !chat.saved); }}
+                            className={cn("p-1 rounded", chat.saved ? "text-primary" : "hover:bg-sidebar-accent")}
                             title={chat.saved ? "Unsave" : "Save"}
                           >
-                            {chat.saved ? <BookmarkCheck className="h-3 w-3" /> : <Bookmark className="h-3 w-3" />}
+                            {chat.saved ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
                           </button>
-                          <button onClick={(e) => { e.stopPropagation(); startEdit(chat); }} className="p-0.5 rounded hover:bg-sidebar-accent">
-                            <Pencil className="h-3 w-3" />
+                          <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); startEdit(chat); }}
+                            className="p-1 rounded hover:bg-sidebar-accent"
+                            title="Rename"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
                           </button>
-                          <button onClick={(e) => { e.stopPropagation(); deleteChat(chat.id); }} className="p-0.5 rounded hover:bg-destructive/20 text-destructive">
-                            <Trash2 className="h-3 w-3" />
+                          <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); deleteChat(chat.id); }}
+                            className="p-1 rounded hover:bg-destructive/20 text-destructive"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </div>
                       </>
