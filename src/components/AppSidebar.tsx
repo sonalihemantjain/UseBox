@@ -110,7 +110,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      className="hover:bg-sidebar-accent/50 text-sidebar-foreground/70 group-data-[collapsible=icon]:justify-center"
+                      className="hover:bg-sidebar-accent/50 text-sidebar-foreground/70"
                       activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
                     >
                       <item.icon className="h-4 w-4 shrink-0" />
