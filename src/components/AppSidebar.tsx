@@ -1,4 +1,4 @@
-import { MessageSquare, BookOpen, GraduationCap, Settings, LogOut, Plus, Pencil, Trash2, Check, X, PanelLeftClose, PanelLeft } from "lucide-react";
+import { MessageSquare, BookOpen, GraduationCap, Settings, LogOut, Plus, Pencil, Trash2, Check, X, PanelLeftClose, PanelLeft, Bookmark, BookmarkCheck } from "lucide-react";
 import { useState, useCallback } from "react";
 import useBoxLogo from "@/assets/usebox-logo.png";
 import { NavLink } from "@/components/NavLink";
@@ -37,7 +37,7 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { role, setRole } = useUserRole();
-  const { chats, createChat, renameChat, deleteChat } = useChatHistory();
+  const { chats, createChat, renameChat, deleteChat, toggleSaveChat } = useChatHistory();
   const isOnChat = location.pathname === "/chat";
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -160,6 +160,13 @@ export function AppSidebar() {
                       <>
                         <span className="flex-1 truncate">{chat.title}</span>
                         <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); toggleSaveChat(chat.id, !chat.saved); }}
+                            className={cn("p-0.5 rounded", chat.saved ? "text-primary" : "hover:bg-sidebar-accent")}
+                            title={chat.saved ? "Unsave" : "Save"}
+                          >
+                            {chat.saved ? <BookmarkCheck className="h-3 w-3" /> : <Bookmark className="h-3 w-3" />}
+                          </button>
                           <button onClick={(e) => { e.stopPropagation(); startEdit(chat); }} className="p-0.5 rounded hover:bg-sidebar-accent">
                             <Pencil className="h-3 w-3" />
                           </button>
