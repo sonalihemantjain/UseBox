@@ -187,7 +187,7 @@ export function AppSidebar() {
         <RoleSelector value={role} onChange={setRole as (r: import("@/hooks/useUserRole").UserRole | null) => void} collapsed={collapsed} />
       </SidebarContent>
 
-      <SidebarFooter className="p-3">
+      <SidebarFooter className={cn("p-3", collapsed && "p-1.5 items-center")}>
         {collapsed && (
           <Button variant="ghost" size="icon" className="w-full h-8 text-sidebar-foreground/60 hover:text-sidebar-foreground mb-2" onClick={toggleSidebar}>
             <PanelLeft className="h-4 w-4" />
