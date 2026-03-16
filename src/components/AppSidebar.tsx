@@ -184,7 +184,6 @@ export function AppSidebar() {
           </>
         )}
 
-        <RoleSelector value={role} onChange={setRole as (r: import("@/hooks/useUserRole").UserRole | null) => void} collapsed={collapsed} />
       </SidebarContent>
 
       <SidebarFooter className={cn("p-3", collapsed && "p-1.5 items-center")}>
@@ -192,6 +191,13 @@ export function AppSidebar() {
           <Button variant="ghost" size="icon" className="w-full h-8 text-sidebar-foreground/60 hover:text-sidebar-foreground mb-2" onClick={toggleSidebar}>
             <PanelLeft className="h-4 w-4" />
           </Button>
+        )}
+        {!collapsed && (
+          <>
+            <p className="text-[10px] font-medium text-sidebar-foreground/40 uppercase tracking-wider px-2 mb-1">Persona</p>
+            <RoleSelector value={role} onChange={setRole as (r: import("@/hooks/useUserRole").UserRole | null) => void} collapsed={collapsed} />
+            <Separator className="my-2 bg-sidebar-border" />
+          </>
         )}
         {!collapsed && user && (
           <p className="text-xs text-sidebar-foreground/40 truncate px-2 mb-2">
