@@ -168,13 +168,6 @@ export function AppSidebar() {
                             {chat.saved ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
                           </button>
                           <button
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); startEdit(chat); }}
-                            className="p-1 rounded hover:bg-sidebar-accent"
-                            title="Rename"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </button>
-                          <button
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); deleteChat(chat.id); }}
                             className="p-1 rounded hover:bg-destructive/20 text-destructive"
                             title="Delete"
