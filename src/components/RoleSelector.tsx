@@ -46,15 +46,12 @@ export function RoleSelector({ value, onChange, collapsed }: RoleSelectorProps) 
 
   if (!value) {
     return (
-      <div className="mx-3 my-2">
-        <div className="flex items-center gap-2.5 px-3 py-3 rounded-xl bg-gradient-to-b from-muted/60 to-muted/20 border border-dashed border-border">
-          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <HelpCircle className="h-4 w-4 text-primary" />
+      <div className="mx-2 my-1.5">
+        <div className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-gradient-to-b from-muted/60 to-muted/20 border border-dashed border-border">
+          <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+            <HelpCircle className="h-3.5 w-3.5 text-primary" />
           </div>
-          <div className="min-w-0">
-            <p className="text-xs font-medium text-foreground leading-tight">No persona yet</p>
-            <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">Chat with AI to discover yours</p>
-          </div>
+          <p className="text-[11px] font-medium text-muted-foreground leading-tight truncate">No persona yet</p>
         </div>
       </div>
     );
@@ -63,20 +60,15 @@ export function RoleSelector({ value, onChange, collapsed }: RoleSelectorProps) 
   const Icon = ROLE_ICONS[value];
 
   return (
-    <div className="mx-3 my-2">
+    <div className="mx-2 my-1.5">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className={`w-full flex items-center gap-2.5 px-3 py-3 rounded-xl bg-gradient-to-b ${ROLE_COLORS[value]} border cursor-pointer hover:opacity-90 transition-opacity`}>
-            <div className="h-8 w-8 rounded-lg bg-background/50 flex items-center justify-center shrink-0">
-              <Icon className={`h-4 w-4 ${ROLE_ICON_COLORS[value]}`} />
+          <button className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg bg-gradient-to-b ${ROLE_COLORS[value]} border cursor-pointer hover:opacity-90 transition-opacity`}>
+            <div className="h-6 w-6 rounded-md bg-background/50 flex items-center justify-center shrink-0">
+              <Icon className={`h-3.5 w-3.5 ${ROLE_ICON_COLORS[value]}`} />
             </div>
-            <div className="min-w-0 text-left flex-1">
-              <p className="text-[10px] text-muted-foreground leading-tight flex items-center gap-1">
-                <Sparkles className="h-2.5 w-2.5" /> Your Persona
-              </p>
-              <p className="text-sm font-semibold text-foreground leading-tight mt-0.5">{ROLE_LABELS[value]}</p>
-            </div>
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <span className="text-xs font-semibold text-foreground leading-tight truncate flex-1 text-left">{ROLE_LABELS[value]}</span>
+            <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-52">
