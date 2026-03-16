@@ -46,7 +46,7 @@ export function RoleSelector({ value, onChange, collapsed }: RoleSelectorProps) 
 
   if (!value) {
     return (
-      <div className="mx-3 my-2">
+      <div className="mx-2 my-1.5">
         <div className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-gradient-to-b from-muted/60 to-muted/20 border border-dashed border-border">
           <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
             <HelpCircle className="h-3.5 w-3.5 text-primary" />
