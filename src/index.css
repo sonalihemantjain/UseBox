@@ -53,13 +53,13 @@
     --font-display: 'Space Grotesk', system-ui, sans-serif;
     --font-body: 'Inter', system-ui, sans-serif;
 
-    --sidebar-background: 228 20% 12%;
-    --sidebar-foreground: 220 14% 90%;
-    --sidebar-primary: 245 58% 61%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 224 30% 14%;
+    --sidebar-primary: 245 58% 51%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 228 16% 18%;
-    --sidebar-accent-foreground: 220 14% 90%;
-    --sidebar-border: 228 14% 22%;
+    --sidebar-accent: 220 20% 95%;
+    --sidebar-accent-foreground: 224 30% 14%;
+    --sidebar-border: 220 14% 89%;
     --sidebar-ring: 245 58% 51%;
   }
 }
