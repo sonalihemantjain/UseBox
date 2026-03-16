@@ -123,8 +123,8 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Chat History - only show when expanded and on chat page */}
-        {!collapsed && isOnChat && chats.length > 0 && (
+        {/* Chat History - always show when expanded */}
+        {!collapsed && chats.length > 0 && (
           <>
             <Separator className="my-2 bg-sidebar-border" />
             <div className="px-1">
@@ -177,28 +177,6 @@ export function AppSidebar() {
                         </div>
                       </>
                     )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Chat history on non-chat pages - show condensed */}
-        {!collapsed && !isOnChat && chats.length > 0 && (
-          <>
-            <Separator className="my-2 bg-sidebar-border" />
-            <div className="px-1">
-              <p className="text-[11px] font-medium text-sidebar-foreground/40 uppercase tracking-wider px-2 mb-1.5">Recent Chats</p>
-              <div className="space-y-0.5">
-                {chats.slice(0, 5).map((chat) => (
-                  <div
-                    key={chat.id}
-                    className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] cursor-pointer text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
-                    onClick={() => navigate(`/chat?id=${chat.id}`)}
-                  >
-                    <MessageSquare className="h-3 w-3 shrink-0" />
-                    <span className="truncate">{chat.title}</span>
                   </div>
                 ))}
               </div>
