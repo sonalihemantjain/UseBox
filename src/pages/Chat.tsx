@@ -234,7 +234,7 @@ const Chat = () => {
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 py-6 space-y-5">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 py-6 space-y-5">
           {messages.length === 0 && comparingIndex === null && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
