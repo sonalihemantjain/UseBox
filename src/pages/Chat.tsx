@@ -234,7 +234,7 @@ const Chat = () => {
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 py-6 space-y-5">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 py-6 space-y-5">
           {messages.length === 0 && comparingIndex === null && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -315,7 +315,7 @@ const Chat = () => {
 
       {/* Input area — centered, ChatGPT-style */}
       <div className="shrink-0 pb-4 pt-2 px-4">
-        <form onSubmit={handleSubmit} className="mx-auto max-w-3xl">
+        <form onSubmit={handleSubmit} className="mx-auto max-w-4xl">
           <div className="flex items-end gap-2 bg-muted/40 rounded-2xl px-4 py-3 border border-border/60 focus-within:border-primary/40 focus-within:bg-muted/60 transition-all shadow-sm">
             <textarea
               ref={inputRef}
