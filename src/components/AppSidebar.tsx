@@ -27,6 +27,7 @@ const navItems = [
   { title: "Learn", url: "/chat", icon: MessageSquare },
   { title: "Share", url: "/knowledge", icon: BookOpen },
   { title: "Earn", url: "/earn", icon: GraduationCap },
+  { title: "Lab", url: "/lab", icon: FlaskConical },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
