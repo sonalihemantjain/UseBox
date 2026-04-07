@@ -1,4 +1,4 @@
-import { MessageSquare, BookOpen, GraduationCap, Settings, LogOut, Plus, Pencil, Trash2, Check, X, PanelLeftClose, PanelLeft, Bookmark, BookmarkCheck } from "lucide-react";
+import { MessageSquare, BookOpen, GraduationCap, FlaskConical, Settings, LogOut, Plus, Pencil, Trash2, Check, X, PanelLeftClose, PanelLeft, Bookmark, BookmarkCheck } from "lucide-react";
 import { useState, useCallback } from "react";
 import useBoxLogo from "@/assets/usebox-logo.png";
 import { NavLink } from "@/components/NavLink";
@@ -27,6 +27,7 @@ const navItems = [
   { title: "Learn", url: "/chat", icon: MessageSquare },
   { title: "Share", url: "/knowledge", icon: BookOpen },
   { title: "Earn", url: "/earn", icon: GraduationCap },
+  { title: "Lab", url: "/lab", icon: FlaskConical },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
