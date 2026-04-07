@@ -29,6 +29,7 @@ export function LearningPathDetail({ path, onBack, onEnroll, onToggleStep }: Pro
   const completedSteps = new Set(path.enrollment?.completed_steps || []);
   const progressPct = path.steps.length > 0 ? Math.round((completedSteps.size / path.steps.length) * 100) : 0;
   const [readingStep, setReadingStep] = useState<LearningPathStep | null>(null);
+  const { generating, generateLab } = useLabs();
 
   return (
     <div className="max-w-3xl mx-auto">
