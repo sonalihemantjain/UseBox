@@ -130,7 +130,7 @@ export function LabDetail({ lab, onBack, onToggleStep }: Props) {
                           className="w-full flex items-center gap-2 p-3 hover:bg-accent/50 transition-colors text-left"
                         >
                           {isExpanded ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
-                          <div className={`shrink-0 w-5 h-5 rounded flex items-center justify-center text-xs font-bold ${allDone ? "bg-emerald-500 text-white" : "bg-primary/10 text-primary"}`}>
+                          <div className={`shrink-0 w-5 h-5 rounded flex items-center justify-center text-xs font-bold ${allDone ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"}`}>
                             {allDone ? "✓" : ti + 1}
                           </div>
                           <div className="flex-1 min-w-0">
