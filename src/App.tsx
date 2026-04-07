@@ -13,6 +13,7 @@ import SavedChats from "./pages/SavedChats";
 import Knowledge from "./pages/Knowledge";
 import UploadDocument from "./pages/UploadDocument";
 import Earn from "./pages/Earn";
+import Lab from "./pages/Lab";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import ArticleEngagement from "./pages/ArticleEngagement";
