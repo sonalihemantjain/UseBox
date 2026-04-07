@@ -80,6 +80,14 @@ export function LearningPathDetail({ path, onBack, onEnroll, onToggleStep }: Pro
               Start Learning
             </Button>
           )}
+          <div className="mt-4">
+            <CreateLabDialog
+              generating={generating}
+              onGenerate={generateLab}
+              triggerLabel="Create Lab for this topic"
+              defaultTopic={path.title}
+            />
+          </div>
         </div>
 
         <div className="space-y-3">
