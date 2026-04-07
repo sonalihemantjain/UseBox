@@ -337,6 +337,121 @@ export type Database = {
           },
         ]
       }
+      lab_task_steps: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_completed: boolean
+          step_order: number
+          task_id: string
+          title: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_completed?: boolean
+          step_order?: number
+          task_id: string
+          title: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_completed?: boolean
+          step_order?: number
+          task_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lab_task_steps_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "lab_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lab_tasks: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          lab_id: string
+          task_order: number
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          lab_id: string
+          task_order?: number
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          lab_id?: string
+          task_order?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lab_tasks_lab_id_fkey"
+            columns: ["lab_id"]
+            isOneToOne: false
+            referencedRelation: "labs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      labs: {
+        Row: {
+          completed_steps: number
+          created_at: string
+          description: string
+          difficulty: string
+          id: string
+          status: string
+          title: string
+          topic: string
+          total_steps: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_steps?: number
+          created_at?: string
+          description?: string
+          difficulty?: string
+          id?: string
+          status?: string
+          title: string
+          topic?: string
+          total_steps?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_steps?: number
+          created_at?: string
+          description?: string
+          difficulty?: string
+          id?: string
+          status?: string
+          title?: string
+          topic?: string
+          total_steps?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       learning_path_enrollments: {
         Row: {
           completed_at: string | null
