@@ -3,9 +3,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, CheckCircle2, Circle, Clock, Sparkles, BookOpen } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Circle, Clock, Sparkles, BookOpen, FlaskConical } from "lucide-react";
 import { getKnowledgeIcon } from "@/lib/knowledge-icons";
 import { StepReaderSheet } from "./StepReaderSheet";
+import { CreateLabDialog } from "@/components/lab/CreateLabDialog";
+import { useLabs } from "@/hooks/useLabs";
 import type { LearningPath, LearningPathStep } from "@/hooks/useLearningPaths";
 
 interface Props {
