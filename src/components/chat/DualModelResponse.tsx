@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Check, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,8 @@ import ReactMarkdown from "react-markdown";
 import { streamChat, type ChatMessage, type SourceReference } from "@/lib/chat-stream";
 import { useModelSelection } from "@/hooks/useModelSelection";
 import { SourceLinks } from "./SourceLinks";
+import { useLabs } from "@/hooks/useLabs";
+import { toast } from "sonner";
 
 const MODEL_LABELS: Record<string, string> = {
   "google/gemini-3-flash-preview": "Gemini Flash",
@@ -17,8 +20,12 @@ const MODEL_LABELS: Record<string, string> = {
 };
 
 // Strip the AI's "📚 Sources" markdown section since we render SourceLinks separately
-function stripSourcesSection(content: string): string {
-  return content.replace(/\n---\n📚[\s\S]*$/m, "").replace(/\n📚 \*\*Sources[:\s]*\*\*[\s\S]*$/m, "").trim();
+function stripMetaTags(content: string): string {
+  return content
+    .replace(/\n---\n📚[\s\S]*$/m, "")
+    .replace(/\n📚 \*\*Sources[:\s]*\*\*[\s\S]*$/m, "")
+    .replace(/\[IS_LAB:(true|false)\]/gi, "")
+    .trim();
 }
 
 interface DualModelResponseProps {
@@ -30,6 +37,9 @@ interface DualModelResponseProps {
 
 export function DualModelResponse({ messages, role, onPick, onError }: DualModelResponseProps) {
   const { selectedModels } = useModelSelection();
+  const navigate = useNavigate();
+  const { generateLab } = useLabs();
+  const labCreatedRef = useRef(false);
   const MODEL_A = selectedModels[0];
   const MODEL_B = selectedModels[1];
 
@@ -47,6 +57,19 @@ export function DualModelResponse({ messages, role, onPick, onError }: DualModel
     bufA.current = "";
     bufB.current = "";
 
+    const handleLabDetected = async (lab: { isLab: boolean; labTopic: string }) => {
+      if (lab.isLab && lab.labTopic && !labCreatedRef.current) {
+        labCreatedRef.current = true;
+        toast.info("🧪 Creating a lab for this topic...");
+        const labId = await generateLab(lab.labTopic);
+        if (labId) {
+          toast.success("Lab created! Check your Labs page.", {
+            action: { label: "Open Lab", onClick: () => navigate("/lab") },
+          });
+        }
+      }
+    };
+
     streamChat({
       messages,
       role,
@@ -55,6 +78,7 @@ export function DualModelResponse({ messages, role, onPick, onError }: DualModel
       onDone: () => setDoneA(true),
       onError,
       onSources: (sources) => setSourcesA(sources),
+      onLabDetected: handleLabDetected,
     });
 
     streamChat({
@@ -65,6 +89,7 @@ export function DualModelResponse({ messages, role, onPick, onError }: DualModel
       onDone: () => setDoneB(true),
       onError,
       onSources: (sources) => setSourcesB(sources),
+      onLabDetected: handleLabDetected,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
