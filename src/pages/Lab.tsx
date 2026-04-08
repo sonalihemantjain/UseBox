@@ -4,7 +4,7 @@ import { FlaskConical, Loader2 } from "lucide-react";
 import { useLabs, type Lab } from "@/hooks/useLabs";
 import { LabCard } from "@/components/lab/LabCard";
 import { LabDetail } from "@/components/lab/LabDetail";
-import { CreateLabDialog } from "@/components/lab/CreateLabDialog";
+
 
 export default function Lab() {
   const { labs, loading, generating, generateLab, toggleStepComplete, deleteLab } = useLabs();
@@ -37,7 +37,7 @@ export default function Lab() {
               Hands-on practical labs to build real-world skills
             </p>
           </div>
-          <CreateLabDialog generating={generating} onGenerate={generateLab} />
+          
         </motion.div>
 
         {loading ? (
