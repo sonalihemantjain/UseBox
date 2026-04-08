@@ -141,7 +141,7 @@ export function DualModelResponse({ messages, role, onPick, onError }: DualModel
             {picked === "A" && <Check className="h-4 w-4 text-primary" />}
           </div>
           <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-secondary [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-secondary [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_li]:text-muted-foreground [&_p]:text-card-foreground min-h-[60px] max-h-[400px] overflow-y-auto">
-            {responseA ? <ReactMarkdown>{stripSourcesSection(responseA)}</ReactMarkdown> : (
+            {responseA ? <ReactMarkdown>{stripMetaTags(responseA)}</ReactMarkdown> : (
               <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating…
               </div>
@@ -177,7 +177,7 @@ export function DualModelResponse({ messages, role, onPick, onError }: DualModel
             {picked === "B" && <Check className="h-4 w-4 text-primary" />}
           </div>
           <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-secondary [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-secondary [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_li]:text-muted-foreground [&_p]:text-card-foreground min-h-[60px] max-h-[400px] overflow-y-auto">
-            {responseB ? <ReactMarkdown>{stripSourcesSection(responseB)}</ReactMarkdown> : (
+            {responseB ? <ReactMarkdown>{stripMetaTags(responseB)}</ReactMarkdown> : (
               <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating…
               </div>
