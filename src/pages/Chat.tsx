@@ -166,6 +166,17 @@ const Chat = () => {
         role: null,
         model: "google/gemini-3-flash-preview",
         onSources: (sources) => { msgSources = sources; },
+        onLabDetected: async (lab) => {
+          if (lab.isLab && lab.labTopic) {
+            toast.info("🧪 Creating a lab for this topic...");
+            const labId = await generateLab(lab.labTopic);
+            if (labId) {
+              toast.success("Lab created! Check your Labs page.", {
+                action: { label: "Open Lab", onClick: () => navigate("/lab") },
+              });
+            }
+          }
+        },
         onDelta: (t) => {
           buf += t;
           setMessages((prev) => {
