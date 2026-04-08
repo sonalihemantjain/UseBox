@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Loader2, Bookmark, BookmarkCheck } from "lucide-react";
 import useBoxLogo from "@/assets/usebox-logo.png";
@@ -15,6 +15,7 @@ import { streamChat, type ChatMessage, type SourceReference } from "@/lib/chat-s
 import { SourceLinks } from "@/components/chat/SourceLinks";
 import { useChatHistory } from "@/hooks/useChatHistory";
 import { DualModelResponse } from "@/components/chat/DualModelResponse";
+import { useLabs } from "@/hooks/useLabs";
 
 const SUGGESTIONS = [
   "How do I get started with product adoption strategies?",
@@ -23,8 +24,12 @@ const SUGGESTIONS = [
   "Help me create a learning path for my team",
 ];
 
-function stripSourcesSection(content: string): string {
-  return content.replace(/\n---\n📚[\s\S]*$/m, "").replace(/\n📚 \*\*Sources[:\s]*\*\*[\s\S]*$/m, "").trim();
+function stripMetaTags(content: string): string {
+  return content
+    .replace(/\n---\n📚[\s\S]*$/m, "")
+    .replace(/\n📚 \*\*Sources[:\s]*\*\*[\s\S]*$/m, "")
+    .replace(/\[IS_LAB:(true|false)\]/gi, "")
+    .trim();
 }
 
 type DisplayMessage = ChatMessage & { comparing?: boolean; sources?: SourceReference[] };
@@ -32,6 +37,8 @@ type DisplayMessage = ChatMessage & { comparing?: boolean; sources?: SourceRefer
 const Chat = () => {
   const { user } = useAuth();
   const { role, setRole } = useUserRole();
+  const navigate = useNavigate();
+  const { generateLab } = useLabs();
   const { chats, createChat, renameChat, deleteChat, toggleSaveChat, loadMessages, saveMessage, autoTitle } = useChatHistory();
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
