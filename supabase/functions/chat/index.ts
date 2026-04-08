@@ -29,7 +29,18 @@ Formatting:
 - Keep responses focused and scannable
 - End complex answers with 2-3 suggested follow-up questions the user could ask
 
-Tone: Warm, knowledgeable, encouraging — like a senior mentor who genuinely wants to help.`;
+Tone: Warm, knowledgeable, encouraging — like a senior mentor who genuinely wants to help.
+
+## Lab Detection
+After answering the user's question, evaluate if the topic would benefit from a hands-on lab exercise. If yes, append this EXACT tag as the VERY LAST LINE of your response:
+
+[IS_LAB:true]
+
+If the topic is NOT suitable for a lab (e.g. it's a simple factual question, greeting, or meta-question), append:
+
+[IS_LAB:false]
+
+You MUST always include exactly one of these tags as the last line. Topics suitable for labs include: technical concepts, frameworks, architectures, coding patterns, tools, workflows, and anything where practice reinforces learning.`;
 
 const DISCOVERY_PROMPT = `You are UseBox AI Coach. The user is NEW and you need to identify their persona through a friendly conversation.
 
@@ -181,34 +192,63 @@ serve(async (req) => {
       });
     }
 
-    // If we have sources, prepend them as a custom SSE event before the AI stream
+    // Collect full response to check for lab flag
+    const encoder = new TextEncoder();
+    const metaLines: string[] = [];
+
     if (sourcesMetadata.length > 0) {
-      const sourceLine = `data: ${JSON.stringify({ sources: sourcesMetadata })}\n\n`;
-      const encoder = new TextEncoder();
-      const sourceChunk = encoder.encode(sourceLine);
-
-      const stream = new ReadableStream({
-        async start(controller) {
-          // Send sources metadata first
-          controller.enqueue(sourceChunk);
-
-          // Then pipe the AI response
-          const reader = response.body!.getReader();
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            controller.enqueue(value);
-          }
-          controller.close();
-        },
-      });
-
-      return new Response(stream, {
-        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
-      });
+      metaLines.push(`data: ${JSON.stringify({ sources: sourcesMetadata })}\n\n`);
     }
 
-    return new Response(response.body, {
+    // We need to buffer the full response to detect [IS_LAB:true] tag
+    const stream = new ReadableStream({
+      async start(controller) {
+        // Send metadata first
+        for (const line of metaLines) {
+          controller.enqueue(encoder.encode(line));
+        }
+
+        const reader = response.body!.getReader();
+        const decoder = new TextDecoder();
+        let fullContent = "";
+        const chunks: Uint8Array[] = [];
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          // Parse SSE to accumulate content for lab detection
+          const text = decoder.decode(value, { stream: true });
+          for (const rawLine of text.split("\n")) {
+            const line = rawLine.trim();
+            if (!line.startsWith("data: ")) continue;
+            const jsonStr = line.slice(6).trim();
+            if (jsonStr === "[DONE]") continue;
+            try {
+              const parsed = JSON.parse(jsonStr);
+              const delta = parsed.choices?.[0]?.delta?.content;
+              if (delta) fullContent += delta;
+            } catch {}
+          }
+          controller.enqueue(value);
+        }
+
+        // Check if AI included the lab flag
+        const labMatch = fullContent.match(/\[IS_LAB:(true|false)\]/i);
+        const isLab = labMatch ? labMatch[1].toLowerCase() === "true" : false;
+        // Extract topic from the conversation
+        const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
+        const labTopic = lastUserMsg?.content || "";
+
+        // Send lab metadata as final SSE event
+        const labEvent = `data: ${JSON.stringify({ isLab, labTopic })}\n\n`;
+        controller.enqueue(encoder.encode(labEvent));
+
+        controller.close();
+      },
+    });
+
+    return new Response(stream, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (e) {
