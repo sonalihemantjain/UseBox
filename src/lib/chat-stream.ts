@@ -57,7 +57,7 @@ export async function streamChat({
   let buffer = "";
   let streamDone = false;
 
-  while (!streamDone) {
+  while (true) {
     const { done, value } = await reader.read();
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
@@ -72,7 +72,7 @@ export async function streamChat({
       if (!line.startsWith("data: ")) continue;
 
       const jsonStr = line.slice(6).trim();
-      if (jsonStr === "[DONE]") { streamDone = true; break; }
+      if (jsonStr === "[DONE]") continue;
 
       try {
         const parsed = JSON.parse(jsonStr);
