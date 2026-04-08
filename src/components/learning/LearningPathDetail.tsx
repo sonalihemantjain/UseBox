@@ -3,11 +3,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, CheckCircle2, Circle, Clock, Sparkles, BookOpen, FlaskConical } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Circle, Clock, Sparkles, BookOpen } from "lucide-react";
 import { getKnowledgeIcon } from "@/lib/knowledge-icons";
 import { StepReaderSheet } from "./StepReaderSheet";
-import { CreateLabDialog } from "@/components/lab/CreateLabDialog";
-import { useLabs } from "@/hooks/useLabs";
 import type { LearningPath, LearningPathStep } from "@/hooks/useLearningPaths";
 
 interface Props {
@@ -29,7 +27,6 @@ export function LearningPathDetail({ path, onBack, onEnroll, onToggleStep }: Pro
   const completedSteps = new Set(path.enrollment?.completed_steps || []);
   const progressPct = path.steps.length > 0 ? Math.round((completedSteps.size / path.steps.length) * 100) : 0;
   const [readingStep, setReadingStep] = useState<LearningPathStep | null>(null);
-  const { generating, generateLab } = useLabs();
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -80,14 +77,6 @@ export function LearningPathDetail({ path, onBack, onEnroll, onToggleStep }: Pro
               Start Learning
             </Button>
           )}
-          <div className="mt-4">
-            <CreateLabDialog
-              generating={generating}
-              onGenerate={generateLab}
-              triggerLabel="Create Lab for this topic"
-              defaultTopic={path.title}
-            />
-          </div>
         </div>
 
         <div className="space-y-3">
