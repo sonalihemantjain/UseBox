@@ -5,35 +5,35 @@ import { useUserRole, ROLE_LABELS } from "@/hooks/useUserRole";
 import { useNavigate } from "react-router-dom";
 
 const ROLE_DESCRIPTIONS: Record<string, { greeting: string; learnDesc: string; shareDesc: string; earnDesc: string; suggestions: string[] }> = {
-  business: {
-    greeting: "Continue mastering business strategy and product adoption.",
-    learnDesc: "Get AI coaching on product adoption, go-to-market strategies, and business analytics.",
-    shareDesc: "Contribute business insights, case studies, and best practices to the community.",
-    earnDesc: "Earn rewards for sharing business knowledge and mentoring others.",
-    suggestions: ["How do I improve product adoption?", "Best practices for stakeholder presentations", "Understanding SaaS metrics"],
+  NoCode: {
+    greeting: "Continue mastering no-code solutions and automation.",
+    learnDesc: "Get AI coaching on no-code platforms, automation tools, and workflow optimization.",
+    shareDesc: "Contribute no-code templates, workflows, and automation patterns to the community.",
+    earnDesc: "Earn rewards for sharing no-code solutions and automation guides.",
+    suggestions: ["How do I build with no-code tools?", "Best practices for workflow automation", "Comparing no-code platforms"],
   },
-  lowcode: {
+  LowCode: {
     greeting: "Keep building with low-code tools and automation.",
     learnDesc: "Learn to build faster with low-code platforms, automation tools, and integrations.",
     shareDesc: "Share your low-code templates, workflows, and integration patterns.",
     earnDesc: "Earn tokens by contributing reusable templates and automation guides.",
     suggestions: ["How to build a workflow automation?", "Best low-code integration patterns", "When to go custom vs low-code?"],
   },
-  developer: {
+  ProDeveloper: {
     greeting: "Level up your development skills and best practices.",
     learnDesc: "Get AI coaching on coding patterns, architecture, debugging, and modern frameworks.",
     shareDesc: "Share code snippets, technical tutorials, and open-source contributions.",
     earnDesc: "Earn rewards for quality code reviews, tutorials, and community answers.",
     suggestions: ["Explain RAG architecture", "Best practices for API design", "How to optimize React performance?"],
   },
-  architect: {
+  Architect: {
     greeting: "Design scalable systems and lead technical decisions.",
     learnDesc: "AI coaching on system design, scalability patterns, and architecture decisions.",
     shareDesc: "Share architecture blueprints, design patterns, and technical decision frameworks.",
     earnDesc: "Earn premium rewards for expert-level architecture reviews and mentoring.",
     suggestions: ["Microservices vs monolith tradeoffs", "Event-driven architecture patterns", "How to design for scale?"],
   },
-  admin: {
+  Admin: {
     greeting: "Manage your platform, users, and configurations.",
     learnDesc: "Learn platform administration, security best practices, and team management.",
     shareDesc: "Share admin guides, security policies, and governance frameworks.",
@@ -46,7 +46,7 @@ const Dashboard = () => {
   const { user } = useAuth();
   const { role } = useUserRole();
   const navigate = useNavigate();
-  const roleData = role ? (ROLE_DESCRIPTIONS[role] || ROLE_DESCRIPTIONS.business) : null;
+  const roleData = role ? (ROLE_DESCRIPTIONS[role] || ROLE_DESCRIPTIONS.NoCode) : null;
 
   return (
     <div className="h-full overflow-y-auto">

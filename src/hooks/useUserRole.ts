@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback, useSyncExternalStore } from "react";
 
-export type UserRole = "nocode" | "lowcode" | "prodeveloper" | "architect" | "admin";
+export type UserRole = "NoCode" | "LowCode" | "ProDeveloper" | "Architect" | "Admin";
 
 export const ROLE_LABELS: Record<UserRole, string> = {
-  nocode: "No-Code User",
-  lowcode: "Low-Code Dev",
-  prodeveloper: "Pro Developer",
-  architect: "Architect",
-  admin: "Administrator",
+  NoCode: "No Code",
+  LowCode: "Low Code",
+  ProDeveloper: "Pro Developer",
+  Architect: "Architect",
+  Admin: "Administrator",
 };
 
 const STORAGE_KEY = "knowledge-user-role";

@@ -11,30 +11,30 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const ROLE_ICONS: Record<UserRole, React.ElementType> = {
-  nocode: User,
-  lowcode: Zap,
-  prodeveloper: Code,
-  architect: Layers,
-  admin: Shield,
+  NoCode: User,
+  LowCode: Zap,
+  ProDeveloper: Code,
+  Architect: Layers,
+  Admin: Shield,
 };
 
 const ROLE_COLORS: Record<UserRole, string> = {
-  nocode: "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20",
-  lowcode: "from-amber-500/10 to-amber-500/5 border-amber-500/20",
-  prodeveloper: "from-blue-500/10 to-blue-500/5 border-blue-500/20",
-  architect: "from-purple-500/10 to-purple-500/5 border-purple-500/20",
-  admin: "from-red-500/10 to-red-500/5 border-red-500/20",
+  NoCode: "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20",
+  LowCode: "from-amber-500/10 to-amber-500/5 border-amber-500/20",
+  ProDeveloper: "from-blue-500/10 to-blue-500/5 border-blue-500/20",
+  Architect: "from-purple-500/10 to-purple-500/5 border-purple-500/20",
+  Admin: "from-red-500/10 to-red-500/5 border-red-500/20",
 };
 
 const ROLE_ICON_COLORS: Record<UserRole, string> = {
-  nocode: "text-emerald-600",
-  lowcode: "text-amber-600",
-  prodeveloper: "text-blue-600",
-  architect: "text-purple-600",
-  admin: "text-red-600",
+  NoCode: "text-emerald-600",
+  LowCode: "text-amber-600",
+  ProDeveloper: "text-blue-600",
+  Architect: "text-purple-600",
+  Admin: "text-red-600",
 };
 
-const roles: UserRole[] = ["nocode", "lowcode", "prodeveloper", "architect", "admin"];
+const roles: UserRole[] = ["NoCode", "LowCode", "ProDeveloper", "Architect", "Admin"];
 
 interface RoleSelectorProps {
   value: UserRole | null;
@@ -45,7 +45,7 @@ interface RoleSelectorProps {
 export function RoleSelector({ value, onChange, collapsed }: RoleSelectorProps) {
   const [open, setOpen] = useState(false);
 
-  const currentRole = value || "nocode"; // Default to nocode if no value
+  const currentRole = value || "NoCode"; // Default to NoCode if no value
   const Icon = ROLE_ICONS[currentRole];
 
   return (
