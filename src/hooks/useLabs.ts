@@ -81,10 +81,22 @@ export function useLabs() {
     if (!user) return;
     setGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-lab", {
-        body: { topic, difficulty },
+      console.log('🧪 Starting lab generation for topic:', topic);
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      const response = await fetch(`${apiUrl}/api/labs/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ topic, difficulty }),
       });
-      if (error) throw error;
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ Lab data received from API:', data);
 
       // Create lab record
       const totalSteps = (data.tasks || []).reduce((sum: number, t: any) => sum + (t.steps?.length || 0), 0);
