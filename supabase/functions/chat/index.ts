@@ -8,9 +8,9 @@ const corsHeaders = {
 };
 
 const ROLE_CONTEXTS: Record<string, string> = {
-  business: "The user is a Business User — they prefer high-level explanations, business value framing, ROI-oriented advice, and minimal technical jargon. Use analogies and real-world examples.",
+  nocode: "The user is a No-Code User — they prefer high-level explanations, business value framing, ROI-oriented advice, and minimal technical jargon. Use analogies and real-world examples.",
   lowcode: "The user is a Low-Code Developer — they understand basic technical concepts and work with low-code/no-code tools. Explain with visual metaphors, reference drag-and-drop builders, and provide step-by-step workflows.",
-  developer: "The user is a Pro Developer — they want precise technical details, code examples, API references, and architectural patterns. Be concise and technically rigorous.",
+  prodeveloper: "The user is a Pro Developer — they want precise technical details, code examples, API references, and architectural patterns. Be concise and technically rigorous.",
   architect: "The user is an Architect — they think in systems, integrations, scalability, and trade-offs. Discuss design patterns, infrastructure considerations, and long-term maintainability.",
   admin: "The user is an Administrator — they focus on configuration, security, compliance, user management, and operations. Provide admin-oriented guidance with governance best practices.",
 };
@@ -43,9 +43,9 @@ const DISCOVERY_PROMPT = `You are UseBox AI Coach. The user is NEW and you need 
 Your goal is to ask exactly 3 short questions, ONE AT A TIME, to understand who this user is. After the 3rd answer, detect their persona AND immediately start helping them.
 
 ## The 5 personas:
-- **Business User** (keyword: business): Non-technical, focuses on strategy, product adoption, analytics, ROI
+- **No-Code User** (keyword: nocode): Non-technical, focuses on strategy, product adoption, analytics, ROI
 - **Low-Code Dev** (keyword: lowcode): Semi-technical, uses low-code/no-code tools, automation, integrations
-- **Pro Developer** (keyword: developer): Technical, writes code, understands APIs, frameworks, architecture
+- **Pro Developer** (keyword: prodeveloper): Technical, writes code, understands APIs, frameworks, architecture
 - **Architect** (keyword: architect): Senior technical, designs systems, thinks about scalability, trade-offs
 - **Administrator** (keyword: admin): Operations-focused, manages platforms, users, security, compliance
 
@@ -68,7 +68,7 @@ Your goal is to ask exactly 3 short questions, ONE AT A TIME, to understand who 
 
 [PERSONA_DETECTED:keyword]
 
-Replace "keyword" with one of: business, lowcode, developer, architect, admin
+Replace "keyword" with one of: nocode, lowcode, prodeveloper, architect, admin
 
 6. This tag is MANDATORY. You MUST include it. NEVER forget it. NEVER skip it. It must be the VERY LAST LINE.
 7. Do NOT wrap the tag in markdown, code blocks, or any formatting. Just the raw tag on its own line.
@@ -108,7 +108,7 @@ serve(async (req) => {
     if (!role) {
       systemPrompt = DISCOVERY_PROMPT;
     } else {
-      const roleContext = ROLE_CONTEXTS[role] || ROLE_CONTEXTS["business"];
+      const roleContext = ROLE_CONTEXTS[role] || ROLE_CONTEXTS["nocode"];
       systemPrompt = `${BASE_PROMPT}\n\n## User Persona\n${roleContext}`;
     }
 

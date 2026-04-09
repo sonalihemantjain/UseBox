@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { User, Zap, Code, Layers, Shield, HelpCircle, Sparkles, ChevronDown, RotateCcw } from "lucide-react";
 import { type UserRole, ROLE_LABELS } from "@/hooks/useUserRole";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,30 +11,30 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const ROLE_ICONS: Record<UserRole, React.ElementType> = {
-  business: User,
+  nocode: User,
   lowcode: Zap,
-  developer: Code,
+  prodeveloper: Code,
   architect: Layers,
   admin: Shield,
 };
 
 const ROLE_COLORS: Record<UserRole, string> = {
-  business: "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20",
+  nocode: "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20",
   lowcode: "from-amber-500/10 to-amber-500/5 border-amber-500/20",
-  developer: "from-blue-500/10 to-blue-500/5 border-blue-500/20",
+  prodeveloper: "from-blue-500/10 to-blue-500/5 border-blue-500/20",
   architect: "from-purple-500/10 to-purple-500/5 border-purple-500/20",
   admin: "from-red-500/10 to-red-500/5 border-red-500/20",
 };
 
 const ROLE_ICON_COLORS: Record<UserRole, string> = {
-  business: "text-emerald-600",
+  nocode: "text-emerald-600",
   lowcode: "text-amber-600",
-  developer: "text-blue-600",
+  prodeveloper: "text-blue-600",
   architect: "text-purple-600",
   admin: "text-red-600",
 };
 
-const roles: UserRole[] = ["business", "lowcode", "developer", "architect", "admin"];
+const roles: UserRole[] = ["nocode", "lowcode", "prodeveloper", "architect", "admin"];
 
 interface RoleSelectorProps {
   value: UserRole | null;
@@ -42,36 +43,44 @@ interface RoleSelectorProps {
 }
 
 export function RoleSelector({ value, onChange, collapsed }: RoleSelectorProps) {
-  if (collapsed) return null;
+  const [open, setOpen] = useState(false);
 
-  if (!value) {
-    return (
-      <div className="mx-2 my-1.5">
-        <div className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-gradient-to-b from-muted/60 to-muted/20 border border-dashed border-border">
-          <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-            <HelpCircle className="h-3.5 w-3.5 text-primary" />
-          </div>
-          <p className="text-[11px] font-medium text-muted-foreground leading-tight truncate">No persona yet</p>
-        </div>
-      </div>
-    );
-  }
-
-  const Icon = ROLE_ICONS[value];
+  const currentRole = value || "nocode"; // Default to nocode if no value
+  const Icon = ROLE_ICONS[currentRole];
 
   return (
-    <div className="mx-2 my-1.5">
-      <DropdownMenu>
+    <div className={cn("mx-2 my-1.5", collapsed && "mx-0 px-1.5")}>
+      <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
-          <button className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg bg-gradient-to-b ${ROLE_COLORS[value]} border cursor-pointer hover:opacity-90 transition-opacity`}>
-            <div className="h-6 w-6 rounded-md bg-background/50 flex items-center justify-center shrink-0">
-              <Icon className={`h-3.5 w-3.5 ${ROLE_ICON_COLORS[value]}`} />
+          <button 
+            className={cn(
+              "w-full flex items-center gap-2 px-2.5 py-2 rounded-lg bg-gradient-to-b border cursor-pointer hover:opacity-90 transition-opacity",
+              value ? ROLE_COLORS[value] : "from-muted/60 to-muted/20 border-dashed border-border",
+              collapsed && "justify-center px-0 h-10 w-10 mx-auto"
+            )}
+            title={value ? ROLE_LABELS[value] : "Select Persona"}
+          >
+            <div className={cn(
+              "h-6 w-6 rounded-md flex items-center justify-center shrink-0",
+              value ? "bg-background/50" : "bg-primary/10"
+            )}>
+              {value ? (
+                <Icon className={cn("h-3.5 w-3.5", ROLE_ICON_COLORS[value])} />
+              ) : (
+                <HelpCircle className="h-3.5 w-3.5 text-primary" />
+              )}
             </div>
-            <span className="text-xs font-semibold text-foreground leading-tight truncate flex-1 text-left">{ROLE_LABELS[value]}</span>
-            <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+            {!collapsed && (
+              <>
+                <span className="text-xs font-semibold text-foreground leading-tight truncate flex-1 text-left">
+                  {value ? ROLE_LABELS[value] : "Select Persona"}
+                </span>
+                <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+              </>
+            )}
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-52">
+        <DropdownMenuContent align={collapsed ? "center" : "start"} side={collapsed ? "right" : "bottom"} className="w-52" sideOffset={10}>
           {roles.map((role) => {
             const RoleIcon = ROLE_ICONS[role];
             const isActive = value === role;
@@ -81,16 +90,20 @@ export function RoleSelector({ value, onChange, collapsed }: RoleSelectorProps) 
                 onClick={() => onChange(role)}
                 className={isActive ? "bg-primary/10 text-primary font-medium" : ""}
               >
-                <RoleIcon className={`h-4 w-4 mr-2 ${isActive ? ROLE_ICON_COLORS[role] : ""}`} />
+                <RoleIcon className={cn("h-4 w-4 mr-2", isActive ? ROLE_ICON_COLORS[role] : "")} />
                 {ROLE_LABELS[role]}
               </DropdownMenuItem>
             );
           })}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => onChange(null)} className="text-muted-foreground">
-            <RotateCcw className="h-4 w-4 mr-2" />
-            Re-discover via chat
-          </DropdownMenuItem>
+          {value && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => onChange(null)} className="text-muted-foreground">
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Re-discover via chat
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
