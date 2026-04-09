@@ -6,6 +6,11 @@ export type SourceReference = {
   description: string;
 };
 
+export type LabDetection = {
+  isLab: boolean;
+  labTopic: string;
+};
+
 const CHAT_URL = `${import.meta.env.VITE_API_URL}/api/chat`;
 
 export async function streamChat({
@@ -16,6 +21,7 @@ export async function streamChat({
   onDone,
   onError,
   onSources,
+  onLabDetected,
 }: {
   messages: ChatMessage[];
   role?: string | null;
@@ -24,6 +30,7 @@ export async function streamChat({
   onDone: () => void;
   onError: (error: string) => void;
   onSources?: (sources: SourceReference[]) => void;
+  onLabDetected?: (lab: LabDetection) => void;
 }) {
   const resp = await fetch(CHAT_URL, {
     method: "POST",
@@ -49,7 +56,7 @@ export async function streamChat({
   let buffer = "";
   let streamDone = false;
 
-  while (!streamDone) {
+  while (true) {
     const { done, value } = await reader.read();
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
@@ -64,7 +71,7 @@ export async function streamChat({
       if (!line.startsWith("data: ")) continue;
 
       const jsonStr = line.slice(6).trim();
-      if (jsonStr === "[DONE]") { streamDone = true; break; }
+      if (jsonStr === "[DONE]") continue;
 
       try {
         const parsed = JSON.parse(jsonStr);
@@ -72,6 +79,12 @@ export async function streamChat({
         // Check for sources metadata event
         if (parsed.sources && onSources) {
           onSources(parsed.sources);
+          continue;
+        }
+
+        // Check for lab detection event
+        if (parsed.isLab !== undefined && onLabDetected) {
+          onLabDetected({ isLab: parsed.isLab, labTopic: parsed.labTopic || "" });
           continue;
         }
         
@@ -96,6 +109,10 @@ export async function streamChat({
         const parsed = JSON.parse(jsonStr);
         if (parsed.sources && onSources) {
           onSources(parsed.sources);
+          continue;
+        }
+        if (parsed.isLab !== undefined && onLabDetected) {
+          onLabDetected({ isLab: parsed.isLab, labTopic: parsed.labTopic || "" });
           continue;
         }
         const content = parsed.choices?.[0]?.delta?.content as string | undefined;
