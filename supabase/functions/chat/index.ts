@@ -207,16 +207,19 @@ serve(async (req) => {
         const reader = response.body!.getReader();
         const decoder = new TextDecoder();
         let fullContent = "";
-        const chunks: Uint8Array[] = [];
+        let sseBuffer = "";
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          chunks.push(value);
+          // Forward raw bytes to client immediately
+          controller.enqueue(value);
           // Parse SSE to accumulate content for lab detection
-          const text = decoder.decode(value, { stream: true });
-          for (const rawLine of text.split("\n")) {
-            const line = rawLine.trim();
+          sseBuffer += decoder.decode(value, { stream: true });
+          let newlineIdx: number;
+          while ((newlineIdx = sseBuffer.indexOf("\n")) !== -1) {
+            let line = sseBuffer.slice(0, newlineIdx).trim();
+            sseBuffer = sseBuffer.slice(newlineIdx + 1);
             if (!line.startsWith("data: ")) continue;
             const jsonStr = line.slice(6).trim();
             if (jsonStr === "[DONE]") continue;
@@ -226,7 +229,6 @@ serve(async (req) => {
               if (delta) fullContent += delta;
             } catch {}
           }
-          controller.enqueue(value);
         }
 
         // Check if AI included the lab flag
