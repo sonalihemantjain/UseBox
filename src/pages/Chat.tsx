@@ -39,7 +39,7 @@ const Chat = () => {
   const { role, setRole } = useUserRole();
   const navigate = useNavigate();
   const { generateLab } = useLabs();
-  const { chats, createChat, renameChat, deleteChat, toggleSaveChat, loadMessages, saveMessage, autoTitle } = useChatHistory();
+  const { chats, loading: historyLoading, createChat, renameChat, deleteChat, toggleSaveChat, loadMessages, saveMessage, autoTitle } = useChatHistory();
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [input, setInput] = useState("");
@@ -71,14 +71,13 @@ const Chat = () => {
 
   useEffect(() => {
     const chatIdFromUrl = searchParams.get("id");
-    if (chatIdFromUrl && chatIdFromUrl !== activeChatId && chats.length > 0) {
-      const chatExists = chats.some((c) => c.id === chatIdFromUrl);
-      if (chatExists) {
-        selectChat(chatIdFromUrl);
-        setSearchParams({}, { replace: true });
-      }
+    if (chatIdFromUrl && chatIdFromUrl !== activeChatId && !historyLoading) {
+      // We don't strictly need to check chatExists if we trust the URL, 
+      // but let's be safe and just try to load it.
+      selectChat(chatIdFromUrl);
+      setSearchParams({}, { replace: true });
     }
-  }, [searchParams, chats, activeChatId, selectChat, setSearchParams]);
+  }, [searchParams, historyLoading, activeChatId, selectChat, setSearchParams]);
 
   // Listen for new-chat event from sidebar
   useEffect(() => {
