@@ -157,48 +157,6 @@ const Chat = () => {
       autoTitle(chatId, content.trim());
     }
 
-    if (!role) {
-      const apiMessages = newMessages.map(({ role, content }) => ({ role, content }));
-      let buf = "";
-      let msgSources: SourceReference[] = [];
-      streamChat({
-        messages: apiMessages,
-        role: null,
-        model: "google/gemini-3-flash-preview",
-        onSources: (sources) => { msgSources = sources; },
-        onLabDetected: async (lab) => {
-          if (lab.isLab && lab.labTopic) {
-            toast.info("🧪 Creating a lab for this topic...");
-            const labId = await generateLab(lab.labTopic);
-            if (labId) {
-              toast.success("Lab created! Check your Labs page.", {
-                action: { label: "Open Lab", onClick: () => navigate("/lab") },
-              });
-            }
-          }
-        },
-        onDelta: (t) => {
-          buf += t;
-          setMessages((prev) => {
-            const last = prev[prev.length - 1];
-            if (last?.role === "assistant") {
-              return [...prev.slice(0, -1), { role: "assistant", content: buf, sources: msgSources }];
-            }
-            return [...prev, { role: "assistant", content: buf, sources: msgSources }];
-          });
-        },
-        onDone: () => {
-          setIsLoading(false);
-          handlePersonaDetection(buf, chatId!);
-        },
-        onError: (err) => {
-          toast.error(err);
-          setIsLoading(false);
-        },
-      });
-      return;
-    }
-
     pendingChatIdRef.current = chatId;
     pendingMessagesRef.current = newMessages.map(({ role, content }) => ({ role, content }));
     setComparingIndex(newMessages.length);
@@ -295,11 +253,10 @@ const Chat = () => {
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 py-3 ${
-                    msg.role === "user"
-                      ? "bg-primary text-primary-foreground rounded-br-sm"
-                      : "bg-muted/50 rounded-bl-sm"
-                  }`}
+                  className={`max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 py-3 ${msg.role === "user"
+                    ? "bg-primary text-primary-foreground rounded-br-sm"
+                    : "bg-muted/50 rounded-bl-sm"
+                    }`}
                 >
                   {msg.role === "assistant" ? (
                     <>
