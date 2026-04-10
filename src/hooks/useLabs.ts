@@ -45,34 +45,80 @@ export function useLabs() {
     if (!user) return;
     setLoading(true);
 
-    const [{ data: labsData }, { data: tasksData }, { data: stepsData }] = await Promise.all([
-      supabase.from("labs").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("lab_tasks").select("*").order("task_order"),
-      supabase.from("lab_task_steps").select("*").order("step_order"),
-    ]);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      const response = await fetch(`${apiUrl}/api/labs/user/${user.id}`);
+      
+      if (response.ok) {
+        const apiLabs = await response.json();
+        console.log('📚 Labs fetched from API:', apiLabs);
+        
+        // Map API format to UI format
+        const mappedLabs: Lab[] = apiLabs.map((al: any) => ({
+          id: al.id,
+          user_id: user.id,
+          title: al.title,
+          description: al.goal || al.raw?.substring(0, 100) + "...",
+          topic: al.question,
+          difficulty: "intermediate",
+          total_steps: al.tasks?.reduce((sum: number, t: any) => sum + (t.subtasks?.length || 0), 0) || 0,
+          completed_steps: Object.values(al.task_states || {}).filter(v => v).length,
+          status: al.completed ? "completed" : "in_progress",
+          created_at: al.created_at,
+          tasks: (al.tasks || []).map((at: any, ti: number) => ({
+            id: `task-${al.id}-${ti}`,
+            lab_id: al.id,
+            task_order: ti + 1,
+            title: at.title,
+            description: at.description || "",
+            steps: (at.subtasks || []).map((as: string, si: number) => ({
+              id: `step-${al.id}-${ti}-${si}`,
+              task_id: `task-${al.id}-${ti}`,
+              step_order: si + 1,
+              title: as.substring(0, 50) + (as.length > 50 ? "..." : ""),
+              content: as,
+              is_completed: al.task_states?.[as] || false
+            }))
+          }))
+        }));
 
-    const stepsMap = new Map<string, LabTaskStep[]>();
-    (stepsData ?? []).forEach((s: any) => {
-      const list = stepsMap.get(s.task_id) || [];
-      list.push(s);
-      stepsMap.set(s.task_id, list);
-    });
+        setLabs(mappedLabs);
+      } else {
+        console.error('Failed to fetch labs from API, falling back to Supabase');
+        // Original Supabase fallback
+        const [{ data: labsData }, { data: tasksData }, { data: stepsData }] = await Promise.all([
+          supabase.from("labs").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+          supabase.from("lab_tasks").select("*").order("task_order"),
+          supabase.from("lab_task_steps").select("*").order("step_order"),
+        ]);
 
-    const tasksMap = new Map<string, LabTask[]>();
-    (tasksData ?? []).forEach((t: any) => {
-      const task: LabTask = { ...t, steps: stepsMap.get(t.id) || [] };
-      const list = tasksMap.get(t.lab_id) || [];
-      list.push(task);
-      tasksMap.set(t.lab_id, list);
-    });
+        const stepsMap = new Map<string, LabTaskStep[]>();
+        (stepsData ?? []).forEach((s: any) => {
+          const list = stepsMap.get(s.task_id) || [];
+          list.push(s);
+          stepsMap.set(s.task_id, list);
+        });
 
-    const enriched: Lab[] = (labsData ?? []).map((l: any) => ({
-      ...l,
-      tasks: tasksMap.get(l.id) || [],
-    }));
+        const tasksMap = new Map<string, LabTask[]>();
+        (tasksData ?? []).forEach((t: any) => {
+          const task: LabTask = { ...t, steps: stepsMap.get(t.id) || [] };
+          const list = tasksMap.get(t.lab_id) || [];
+          list.push(task);
+          tasksMap.set(t.lab_id, list);
+        });
 
-    setLabs(enriched);
-    setLoading(false);
+        const enriched: Lab[] = (labsData ?? []).map((l: any) => ({
+          ...l,
+          tasks: tasksMap.get(l.id) || [],
+        }));
+
+        setLabs(enriched);
+      }
+    } catch (err) {
+      console.error('Error in fetchLabs:', err);
+    } finally {
+      setLoading(false);
+    }
   }, [user]);
 
   useEffect(() => { fetchLabs(); }, [fetchLabs]);
@@ -161,29 +207,91 @@ export function useLabs() {
     if (!targetStep) return;
 
     const newCompleted = !targetStep.is_completed;
-    await supabase.from("lab_task_steps").update({ is_completed: newCompleted }).eq("id", stepId);
+    
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      
+      // Update task_states locally
+      const newTaskStates = { ...(lab as any).task_states || {} };
+      newTaskStates[targetStep.content] = newCompleted;
 
-    // Recalculate completed steps
-    const newCompletedCount = lab.tasks.reduce((sum, t) =>
-      sum + t.steps.filter(s => s.id === stepId ? newCompleted : s.is_completed).length, 0
-    );
-    const allDone = newCompletedCount === lab.total_steps;
+      // The API expects the tasks in the background format
+      const apiTasks = lab.tasks.map(t => ({
+        title: t.title,
+        description: t.description,
+        subtasks: t.steps.map(s => s.content)
+      }));
 
-    await supabase.from("labs").update({
-      completed_steps: newCompletedCount,
-      status: allDone ? "completed" : "in_progress",
-      updated_at: new Date().toISOString(),
-    }).eq("id", labId);
+      const response = await fetch(`${apiUrl}/api/labs/${labId}/progress`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          task_states: newTaskStates,
+          tasks: apiTasks
+        }),
+      });
 
-    if (allDone) toast.success("🎉 Lab completed!");
-    await fetchLabs();
+      if (response.ok) {
+        // Recalculate locally for UI feedback
+        const newCompletedCount = lab.tasks.reduce((sum, t) =>
+          sum + t.steps.filter(s => s.id === stepId ? newCompleted : s.is_completed).length, 0
+        );
+        const allDone = newCompletedCount === lab.total_steps;
+        if (allDone) toast.success("🎉 Lab completed!");
+        
+        await fetchLabs();
+      } else {
+        // Fallback to Supabase
+        await supabase.from("lab_task_steps").update({ is_completed: newCompleted }).eq("id", stepId);
+        const newCompletedCount = lab.tasks.reduce((sum, t) =>
+          sum + t.steps.filter(s => s.id === stepId ? newCompleted : s.is_completed).length, 0
+        );
+        const allDone = newCompletedCount === lab.total_steps;
+        await supabase.from("labs").update({
+          completed_steps: newCompletedCount,
+          status: allDone ? "completed" : "in_progress",
+          updated_at: new Date().toISOString(),
+        }).eq("id", labId);
+        if (allDone) toast.success("🎉 Lab completed!");
+        await fetchLabs();
+      }
+    } catch (err) {
+      console.error('Error toggling step:', err);
+      toast.error("Failed to update step progress");
+    }
   }, [labs, fetchLabs]);
 
   const deleteLab = useCallback(async (labId: string) => {
-    await supabase.from("labs").delete().eq("id", labId);
-    toast.success("Lab deleted");
-    await fetchLabs();
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      const response = await fetch(`${apiUrl}/api/labs/${labId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        toast.success("Lab deleted");
+      } else {
+        await supabase.from("labs").delete().eq("id", labId);
+        toast.success("Lab deleted");
+      }
+      await fetchLabs();
+    } catch (err) {
+      console.error('Error deleting lab:', err);
+      toast.error("Failed to delete lab");
+    }
   }, [fetchLabs]);
 
-  return { labs, loading, generating, generateLab, toggleStepComplete, deleteLab, refetch: fetchLabs };
+  const fetchLabFromApi = useCallback(async (labId: string) => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      const response = await fetch(`${apiUrl}/api/labs/${labId}`);
+      if (!response.ok) throw new Error("Lab not found on API");
+      return await response.json();
+    } catch (e) {
+      console.error("Error fetching lab from API:", e);
+      return null;
+    }
+  }, []);
+
+  return { labs, loading, generating, generateLab, toggleStepComplete, deleteLab, fetchLabFromApi, refetch: fetchLabs };
 }

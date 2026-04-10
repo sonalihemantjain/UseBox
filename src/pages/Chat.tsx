@@ -16,6 +16,7 @@ import { SourceLinks } from "@/components/chat/SourceLinks";
 import { useChatHistory } from "@/hooks/useChatHistory";
 import { DualModelResponse } from "@/components/chat/DualModelResponse";
 import { useLabs } from "@/hooks/useLabs";
+import { DebugAuthStatus } from "@/components/DebugAuthStatus";
 
 const SUGGESTIONS = [
   "How do I get started with product adoption strategies?",
@@ -183,6 +184,15 @@ const Chat = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate user is logged in
+    if (!user?.id) {
+      toast.error('Please log in to use the chat', {
+        description: 'You need to be logged in to send messages and create labs.',
+      });
+      return;
+    }
+    
     sendMessage(input);
   };
 
@@ -195,6 +205,9 @@ const Chat = () => {
 
   return (
     <div className="flex flex-col h-full bg-background">
+      {/* Debug Auth Status - only shows in development */}
+      <DebugAuthStatus />
+      
       {/* Minimal top bar for active chat */}
       {activeChatId && activeChat && (
         <div className="flex items-center justify-between px-6 py-2.5 border-b border-border/50">
