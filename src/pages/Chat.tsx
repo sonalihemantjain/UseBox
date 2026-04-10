@@ -38,7 +38,7 @@ const Chat = () => {
   const { user } = useAuth();
   const { role, setRole } = useUserRole();
   const navigate = useNavigate();
-  const { generateLab } = useLabs();
+  const { generateLab } = useLabs({ autoFetch: false });
   const { chats, loading: historyLoading, createChat, renameChat, deleteChat, toggleSaveChat, loadMessages, saveMessage, autoTitle } = useChatHistory();
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
@@ -183,6 +183,15 @@ const Chat = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate user is logged in
+    if (!user?.id) {
+      toast.error('Please log in to use the chat', {
+        description: 'You need to be logged in to send messages and create labs.',
+      });
+      return;
+    }
+    
     sendMessage(input);
   };
 

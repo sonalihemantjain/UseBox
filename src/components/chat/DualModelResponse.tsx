@@ -8,6 +8,7 @@ import { streamChat, type ChatMessage, type SourceReference } from "@/lib/chat-s
 import { useModelSelection } from "@/hooks/useModelSelection";
 import { SourceLinks } from "./SourceLinks";
 import { useLabs } from "@/hooks/useLabs";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 const MODEL_LABELS: Record<string, string> = {
@@ -38,7 +39,8 @@ interface DualModelResponseProps {
 export function DualModelResponse({ messages, role, onPick, onError }: DualModelResponseProps) {
   const { selectedModels } = useModelSelection();
   const navigate = useNavigate();
-  const { generateLab } = useLabs();
+  const { user, isReady } = useAuth();
+  const { generateLab } = useLabs({ autoFetch: false });
   const labCreatedRef = useRef(false);
   const MODEL_A = selectedModels[0];
   const MODEL_B = selectedModels[1];
@@ -50,22 +52,75 @@ export function DualModelResponse({ messages, role, onPick, onError }: DualModel
   const [picked, setPicked] = useState<"A" | "B" | null>(null);
   const [sourcesA, setSourcesA] = useState<SourceReference[]>([]);
   const [sourcesB, setSourcesB] = useState<SourceReference[]>([]);
+  const [showSources, setShowSources] = useState(false);
   const bufA = useRef("");
   const bufB = useRef("");
 
   useEffect(() => {
+    // Don't start streaming until user is ready
+    if (!isReady) {
+      return;
+    }
+
     bufA.current = "";
     bufB.current = "";
 
-    const handleLabDetected = async (lab: { isLab: boolean; labTopic: string }) => {
+    // Validation: Check if userId is available
+    if (!user?.id) {
+      console.error('❌ User ID is not available!');
+      toast.error('User ID is not set. Please log in again.', {
+        description: 'Labs cannot be created without a valid user session.',
+        duration: 5000,
+      });
+      onError('User ID is not available. Please log in again.');
+      return;
+    }
+
+    const handleLabDetected = async (lab: { isLab: boolean; labTopic: string; labId?: string }) => {
       if (lab.isLab && lab.labTopic && !labCreatedRef.current) {
         labCreatedRef.current = true;
-        toast.info("🧪 Creating a lab for this topic...");
-        const labId = await generateLab(lab.labTopic);
-        if (labId) {
-          toast.success("Lab created! Check your Labs page.", {
-            action: { label: "Open Lab", onClick: () => navigate("/lab") },
+        
+        if (lab.labId) {
+          toast.success("🧪 A practical lab is being prepared for you!", {
+            description: "This may take 10-30 seconds. You'll be notified when it's ready.",
+            duration: 5000,
           });
+          
+          const checkLabReady = async (attempts = 0): Promise<void> => {
+            if (attempts >= 30) {
+              toast.error("Lab generation is taking longer than expected. Please check your Labs page in a moment.");
+              return;
+            }
+            
+            try {
+              const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+              const response = await fetch(`${apiUrl}/api/labs/${lab.labId}`);
+              
+              if (response.ok) {
+                toast.success("✅ Lab is ready!", {
+                  action: { label: "Open Lab", onClick: () => navigate("/lab") },
+                  duration: 10000,
+                });
+              } else if (response.status === 404) {
+                setTimeout(() => checkLabReady(attempts + 1), 2000);
+              } else {
+                throw new Error("Failed to check lab status");
+              }
+            } catch (error) {
+              console.error("Error checking lab status:", error);
+              setTimeout(() => checkLabReady(attempts + 1), 2000);
+            }
+          };
+          
+          setTimeout(() => checkLabReady(), 3000);
+        } else {
+          toast.info("🧪 Creating a lab for this topic...");
+          const labId = await generateLab(lab.labTopic);
+          if (labId) {
+            toast.success("Lab created! Check your Labs page.", {
+              action: { label: "Open Lab", onClick: () => navigate("/lab") },
+            });
+          }
         }
       }
     };
@@ -73,26 +128,34 @@ export function DualModelResponse({ messages, role, onPick, onError }: DualModel
     streamChat({
       messages,
       role,
+      userId: user.id,
       model: MODEL_A,
       onDelta: (t) => { bufA.current += t; setResponseA(bufA.current); },
       onDone: () => setDoneA(true),
       onError,
-      onSources: (sources) => setSourcesA(sources),
+      onSources: (sources, show) => {
+        setSourcesA(sources);
+        setShowSources(show);
+      },
       onLabDetected: handleLabDetected,
     });
 
     streamChat({
       messages,
       role,
+      userId: user.id,
       model: MODEL_B,
       onDelta: (t) => { bufB.current += t; setResponseB(bufB.current); },
       onDone: () => setDoneB(true),
       onError,
-      onSources: (sources) => setSourcesB(sources),
+      onSources: (sources, show) => {
+        setSourcesB(sources);
+        setShowSources(show);
+      },
       onLabDetected: handleLabDetected,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isReady, user?.id]);
 
   const handlePick = (side: "A" | "B") => {
     setPicked(side);
@@ -196,8 +259,8 @@ export function DualModelResponse({ messages, role, onPick, onError }: DualModel
         </div>
       </div>
 
-      {/* Source links below both responses */}
-      {allSources.length > 0 && (
+      {/* Source links below both responses - only show if is_source is true */}
+      {showSources && allSources.length > 0 && (
         <div className="mt-3">
           <SourceLinks sources={allSources} />
         </div>
