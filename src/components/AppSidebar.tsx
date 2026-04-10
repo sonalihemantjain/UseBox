@@ -194,12 +194,10 @@ export function AppSidebar() {
           </Button>
         )}
         {!collapsed && (
-          <>
-            <p className="text-[10px] font-medium text-sidebar-foreground/40 uppercase tracking-wider px-2 mb-1">Persona</p>
-            <RoleSelector value={role} onChange={setRole as (r: import("@/hooks/useUserRole").UserRole | null) => void} collapsed={collapsed} />
-            <Separator className="my-2 bg-sidebar-border" />
-          </>
+          <p className="text-[10px] font-medium text-sidebar-foreground/40 uppercase tracking-wider px-2 mb-1">Persona</p>
         )}
+        <RoleSelector value={role} onChange={setRole as (r: import("@/hooks/useUserRole").UserRole | null) => void} collapsed={collapsed} />
+        {!collapsed && <Separator className="my-2 bg-sidebar-border" />}
         {!collapsed && user && (
           <p className="text-xs text-sidebar-foreground/40 truncate px-2 mb-2">
             {user.email}

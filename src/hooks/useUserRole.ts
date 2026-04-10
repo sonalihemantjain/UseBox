@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useSyncExternalStore } from "react";
 
-export type UserRole = "business" | "lowcode" | "developer" | "architect" | "admin";
+export type UserRole = "nocode" | "lowcode" | "prodeveloper" | "architect" | "admin";
 
 export const ROLE_LABELS: Record<UserRole, string> = {
-  business: "Business User",
+  nocode: "No-Code User",
   lowcode: "Low-Code Dev",
-  developer: "Pro Developer",
+  prodeveloper: "Pro Developer",
   architect: "Architect",
   admin: "Administrator",
 };

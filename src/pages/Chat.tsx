@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserRole, ROLE_LABELS, type UserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
-import { streamChat, type ChatMessage, type SourceReference } from "@/lib/chat-stream";
+import { type ChatMessage, type SourceReference } from "@/lib/chat-stream";
 import { SourceLinks } from "@/components/chat/SourceLinks";
 import { useChatHistory } from "@/hooks/useChatHistory";
 import { DualModelResponse } from "@/components/chat/DualModelResponse";
@@ -39,7 +39,7 @@ const Chat = () => {
   const { role, setRole } = useUserRole();
   const navigate = useNavigate();
   const { generateLab } = useLabs();
-  const { chats, createChat, renameChat, deleteChat, toggleSaveChat, loadMessages, saveMessage, autoTitle } = useChatHistory();
+  const { chats, loading: historyLoading, createChat, renameChat, deleteChat, toggleSaveChat, loadMessages, saveMessage, autoTitle } = useChatHistory();
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [input, setInput] = useState("");
@@ -71,14 +71,13 @@ const Chat = () => {
 
   useEffect(() => {
     const chatIdFromUrl = searchParams.get("id");
-    if (chatIdFromUrl && chatIdFromUrl !== activeChatId && chats.length > 0) {
-      const chatExists = chats.some((c) => c.id === chatIdFromUrl);
-      if (chatExists) {
-        selectChat(chatIdFromUrl);
-        setSearchParams({}, { replace: true });
-      }
+    if (chatIdFromUrl && chatIdFromUrl !== activeChatId && !historyLoading) {
+      // We don't strictly need to check chatExists if we trust the URL, 
+      // but let's be safe and just try to load it.
+      selectChat(chatIdFromUrl);
+      setSearchParams({}, { replace: true });
     }
-  }, [searchParams, chats, activeChatId, selectChat, setSearchParams]);
+  }, [searchParams, historyLoading, activeChatId, selectChat, setSearchParams]);
 
   // Listen for new-chat event from sidebar
   useEffect(() => {
@@ -157,6 +156,10 @@ const Chat = () => {
       autoTitle(chatId, content.trim());
     }
 
+    if (!role) {
+      toast.info("Tip: Select a persona in the sidebar for personalized dual-model comparisons!");
+    }
+
     pendingChatIdRef.current = chatId;
     pendingMessagesRef.current = newMessages.map(({ role, content }) => ({ role, content }));
     setComparingIndex(newMessages.length);
@@ -226,7 +229,7 @@ const Chat = () => {
               <p className="text-muted-foreground text-sm max-w-sm mx-auto mb-8">
                 {role
                   ? <>Responses from two AI models — compare and pick the best one.</>
-                  : <>I'll personalize everything once I understand your background.</>
+                  : <>Select a persona in the sidebar to get personalized dual-model comparisons.</>
                 }
               </p>
               <div className="grid sm:grid-cols-2 gap-2.5 max-w-lg mx-auto">
@@ -290,6 +293,13 @@ const Chat = () => {
 
       {/* Input area — centered, ChatGPT-style */}
       <div className="shrink-0 pb-4 pt-2 px-4">
+        {!role && messages.length > 0 && (
+          <div className="mx-auto max-w-5xl mb-2 px-4 py-1.5 rounded-lg bg-primary/5 border border-primary/10 flex items-center justify-center gap-2">
+            <span className="text-[11px] font-medium text-primary">
+              Select a persona in the sidebar to enable dual-model comparison
+            </span>
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="mx-auto max-w-5xl">
           <div className="flex items-end gap-2 bg-muted/40 rounded-2xl px-4 py-3 border border-border/60 focus-within:border-primary/40 focus-within:bg-muted/60 transition-all shadow-sm">
             <textarea
