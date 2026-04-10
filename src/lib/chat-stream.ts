@@ -6,6 +6,11 @@ export type SourceReference = {
   description: string;
 };
 
+export type SourceResponse = {
+  sources: SourceReference[];
+  is_source: boolean;
+};
+
 export type LabDetection = {
   isLab: boolean;
   labTopic: string;
@@ -34,7 +39,7 @@ export async function streamChat({
   onDelta: (text: string) => void;
   onDone: () => void;
   onError: (error: string) => void;
-  onSources?: (sources: SourceReference[]) => void;
+  onSources?: (sources: SourceReference[], showSources: boolean) => void;
   onLabDetected?: (lab: LabDetection) => void;
 }) {
   const requestBody = { 
@@ -89,9 +94,10 @@ export async function streamChat({
       try {
         const parsed = JSON.parse(jsonStr);
         
-        // Check for sources metadata event
+        // Check for sources metadata event with is_source flag
         if (parsed.sources && onSources) {
-          onSources(parsed.sources);
+          const showSources = parsed.is_source === true;
+          onSources(parsed.sources, showSources);
           continue;
         }
 
@@ -130,7 +136,8 @@ export async function streamChat({
       try {
         const parsed = JSON.parse(jsonStr);
         if (parsed.sources && onSources) {
-          onSources(parsed.sources);
+          const showSources = parsed.is_source === true;
+          onSources(parsed.sources, showSources);
           continue;
         }
         if (parsed.isLab !== undefined && onLabDetected) {
@@ -167,7 +174,7 @@ export async function streamChatDual({
   onDeltaB: (text: string) => void;
   onDone: () => void;
   onError: (error: string) => void;
-  onSources?: (sources: SourceReference[]) => void;
+  onSources?: (sources: SourceReference[], showSources: boolean) => void;
   onLabDetected?: (lab: LabDetection) => void;
 }) {
   console.log('🔵 streamChatDual called with:', { role, userId, models });
@@ -229,9 +236,10 @@ export async function streamChatDual({
       try {
         const parsed = JSON.parse(jsonStr);
         
-        // Check for sources metadata event
+        // Check for sources metadata event with is_source flag
         if (parsed.sources && onSources) {
-          onSources(parsed.sources);
+          const showSources = parsed.is_source === true;
+          onSources(parsed.sources, showSources);
           continue;
         }
 

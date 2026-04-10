@@ -40,7 +40,7 @@ export function DualModelResponse({ messages, role, onPick, onError }: DualModel
   const { selectedModels } = useModelSelection();
   const navigate = useNavigate();
   const { user, isReady } = useAuth();
-  const { generateLab } = useLabs();
+  const { generateLab } = useLabs({ autoFetch: false });
   const labCreatedRef = useRef(false);
   const MODEL_A = selectedModels[0];
   const MODEL_B = selectedModels[1];
@@ -52,6 +52,7 @@ export function DualModelResponse({ messages, role, onPick, onError }: DualModel
   const [picked, setPicked] = useState<"A" | "B" | null>(null);
   const [sourcesA, setSourcesA] = useState<SourceReference[]>([]);
   const [sourcesB, setSourcesB] = useState<SourceReference[]>([]);
+  const [showSources, setShowSources] = useState(false);
   const bufA = useRef("");
   const bufB = useRef("");
 
@@ -132,7 +133,10 @@ export function DualModelResponse({ messages, role, onPick, onError }: DualModel
       onDelta: (t) => { bufA.current += t; setResponseA(bufA.current); },
       onDone: () => setDoneA(true),
       onError,
-      onSources: (sources) => setSourcesA(sources),
+      onSources: (sources, show) => {
+        setSourcesA(sources);
+        setShowSources(show);
+      },
       onLabDetected: handleLabDetected,
     });
 
@@ -144,7 +148,10 @@ export function DualModelResponse({ messages, role, onPick, onError }: DualModel
       onDelta: (t) => { bufB.current += t; setResponseB(bufB.current); },
       onDone: () => setDoneB(true),
       onError,
-      onSources: (sources) => setSourcesB(sources),
+      onSources: (sources, show) => {
+        setSourcesB(sources);
+        setShowSources(show);
+      },
       onLabDetected: handleLabDetected,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -252,8 +259,8 @@ export function DualModelResponse({ messages, role, onPick, onError }: DualModel
         </div>
       </div>
 
-      {/* Source links below both responses */}
-      {allSources.length > 0 && (
+      {/* Source links below both responses - only show if is_source is true */}
+      {showSources && allSources.length > 0 && (
         <div className="mt-3">
           <SourceLinks sources={allSources} />
         </div>

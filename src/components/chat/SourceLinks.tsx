@@ -6,10 +6,6 @@ interface SourceLinksProps {
 }
 
 export function SourceLinks({ sources }: SourceLinksProps) {
-  // Don't show sources
-  return null;
-  
-  /* Original code - uncomment to show sources again
   if (!sources.length) return null;
 
   return (
@@ -34,5 +30,4 @@ export function SourceLinks({ sources }: SourceLinksProps) {
       </div>
     </div>
   );
-  */
 }

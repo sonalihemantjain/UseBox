@@ -35,11 +35,12 @@ export interface Lab {
   tasks: LabTask[];
 }
 
-export function useLabs() {
+export function useLabs(options?: { autoFetch?: boolean }) {
   const { user } = useAuth();
   const [labs, setLabs] = useState<Lab[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const autoFetch = options?.autoFetch ?? true; // Default to true for backward compatibility
 
   const fetchLabs = useCallback(async () => {
     if (!user) return;
@@ -58,26 +59,26 @@ export function useLabs() {
           id: al.id,
           user_id: user.id,
           title: al.title,
-          description: al.goal || al.raw?.substring(0, 100) + "...",
-          topic: al.question,
-          difficulty: "intermediate",
-          total_steps: al.tasks?.reduce((sum: number, t: any) => sum + (t.subtasks?.length || 0), 0) || 0,
-          completed_steps: Object.values(al.task_states || {}).filter(v => v).length,
-          status: al.completed ? "completed" : "in_progress",
+          description: al.description || al.goal || al.raw?.substring(0, 100) + "...",
+          topic: al.topic || al.question,
+          difficulty: al.difficulty || "intermediate",
+          total_steps: al.total_steps || 0,
+          completed_steps: al.completed_steps || 0,
+          status: al.status || "in_progress",
           created_at: al.created_at,
-          tasks: (al.tasks || []).map((at: any, ti: number) => ({
-            id: `task-${al.id}-${ti}`,
+          tasks: (al.tasks || []).map((at: any) => ({
+            id: at.id,
             lab_id: al.id,
-            task_order: ti + 1,
+            task_order: at.task_order,
             title: at.title,
             description: at.description || "",
-            steps: (at.subtasks || []).map((as: string, si: number) => ({
-              id: `step-${al.id}-${ti}-${si}`,
-              task_id: `task-${al.id}-${ti}`,
-              step_order: si + 1,
-              title: as.substring(0, 50) + (as.length > 50 ? "..." : ""),
-              content: as,
-              is_completed: al.task_states?.[as] || false
+            steps: (at.steps || []).map((as: any) => ({
+              id: as.id,
+              task_id: at.id,
+              step_order: as.step_order,
+              title: as.title,
+              content: as.content,
+              is_completed: as.is_completed || false
             }))
           }))
         }));
@@ -121,7 +122,12 @@ export function useLabs() {
     }
   }, [user]);
 
-  useEffect(() => { fetchLabs(); }, [fetchLabs]);
+  useEffect(() => { 
+    if (autoFetch) {
+      fetchLabs(); 
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, autoFetch]); // Only re-fetch when user ID changes and autoFetch is enabled
 
   const generateLab = useCallback(async (topic: string, difficulty: string = "intermediate") => {
     if (!user) return;

@@ -38,7 +38,7 @@ const Chat = () => {
   const { user } = useAuth();
   const { role, setRole } = useUserRole();
   const navigate = useNavigate();
-  const { generateLab } = useLabs();
+  const { generateLab } = useLabs({ autoFetch: false });
   const { chats, loading: historyLoading, createChat, renameChat, deleteChat, toggleSaveChat, loadMessages, saveMessage, autoTitle } = useChatHistory();
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
