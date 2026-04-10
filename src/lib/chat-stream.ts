@@ -37,23 +37,6 @@ export async function streamChat({
   onSources?: (sources: SourceReference[]) => void;
   onLabDetected?: (lab: LabDetection) => void;
 }) {
-  // Debug logging
-  console.log('🔵 streamChat called with:', {
-    role,
-    userId,
-    model,
-    models,
-    userIdType: typeof userId,
-    userIdIsNull: userId === null,
-    userIdIsUndefined: userId === undefined,
-    userIdBool: !!userId
-  });
-
-  // Validation: Warn if userId is missing
-  if (!userId) {
-    console.warn('⚠️ streamChat: userId is not provided! Labs will not be saved.');
-  }
-
   const requestBody = { 
     messages, 
     role: role || undefined, 
@@ -61,8 +44,6 @@ export async function streamChat({
     model: model || undefined,
     models: models || undefined
   };
-  
-  console.log('📤 Sending request body:', requestBody);
 
   const resp = await fetch(CHAT_URL, {
     method: "POST",
@@ -122,11 +103,9 @@ export async function streamChat({
 
         // Check for model-specific events (dual mode)
         if (parsed.modelStart) {
-          console.log(`🎬 Model ${parsed.modelStart} started`);
           continue;
         }
         if (parsed.modelEnd) {
-          console.log(`🏁 Model ${parsed.modelEnd} ended`);
           continue;
         }
         

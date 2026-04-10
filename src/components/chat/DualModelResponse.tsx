@@ -58,18 +58,11 @@ export function DualModelResponse({ messages, role, onPick, onError }: DualModel
   useEffect(() => {
     // Don't start streaming until user is ready
     if (!isReady) {
-      console.log('⏳ Waiting for auth to be ready...');
       return;
     }
 
     bufA.current = "";
     bufB.current = "";
-
-    // Debug logging
-    console.log('🟢 DualModelResponse useEffect - user:', user);
-    console.log('🟢 user?.id:', user?.id);
-    console.log('🟢 typeof user?.id:', typeof user?.id);
-    console.log('🟢 isReady:', isReady);
 
     // Validation: Check if userId is available
     if (!user?.id) {
@@ -81,8 +74,6 @@ export function DualModelResponse({ messages, role, onPick, onError }: DualModel
       onError('User ID is not available. Please log in again.');
       return;
     }
-
-    console.log('✅ User ID validated:', user.id);
 
     const handleLabDetected = async (lab: { isLab: boolean; labTopic: string; labId?: string }) => {
       if (lab.isLab && lab.labTopic && !labCreatedRef.current) {

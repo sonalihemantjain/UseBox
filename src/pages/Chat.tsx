@@ -16,7 +16,6 @@ import { SourceLinks } from "@/components/chat/SourceLinks";
 import { useChatHistory } from "@/hooks/useChatHistory";
 import { DualModelResponse } from "@/components/chat/DualModelResponse";
 import { useLabs } from "@/hooks/useLabs";
-import { DebugAuthStatus } from "@/components/DebugAuthStatus";
 
 const SUGGESTIONS = [
   "How do I get started with product adoption strategies?",
@@ -205,9 +204,6 @@ const Chat = () => {
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Debug Auth Status - only shows in development */}
-      <DebugAuthStatus />
-      
       {/* Minimal top bar for active chat */}
       {activeChatId && activeChat && (
         <div className="flex items-center justify-between px-6 py-2.5 border-b border-border/50">
