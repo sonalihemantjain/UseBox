@@ -1,28 +1,32 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { User } from "@supabase/supabase-js";
 
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<any>(null);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setIsReady(true);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null);
+    const checkAuth = async () => {
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        // TODO: In a real app, you would verify the token with your backend here
+        // and fetch the actual user profile from your PostgreSQL 'users' table.
+        setUser({ id: "mock-id", email: "user@example.com" });
+      } else {
+        setUser(null);
       }
-    );
+      setIsReady(true);
+    };
 
-    return () => subscription.unsubscribe();
+    checkAuth();
+
+    // Listen for storage changes (optional, helps with multiple tabs)
+    window.addEventListener("storage", checkAuth);
+    return () => window.removeEventListener("storage", checkAuth);
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    localStorage.removeItem("authToken");
+    setUser(null);
   };
 
   return { user, isReady, signOut };
