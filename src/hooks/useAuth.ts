@@ -1,28 +1,47 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { User } from "@supabase/supabase-js";
+
+type AuthUser = {
+  id: string;
+  email?: string;
+  [key: string]: unknown;
+};
 
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setIsReady(true);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null);
+    const checkAuth = async () => {
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          try {
+            const parsed = JSON.parse(storedUser) as Record<string, unknown>;
+            const email = typeof parsed.email === "string" ? parsed.email : "user@example.com";
+            setUser({ id: "mock-id", email });
+          } catch {
+            setUser({ id: "mock-id", email: "user@example.com" });
+          }
+        } else {
+          setUser({ id: "mock-id", email: "user@example.com" });
+        }
+      } else {
+        setUser(null);
       }
-    );
+      setIsReady(true);
+    };
 
-    return () => subscription.unsubscribe();
+    checkAuth();
+
+    // Listen for storage changes (optional, helps with multiple tabs)
+    window.addEventListener("storage", checkAuth);
+    return () => window.removeEventListener("storage", checkAuth);
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    localStorage.removeItem("authToken");
+    setUser(null);
   };
 
   return { user, isReady, signOut };

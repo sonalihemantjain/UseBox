@@ -5,9 +5,11 @@ import useBoxLogo from "@/assets/usebox-logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import { useGoogleLogin } from "@react-oauth/google";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -18,32 +20,71 @@ const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get("redirect");
+  const getErrorMessage = (err: unknown) => {
+    if (err instanceof Error) return err.message;
+    return "Something went wrong";
+  };
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        toast.success("Welcome back!");
-        navigate(redirectTo || "/chat");
-      } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { emailRedirectTo: window.location.origin },
-        });
-        if (error) throw error;
-        toast.success("Check your email to confirm your account!");
+      const endpoint = isLogin ? "/api/auth/login" : "/api/auth/register";
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || data.error || "Authentication failed");
       }
-    } catch (err: any) {
-      toast.error(err.message);
+
+      localStorage.setItem("authToken", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      toast.success(isLogin ? "Successfully logged in!" : "Successfully registered!");
+      navigate(redirectTo || "/chat");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
   };
+
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setLoading(true);
+      try {
+        console.log("Google Token:", tokenResponse.access_token);
+
+        const response = await fetch(`${API_URL}/api/auth/google`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: tokenResponse.access_token })
+        });
+
+        if (!response.ok) throw new Error("Backend authentication failed");
+
+        const data = await response.json();
+
+        localStorage.setItem("authToken", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        toast.success("Successfully logged in with Google!");
+        navigate(redirectTo || "/chat");
+      } catch (err: unknown) {
+        toast.error("Failed to login with Google");
+      } finally {
+        setLoading(false);
+      }
+    },
+    onError: () => {
+      toast.error("Login Failed");
+    },
+  });
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-6 relative overflow-hidden">
@@ -58,7 +99,7 @@ const Auth = () => {
         className="w-full max-w-md"
       >
         {/* Logo */}
-        <a href="/" className="flex items-center justify-center gap-2.5 mb-10">
+        <a href="/" className="flex items-center justify-center gap-2.5 mb-3">
           <img src={useBoxLogo} alt="UseBox" className="h-8 w-8" />
           <span className="font-display text-2xl font-bold tracking-tight">
             Use<span className="text-gradient-gold">Box</span>
@@ -69,14 +110,14 @@ const Auth = () => {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="flex items-center justify-center gap-2 mb-8"
+          className="flex items-center justify-center gap-2 mb-4"
         >
           <span className="text-lg font-display font-semibold text-gradient-learn">Learn.</span>
           <span className="text-lg font-display font-semibold text-gradient-share">Share.</span>
           <span className="text-lg font-display font-semibold text-gradient-gold">Earn.</span>
         </motion.div>
 
-        <div className="bg-glass rounded-2xl p-8">
+        <div className="bg-glass rounded-2xl px-8 py-5 border border-white/10 backdrop-blur-xl">
           <h2 className="font-display text-2xl font-bold text-center mb-2">
             {isLogin ? "Welcome back" : "Create account"}
           </h2>
@@ -96,7 +137,7 @@ const Auth = () => {
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 h-11 bg-secondary border-border"
+                  className="pl-10 h-11 bg-secondary/50 border-border focus:ring-1 ring-learn/30"
                   required
                 />
               </div>
@@ -112,7 +153,7 @@ const Auth = () => {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10 h-11 bg-secondary border-border"
+                  className="pl-10 pr-10 h-11 bg-secondary/50 border-border focus:ring-1 ring-learn/30"
                   required
                   minLength={6}
                 />
@@ -131,6 +172,31 @@ const Auth = () => {
               <ArrowRight className="h-4 w-4" />
             </Button>
           </form>
+
+          <div className="relative my-8">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border"></span>
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">Or</span>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full h-11 transition-all hover:bg-learn/5 border-border group relative overflow-hidden text-foreground hover:text-foreground"
+            onClick={() => handleGoogleLogin()}
+            disabled={loading}
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-learn/5 via-share/5 to-earn/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative flex items-center justify-center">
+              <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+                <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
+              </svg>
+              <span className="font-medium">Continue with Google</span>
+            </div>
+          </Button>
 
           <p className="text-center text-sm text-muted-foreground mt-6">
             {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
