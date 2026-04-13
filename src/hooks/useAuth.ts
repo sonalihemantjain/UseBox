@@ -1,16 +1,31 @@
 import { useState, useEffect } from "react";
 
+type AuthUser = {
+  id: string;
+  email?: string;
+  [key: string]: unknown;
+};
+
 export function useAuth() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem("authToken");
       if (token) {
-        // TODO: In a real app, you would verify the token with your backend here
-        // and fetch the actual user profile from your PostgreSQL 'users' table.
-        setUser({ id: "mock-id", email: "user@example.com" });
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          try {
+            const parsed = JSON.parse(storedUser) as Record<string, unknown>;
+            const email = typeof parsed.email === "string" ? parsed.email : "user@example.com";
+            setUser({ id: "mock-id", email });
+          } catch {
+            setUser({ id: "mock-id", email: "user@example.com" });
+          }
+        } else {
+          setUser({ id: "mock-id", email: "user@example.com" });
+        }
       } else {
         setUser(null);
       }
