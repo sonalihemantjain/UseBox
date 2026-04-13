@@ -18,8 +18,9 @@ export function useAuth() {
         if (storedUser) {
           try {
             const parsed = JSON.parse(storedUser) as Record<string, unknown>;
+            const id = typeof parsed.id === "string" ? parsed.id : "mock-id";
             const email = typeof parsed.email === "string" ? parsed.email : "user@example.com";
-            setUser({ id: "mock-id", email });
+            setUser({ id, email });
           } catch {
             setUser({ id: "mock-id", email: "user@example.com" });
           }

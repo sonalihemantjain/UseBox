@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { ChatMessage } from "@/lib/chat-stream";
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 export interface ChatSession {
   id: string;
@@ -17,62 +18,103 @@ export function useChatHistory() {
   const [loading, setLoading] = useState(true);
 
   const fetchChats = useCallback(async () => {
-    if (!user) return;
-    const { data } = await supabase
-      .from("chats")
-      .select("id, title, saved, created_at, updated_at")
-      .eq("user_id", user.id)
-      .order("updated_at", { ascending: false });
-    setChats((data as ChatSession[]) ?? []);
-    setLoading(false);
-  }, [user]);
+    if (!user?.id) return;
+    try {
+      const resp = await fetch(`${API_URL}/api/chats/user/${user.id}`);
+      if (resp.ok) {
+        const data = await resp.json();
+        setChats(data as ChatSession[]);
+      }
+    } catch (err) {
+      console.error("Error fetching chats:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     fetchChats();
   }, [fetchChats]);
 
   const createChat = useCallback(async (): Promise<string | null> => {
-    if (!user) return null;
-    const { data, error } = await supabase
-      .from("chats")
-      .insert({ user_id: user.id, title: "New Chat" })
-      .select("id")
-      .single();
-    if (error || !data) return null;
-    await fetchChats();
-    return (data as { id: string }).id;
-  }, [user, fetchChats]);
+    if (!user?.id) return null;
+    try {
+      const resp = await fetch(`${API_URL}/api/chats`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: user.id, title: "New Chat" })
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        await fetchChats();
+        return (data as { id: string }).id;
+      }
+    } catch (err) {
+      console.error("Error creating chat:", err);
+    }
+    return null;
+  }, [user?.id, fetchChats]);
 
   const renameChat = useCallback(async (chatId: string, title: string) => {
-    await supabase.from("chats").update({ title, updated_at: new Date().toISOString() }).eq("id", chatId);
-    await fetchChats();
+    try {
+      await fetch(`${API_URL}/api/chats/${chatId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title })
+      });
+      await fetchChats();
+    } catch (err) {
+      console.error("Error renaming chat:", err);
+    }
   }, [fetchChats]);
 
   const deleteChat = useCallback(async (chatId: string) => {
-    await supabase.from("chats").delete().eq("id", chatId);
-    await fetchChats();
+    try {
+      await fetch(`${API_URL}/api/chats/${chatId}`, {
+        method: "DELETE"
+      });
+      await fetchChats();
+    } catch (err) {
+      console.error("Error deleting chat:", err);
+    }
   }, [fetchChats]);
 
   const toggleSaveChat = useCallback(async (chatId: string, saved: boolean) => {
-    await supabase.from("chats").update({ saved, updated_at: new Date().toISOString() }).eq("id", chatId);
-    await fetchChats();
+    try {
+      await fetch(`${API_URL}/api/chats/${chatId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ saved })
+      });
+      await fetchChats();
+    } catch (err) {
+      console.error("Error toggling saved chat:", err);
+    }
   }, [fetchChats]);
 
   const loadMessages = useCallback(async (chatId: string): Promise<ChatMessage[]> => {
-    const { data } = await supabase
-      .from("chat_messages")
-      .select("role, content")
-      .eq("chat_id", chatId)
-      .order("created_at", { ascending: true });
-    return (data as ChatMessage[]) ?? [];
+    try {
+      const resp = await fetch(`${API_URL}/api/chats/${chatId}/messages`);
+      if (resp.ok) {
+        const data = await resp.json();
+        return (data as ChatMessage[]) ?? [];
+      }
+    } catch (err) {
+      console.error("Error loading messages:", err);
+    }
+    return [];
   }, []);
 
   const saveMessage = useCallback(async (chatId: string, msg: ChatMessage) => {
-    await supabase.from("chat_messages").insert({
-      chat_id: chatId,
-      role: msg.role,
-      content: msg.content,
-    });
+    try {
+      await fetch(`${API_URL}/api/chats/${chatId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: msg.role, content: msg.content })
+      });
+    } catch (err) {
+      console.error("Error saving message:", err);
+    }
   }, []);
 
   const autoTitle = useCallback(async (chatId: string, firstMessage: string) => {
