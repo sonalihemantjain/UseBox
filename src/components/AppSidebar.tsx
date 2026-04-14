@@ -5,6 +5,8 @@ import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useUserContextFilters } from "@/hooks/useUserContextFilters";
+import { useContextFilterOptions } from "@/hooks/useContextFilterOptions";
 import { RoleSelector } from "@/components/RoleSelector";
 import { useChatHistory, type ChatSession } from "@/hooks/useChatHistory";
 import { cn } from "@/lib/utils";
@@ -38,6 +40,8 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { role, setRole } = useUserRole();
+  const { functionalArea, industry, setFunctionalArea, setIndustry } = useUserContextFilters();
+  const { functionalAreas, industries, loading: filtersLoading } = useContextFilterOptions();
   const { chats, createChat, renameChat, deleteChat, toggleSaveChat } = useChatHistory();
   const isOnChat = location.pathname === "/chat";
 
@@ -197,6 +201,42 @@ export function AppSidebar() {
           <p className="text-[10px] font-medium text-sidebar-foreground/40 uppercase tracking-wider px-2 mb-1">Persona</p>
         )}
         <RoleSelector value={role} onChange={setRole as (r: import("@/hooks/useUserRole").UserRole | null) => void} collapsed={collapsed} />
+        {!collapsed && (
+          <div className="px-2 mt-2 space-y-2 max-h-[28vh] overflow-y-auto">
+            <div>
+              <p className="text-[10px] font-medium text-sidebar-foreground/40 uppercase tracking-wider mb-1">Functional Area</p>
+              <select
+                value={functionalArea ?? ""}
+                onChange={(e) => setFunctionalArea(e.target.value || null)}
+                className="w-full h-8 rounded-md border border-sidebar-border bg-sidebar-accent/30 px-2 text-xs text-sidebar-foreground outline-none"
+              >
+                <option value="">All Functional Areas</option>
+                {filtersLoading && functionalAreas.length === 0 && (
+                  <option value="" disabled>Loading…</option>
+                )}
+                {functionalAreas.map((opt) => (
+                  <option key={opt.key} value={opt.key}>{opt.display_name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <p className="text-[10px] font-medium text-sidebar-foreground/40 uppercase tracking-wider mb-1">Industry</p>
+              <select
+                value={industry ?? ""}
+                onChange={(e) => setIndustry(e.target.value || null)}
+                className="w-full h-8 rounded-md border border-sidebar-border bg-sidebar-accent/30 px-2 text-xs text-sidebar-foreground outline-none"
+              >
+                <option value="">All Industries</option>
+                {filtersLoading && industries.length === 0 && (
+                  <option value="" disabled>Loading…</option>
+                )}
+                {industries.map((opt) => (
+                  <option key={opt.key} value={opt.key}>{opt.display_name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
         {!collapsed && <Separator className="my-2 bg-sidebar-border" />}
         {!collapsed && user && (
           <p className="text-xs text-sidebar-foreground/40 truncate px-2 mb-2">

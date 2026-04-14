@@ -1,12 +1,13 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Check, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ReactMarkdown from "react-markdown";
-import { streamChat, type ChatMessage, type SourceReference } from "@/lib/chat-stream";
+import { streamChatPlatforms, type ChatMessage, type SourceReference } from "@/lib/chat-stream";
 import { usePlatformSelection } from "@/hooks/usePlatformSelection";
+import { useUserContextFilters } from "@/hooks/useUserContextFilters";
 import { SourceLinks } from "./SourceLinks";
 import { useLabs } from "@/hooks/useLabs";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,6 +31,7 @@ interface PlatformResponseProps {
 
 export function PlatformResponse({ messages, role, onPick, onError }: PlatformResponseProps) {
   const { selectedPlatforms } = usePlatformSelection();
+  const { functionalArea, industry } = useUserContextFilters();
   const navigate = useNavigate();
   const { user, isReady } = useAuth();
   const { generateLab } = useLabs({ autoFetch: false });
@@ -43,17 +45,39 @@ export function PlatformResponse({ messages, role, onPick, onError }: PlatformRe
   const [activeTab, setActiveTab] = useState<string>("");
   const buffers = useRef<Record<string, string>>({});
 
+  const platformKey = useMemo(
+    () => selectedPlatforms.map((p) => p.id).sort().join("|"),
+    [selectedPlatforms]
+  );
+
+  const platformIds = useMemo(() => selectedPlatforms.map((p) => p.id), [selectedPlatforms]);
+  const platformNames = useMemo(() => selectedPlatforms.map((p) => p.name), [selectedPlatforms]);
+  const idByName = useMemo(() => new Map(selectedPlatforms.map((p) => [p.name, p.id])), [selectedPlatforms]);
+
+  const messageKey = useMemo(() => {
+    // Stable “signature” for this compare run
+    return messages.map((m) => `${m.role}:${m.content}`).join("\n");
+  }, [messages]);
+
+  const requestKey = useMemo(() => {
+    return `${platformKey}::${role || ""}::${messageKey}::${user?.id || ""}`;
+  }, [platformKey, role, messageKey, user?.id]);
+
   useEffect(() => {
-    if (selectedPlatforms.length > 0 && !activeTab) {
-      setActiveTab(selectedPlatforms[0].id);
+    if (selectedPlatforms.length === 0) return;
+    const first = selectedPlatforms[0].id;
+    if (!activeTab || !platformIds.includes(activeTab)) {
+      setActiveTab(first);
     }
-  }, [selectedPlatforms, activeTab]);
+  }, [platformKey, activeTab, platformIds, selectedPlatforms]);
 
   useEffect(() => {
     // Don't start streaming until user is ready
     if (!isReady || selectedPlatforms.length === 0) {
       return;
     }
+
+    const abort = new AbortController();
 
     // Reset state
     buffers.current = {};
@@ -123,33 +147,53 @@ export function PlatformResponse({ messages, role, onPick, onError }: PlatformRe
       }
     };
 
-    // Stream responses for each selected platform
-    selectedPlatforms.forEach((platform) => {
-      buffers.current[platform.id] = "";
-      
-      streamChat({
-        messages,
-        role,
-        userId: user.id,
-        model: "openai", // Static model name for backend
-        platform: platform.name, // Platform name for future business logic
-        onDelta: (t) => {
-          buffers.current[platform.id] += t;
-          setResponses((prev) => ({ ...prev, [platform.id]: buffers.current[platform.id] }));
-        },
-        onDone: () => {
-          setDoneStates((prev) => ({ ...prev, [platform.id]: true }));
-        },
-        onError,
-        onSources: (sources, show) => {
-          setSourcesMap((prev) => ({ ...prev, [platform.id]: sources }));
-          setShowSources(show);
-        },
-        onLabDetected: handleLabDetected,
-      });
+    // Single streaming call for all platforms
+    selectedPlatforms.forEach((p) => {
+      buffers.current[p.id] = "";
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isReady, user?.id, selectedPlatforms]);
+
+    streamChatPlatforms({
+      messages,
+      role,
+      userId: user.id,
+      functionalArea,
+      industry,
+      platforms: platformNames,
+      signal: abort.signal,
+      onPlatformDelta: (platformName, t) => {
+        const platformId = idByName.get(platformName) || platformName;
+        buffers.current[platformId] = (buffers.current[platformId] || "") + t;
+        setResponses((prev) => ({ ...prev, [platformId]: buffers.current[platformId] }));
+      },
+      onPlatformDone: (platformName) => {
+        const platformId = idByName.get(platformName) || platformName;
+        setDoneStates((prev) => ({ ...prev, [platformId]: true }));
+      },
+      onDone: () => {
+        // If backend doesn't send explicit platformEnd for some reason, mark all as done.
+        setDoneStates((prev) => {
+          const next = { ...prev };
+          platformIds.forEach((id) => { next[id] = true; });
+          return next;
+        });
+      },
+      onError,
+      onSources: (platformName, sources, show) => {
+        const platformId = idByName.get(platformName) || platformName;
+        setSourcesMap((prev) => ({ ...prev, [platformId]: sources }));
+        setShowSources(show);
+      },
+      onLabDetected: (_platformName, lab) => {
+        // Labs are currently derived from the user prompt; treat as global for this message.
+        handleLabDetected(lab);
+      },
+    });
+
+    return () => {
+      abort.abort();
+    };
+  // Run ONLY when the compare input changes (not on every render)
+  }, [isReady, requestKey, functionalArea, industry]);
 
   const handlePick = (platformId: string) => {
     setPicked(platformId);
