@@ -25,3 +25,45 @@ jobs:
       - name: Verify Running Containers
         run: |
           docker ps
+          
+      - name: Send Success Mail
+        if: success()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          to: itsupport@toshalinfotech.com,itw.sonalij@gmail.com,neerajchormale39@gmail.com
+          from: ${{ secrets.MAIL_USERNAME }}
+          subject: "✅ UseBox Deployment Success - Build #${{ github.run_number }}"
+          body: |
+            Deployment successful ✅
+
+            Branch:  ${{ github.ref_name }}
+            Commit:  ${{ github.sha }}
+            Build:   #${{ github.run_number }}
+            By:      ${{ github.actor }}
+
+            View run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      - name: Send Failure Mail
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          to: itsupport@toshalinfotech.com,itw.sonalij@gmail.com,neerajchormale39@gmail.com
+          from: ${{ secrets.MAIL_USERNAME }}
+          subject: "❌ UseBox Deployment Failed - Build #${{ github.run_number }}"
+          body: |
+            Deployment failed ❌
+
+            Branch:  ${{ github.ref_name }}
+            Commit:  ${{ github.sha }}
+            Build:   #${{ github.run_number }}
+            By:      ${{ github.actor }}
+
+            View logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
