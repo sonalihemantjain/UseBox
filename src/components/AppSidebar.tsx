@@ -1,13 +1,12 @@
-import { MessageSquare, BookOpen, GraduationCap, FlaskConical, Settings, LogOut, Plus, Pencil, Trash2, Check, X, PanelLeftClose, PanelLeft, Bookmark, BookmarkCheck } from "lucide-react";
+import { MessageSquare, BookOpen, GraduationCap, FlaskConical, Settings, LogOut, Plus, Pencil, Trash2, Check, X, PanelLeftClose, PanelLeft, Bookmark, BookmarkCheck, ChevronUp, ChevronDown } from "lucide-react";
 import { useState, useCallback } from "react";
 import useBoxLogo from "@/assets/usebox-logo.png";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useUserRole } from "@/hooks/useUserRole";
+import { ROLE_LABELS, useUserRole, type UserRole } from "@/hooks/useUserRole";
 import { useUserContextFilters } from "@/hooks/useUserContextFilters";
 import { useContextFilterOptions } from "@/hooks/useContextFilterOptions";
-import { RoleSelector } from "@/components/RoleSelector";
 import { useChatHistory, type ChatSession } from "@/hooks/useChatHistory";
 import { cn } from "@/lib/utils";
 import {
@@ -24,14 +23,30 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const navItems = [
   { title: "Learn", url: "/chat", icon: MessageSquare },
   { title: "Share", url: "/knowledge", icon: BookOpen },
   { title: "Earn", url: "/earn", icon: GraduationCap },
   { title: "Lab", url: "/lab", icon: FlaskConical },
+  { title: "Pages", url: "/saved-chats", icon: BookmarkCheck },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
+const roleOptions: UserRole[] = ["nocode", "lowcode", "prodeveloper", "architect", "admin"];
+const ROLE_COLORS: Record<UserRole, string> = {
+  nocode: "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20",
+  lowcode: "from-amber-500/10 to-amber-500/5 border-amber-500/20",
+  prodeveloper: "from-blue-500/10 to-blue-500/5 border-blue-500/20",
+  architect: "from-purple-500/10 to-purple-500/5 border-purple-500/20",
+  admin: "from-red-500/10 to-red-500/5 border-red-500/20",
+};
 
 export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
@@ -47,6 +62,7 @@ export function AppSidebar() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
+  const [recentExpanded, setRecentExpanded] = useState(true);
 
   const handleSignOut = async () => {
     await signOut();
@@ -112,16 +128,33 @@ export function AppSidebar() {
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      className="hover:bg-sidebar-accent/50 text-sidebar-foreground/70"
-                      activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
-                    >
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
+                  {collapsed ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <SidebarMenuButton asChild>
+                          <NavLink
+                            to={item.url}
+                            className="hover:bg-sidebar-accent/50 text-sidebar-foreground/70"
+                            activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
+                          >
+                            <item.icon className="h-4 w-4 shrink-0" />
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">{item.title}</TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        className="hover:bg-sidebar-accent/50 text-sidebar-foreground/70"
+                        activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
+                      >
+                        <item.icon className="h-4 w-4 shrink-0" />
+                        <span>{item.title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  )}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -133,58 +166,71 @@ export function AppSidebar() {
           <>
             <Separator className="my-2 bg-sidebar-border" />
             <div className="px-1">
-              <p className="text-[11px] font-medium text-sidebar-foreground/40 uppercase tracking-wider px-2 mb-1.5">Recent</p>
-              <div className="space-y-0.5 max-h-[40vh] overflow-y-auto">
-                {chats.slice(0, 20).map((chat) => (
-                  <div
-                    key={chat.id}
-                    className={cn(
-                      "group/chatitem flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] cursor-pointer transition-colors",
-                      "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                    )}
-                    onClick={() => editingId !== chat.id && navigate(`/chat?id=${chat.id}`)}
-                  >
-                    {editingId === chat.id ? (
-                      <div className="flex-1 flex items-center gap-1">
-                        <input
-                          value={editTitle}
-                          onChange={(e) => setEditTitle(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && confirmEdit()}
-                          className="flex-1 bg-transparent border-b border-primary outline-none text-sidebar-foreground text-[13px]"
-                          autoFocus
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        <button onClick={(e) => { e.stopPropagation(); confirmEdit(); }} className="text-primary">
-                          <Check className="h-3 w-3" />
-                        </button>
-                        <button onClick={(e) => { e.stopPropagation(); setEditingId(null); }} className="text-sidebar-foreground/40">
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <span className="flex-1 truncate">{chat.title}</span>
-                        <div className="hidden group-hover/chatitem:flex items-center shrink-0">
-                          <button
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleSaveChat(chat.id, !chat.saved); }}
-                            className={cn("p-1 rounded", chat.saved ? "text-primary" : "hover:bg-sidebar-accent")}
-                            title={chat.saved ? "Unsave" : "Save"}
-                          >
-                            {chat.saved ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
+              <button
+                onClick={() => setRecentExpanded((v) => !v)}
+                className="w-full flex items-center justify-between px-2 py-1 rounded-md text-[11px] font-medium text-sidebar-foreground/40 uppercase tracking-wider hover:bg-sidebar-accent/40 transition-colors"
+              >
+                <span>Recent</span>
+                {recentExpanded ? (
+                  <ChevronDown className="h-3 w-3" />
+                ) : (
+                  <ChevronUp className="h-3 w-3" />
+                )}
+              </button>
+
+              {recentExpanded && (
+                <div className="space-y-0.5 max-h-[40vh] overflow-y-auto mt-1">
+                  {chats.slice(0, 20).map((chat) => (
+                    <div
+                      key={chat.id}
+                      className={cn(
+                        "group/chatitem flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] cursor-pointer transition-colors",
+                        "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                      )}
+                      onClick={() => editingId !== chat.id && navigate(`/chat?id=${chat.id}`)}
+                    >
+                      {editingId === chat.id ? (
+                        <div className="flex-1 flex items-center gap-1">
+                          <input
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && confirmEdit()}
+                            className="flex-1 bg-transparent border-b border-primary outline-none text-sidebar-foreground text-[13px]"
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <button onClick={(e) => { e.stopPropagation(); confirmEdit(); }} className="text-primary">
+                            <Check className="h-3 w-3" />
                           </button>
-                          <button
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); deleteChat(chat.id); }}
-                            className="p-1 rounded hover:bg-destructive/20 text-destructive"
-                            title="Delete"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
+                          <button onClick={(e) => { e.stopPropagation(); setEditingId(null); }} className="text-sidebar-foreground/40">
+                            <X className="h-3 w-3" />
                           </button>
                         </div>
-                      </>
-                    )}
-                  </div>
-                ))}
-              </div>
+                      ) : (
+                        <>
+                          <span className="flex-1 truncate">{chat.title}</span>
+                          <div className="hidden group-hover/chatitem:flex items-center shrink-0">
+                            <button
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleSaveChat(chat.id, !chat.saved); }}
+                              className={cn("p-1 rounded", chat.saved ? "text-primary" : "hover:bg-sidebar-accent")}
+                              title={chat.saved ? "Unsave" : "Save"}
+                            >
+                              {chat.saved ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
+                            </button>
+                            <button
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); deleteChat(chat.id); }}
+                              className="p-1 rounded hover:bg-destructive/20 text-destructive"
+                              title="Delete"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </>
         )}
@@ -200,61 +246,155 @@ export function AppSidebar() {
         {!collapsed && (
           <p className="text-[10px] font-medium text-sidebar-foreground/40 uppercase tracking-wider px-2 mb-1">Persona</p>
         )}
-        <RoleSelector value={role} onChange={setRole as (r: import("@/hooks/useUserRole").UserRole | null) => void} collapsed={collapsed} />
+        {!collapsed ? (
+          <div className="px-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className={cn(
+                    "w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg bg-gradient-to-b border",
+                    role
+                      ? ROLE_COLORS[role]
+                      : "from-muted/60 to-muted/20 border-dashed border-border",
+                    "hover:opacity-90 transition-opacity"
+                  )}
+                >
+                  <span className="text-xs font-semibold text-foreground truncate text-left">
+                    {role ? ROLE_LABELS[role] : "Select Persona"}
+                  </span>
+                  <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuItem onClick={() => setRole(null)}>
+                  Select Persona
+                </DropdownMenuItem>
+                {roleOptions.map((r) => (
+                  <DropdownMenuItem key={r} onClick={() => setRole(r)}>
+                    {ROLE_LABELS[r]}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        ) : (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="w-10 h-10 mx-auto rounded-lg border border-sidebar-border bg-sidebar-accent/30 flex items-center justify-center"
+                title={role ? ROLE_LABELS[role] : "Select Persona"}
+              >
+                <ChevronDown className="h-3.5 w-3.5 text-sidebar-foreground/60" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="right" align="start" className="w-56">
+              <DropdownMenuItem onClick={() => setRole(null)}>
+                Select Persona
+              </DropdownMenuItem>
+              {roleOptions.map((r) => (
+                <DropdownMenuItem key={r} onClick={() => setRole(r)}>
+                  {ROLE_LABELS[r]}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
         {!collapsed && (
           <div className="px-2 mt-2 space-y-2 max-h-[28vh] overflow-y-auto">
             <div>
               <p className="text-[10px] font-medium text-sidebar-foreground/40 uppercase tracking-wider mb-1">Functional Area</p>
-              <select
-                value={functionalArea ?? ""}
-                onChange={(e) => setFunctionalArea(e.target.value || null)}
-                className="w-full h-8 rounded-md border border-sidebar-border bg-sidebar-accent/30 px-2 text-xs text-sidebar-foreground outline-none"
-              >
-                <option value="">All Functional Areas</option>
-                {filtersLoading && functionalAreas.length === 0 && (
-                  <option value="" disabled>Loading…</option>
-                )}
-                {functionalAreas.map((opt) => (
-                  <option key={opt.key} value={opt.key}>{opt.display_name}</option>
-                ))}
-              </select>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={cn(
+                      "w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg bg-gradient-to-b border",
+                      "from-muted/60 to-muted/20 border-dashed border-border hover:opacity-90 transition-opacity"
+                    )}
+                  >
+                    <span className="text-xs font-semibold text-foreground truncate text-left">
+                      {functionalAreas.find((f) => f.key === functionalArea)?.display_name || "All Functional Areas"}
+                    </span>
+                    <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuItem onClick={() => setFunctionalArea(null)}>
+                    All Functional Areas
+                  </DropdownMenuItem>
+                  {filtersLoading && functionalAreas.length === 0 && (
+                    <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
+                  )}
+                  {functionalAreas.map((opt) => (
+                    <DropdownMenuItem key={opt.key} onClick={() => setFunctionalArea(opt.key)}>
+                      {opt.display_name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
             <div>
               <p className="text-[10px] font-medium text-sidebar-foreground/40 uppercase tracking-wider mb-1">Industry</p>
-              <select
-                value={industry ?? ""}
-                onChange={(e) => setIndustry(e.target.value || null)}
-                className="w-full h-8 rounded-md border border-sidebar-border bg-sidebar-accent/30 px-2 text-xs text-sidebar-foreground outline-none"
-              >
-                <option value="">All Industries</option>
-                {filtersLoading && industries.length === 0 && (
-                  <option value="" disabled>Loading…</option>
-                )}
-                {industries.map((opt) => (
-                  <option key={opt.key} value={opt.key}>{opt.display_name}</option>
-                ))}
-              </select>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={cn(
+                      "w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg bg-gradient-to-b border",
+                      "from-muted/60 to-muted/20 border-dashed border-border hover:opacity-90 transition-opacity"
+                    )}
+                  >
+                    <span className="text-xs font-semibold text-foreground truncate text-left">
+                      {industries.find((i) => i.key === industry)?.display_name || "All Industries"}
+                    </span>
+                    <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuItem onClick={() => setIndustry(null)}>
+                    All Industries
+                  </DropdownMenuItem>
+                  {filtersLoading && industries.length === 0 && (
+                    <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
+                  )}
+                  {industries.map((opt) => (
+                    <DropdownMenuItem key={opt.key} onClick={() => setIndustry(opt.key)}>
+                      {opt.display_name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         )}
         {!collapsed && <Separator className="my-2 bg-sidebar-border" />}
-        {!collapsed && user && (
-          <p className="text-xs text-sidebar-foreground/40 truncate px-2 mb-2">
-            {user.email}
-          </p>
+        {user && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={cn(
+                  "w-full flex items-center gap-2 rounded-lg hover:bg-sidebar-accent/50 transition-colors",
+                  collapsed ? "h-10 w-10 mx-auto justify-center" : "px-2 py-2 justify-between"
+                )}
+                title={collapsed ? (user.email || "Account") : undefined}
+              >
+                <span className={cn("text-xs text-sidebar-foreground/60 truncate", collapsed && "hidden")}>
+                  {user.email ?? "Account"}
+                </span>
+                {!collapsed && <ChevronUp className="h-3.5 w-3.5 text-sidebar-foreground/40 shrink-0" />}
+                {collapsed && <LogOut className="h-4 w-4 text-sidebar-foreground/50" />}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side={collapsed ? "right" : "top"} align={collapsed ? "start" : "end"} className="w-56">
+              <div className="px-2 py-1.5 text-xs text-muted-foreground truncate">
+                {user.email ?? "Account"}
+              </div>
+              <Separator className="my-1" />
+              <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
-        <Button
-          variant="ghost"
-          size={collapsed ? "icon" : "sm"}
-          onClick={handleSignOut}
-          className={cn(
-            "w-full text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50",
-            collapsed ? "justify-center" : "justify-start"
-          )}
-        >
-          <LogOut className={cn("h-4 w-4 shrink-0", !collapsed && "mr-2")} />
-          {!collapsed && <span>Sign Out</span>}
-        </Button>
       </SidebarFooter>
     </Sidebar>
   );
