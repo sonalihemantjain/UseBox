@@ -16,11 +16,11 @@ jobs:
 
       - name: Stop Existing Containers
         run: |
-          docker-compose down || true
+          docker compose down || true
 
       - name: Build and Start Containers
         run: |
-          docker-compose up -d --build
+          docker compose up -d --build
 
       - name: Cleanup old Docker images (keep last 5)
         run: |
