@@ -192,7 +192,8 @@ export function PlatformResponse({ messages, role, onPick, onError }: PlatformRe
     return () => {
       abort.abort();
     };
-  // Run ONLY when the compare input changes (not on every render)
+  // Keep effect keyed to compare request identity to avoid abort/restart loops.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isReady, requestKey, functionalArea, industry]);
 
   const handlePick = (platformId: string) => {

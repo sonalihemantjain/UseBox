@@ -1,1 +1,0 @@
-ALTER TABLE public.knowledge_articles ADD COLUMN approval_status text NOT NULL DEFAULT 'approved';

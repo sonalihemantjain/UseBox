@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { api } from "@/lib/api";
 
 export interface EarningsData {
   totalViews: number;
@@ -12,9 +12,6 @@ export interface EarningsData {
   redemptions: { id: string; amount: number; status: string; created_at: string }[];
   loading: boolean;
 }
-
-const CREDITS_PER_VIEW = 1;
-const CREDITS_PER_LIKE = 1;
 
 export function useEarnings() {
   const { user } = useAuth();
@@ -30,67 +27,22 @@ export function useEarnings() {
 
   const fetchEarnings = useCallback(async () => {
     if (!user) return;
-
-    // Fetch all articles (user's own + public ones for demo)
-    const [{ data: articles }, { data: views }, { data: likes }, { data: credits }, { data: redemptions }] = await Promise.all([
-      supabase.from("knowledge_articles").select("id, title").eq("user_id", user.id),
-      supabase.from("article_views").select("article_id"),
-      supabase.from("article_likes").select("article_id"),
-      supabase.from("user_credits").select("*").eq("user_id", user.id).maybeSingle(),
-      supabase.from("credit_redemptions").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-    ]);
-
-    const viewCounts = new Map<string, number>();
-    (views ?? []).forEach((v: any) => {
-      viewCounts.set(v.article_id, (viewCounts.get(v.article_id) || 0) + 1);
-    });
-
-    const likeCounts = new Map<string, number>();
-    (likes ?? []).forEach((l: any) => {
-      likeCounts.set(l.article_id, (likeCounts.get(l.article_id) || 0) + 1);
-    });
-
-    // Only show stats for user's own articles
-    const articleStats = (articles ?? []).map((a: any) => {
-      const viewCount = viewCounts.get(a.id) || 0;
-      const likeCount = likeCounts.get(a.id) || 0;
-      return {
-        id: a.id,
-        title: a.title,
-        views: viewCount,
-        likes: likeCount,
-        credits: viewCount * CREDITS_PER_VIEW + likeCount * CREDITS_PER_LIKE,
-      };
-    });
-
-    const totalViews = articleStats.reduce((sum, a) => sum + a.views, 0);
-    const totalLikes = articleStats.reduce((sum, a) => sum + a.likes, 0);
-    const totalCredits = totalViews * CREDITS_PER_VIEW + totalLikes * CREDITS_PER_LIKE;
-    const redeemedCredits = (credits as any)?.redeemed_credits || 0;
-
-    // Upsert credits
-    if (credits) {
-      await supabase.from("user_credits").update({
-        total_credits: totalCredits,
-        updated_at: new Date().toISOString(),
-      }).eq("user_id", user.id);
-    } else {
-      await supabase.from("user_credits").insert({
-        user_id: user.id,
-        total_credits: totalCredits,
-        redeemed_credits: 0,
-      } as any);
+    try {
+      const result = await api.getEarnings(user.id);
+      setData({
+        totalViews: result.totalViews,
+        totalCredits: result.totalCredits,
+        redeemedCredits: result.redeemedCredits,
+        availableCredits: result.availableCredits,
+        articleStats: result.articleStats,
+        redemptions: result.redemptions,
+        loading: false,
+      });
+    } catch (e) {
+      console.error("Failed to fetch earnings:", e);
+      toast.error("Failed to load earnings");
+      setData((prev) => ({ ...prev, loading: false }));
     }
-
-    setData({
-      totalViews,
-      totalCredits,
-      redeemedCredits,
-      availableCredits: totalCredits - redeemedCredits,
-      articleStats,
-      redemptions: (redemptions ?? []) as any[],
-      loading: false,
-    });
   }, [user]);
 
   useEffect(() => {
@@ -104,25 +56,16 @@ export function useEarnings() {
       return;
     }
 
-    const { error } = await supabase.from("credit_redemptions").insert({
-      user_id: user.id,
-      amount,
-      status: "pending",
-    } as any);
-
-    if (error) {
+    try {
+      await api.redeemCredits({ user_id: user.id, amount });
+    } catch {
       toast.error("Redemption failed");
       return;
     }
 
-    await supabase.from("user_credits").update({
-      redeemed_credits: data.redeemedCredits + amount,
-      updated_at: new Date().toISOString(),
-    }).eq("user_id", user.id);
-
     toast.success(`Redeemed ${amount} credits! Transfer will be processed soon.`);
     await fetchEarnings();
-  }, [user, data.availableCredits, data.redeemedCredits, fetchEarnings]);
+  }, [user, data.availableCredits, fetchEarnings]);
 
   return { ...data, redeemCredits, refetch: fetchEarnings };
 }

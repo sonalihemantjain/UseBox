@@ -1,1 +1,0 @@
-ALTER TABLE public.learning_path_steps ADD COLUMN content text NOT NULL DEFAULT '';

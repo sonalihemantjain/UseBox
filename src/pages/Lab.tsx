@@ -24,7 +24,7 @@ export default function Lab() {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="container mx-auto px-6 lg:px-10 py-8 max-w-7xl">
+      <div className="w-full px-4 sm:px-8 lg:px-12 py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

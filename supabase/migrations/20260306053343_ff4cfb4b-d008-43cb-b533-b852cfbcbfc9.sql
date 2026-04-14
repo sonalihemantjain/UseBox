@@ -1,1 +1,0 @@
-ALTER TABLE public.chats ADD COLUMN saved BOOLEAN NOT NULL DEFAULT false;

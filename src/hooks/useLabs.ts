@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { api, type ApiLab } from "@/lib/api";
 
 export interface LabTaskStep {
   id: string;
@@ -33,7 +33,13 @@ export interface Lab {
   status: string;
   created_at: string;
   tasks: LabTask[];
+  task_states?: Record<string, boolean>;
 }
+
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error && error.message) return error.message;
+  return "Unknown error";
+};
 
 export function useLabs(options?: { autoFetch?: boolean }) {
   const { user } = useAuth();
@@ -47,76 +53,39 @@ export function useLabs(options?: { autoFetch?: boolean }) {
     setLoading(true);
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
-      const response = await fetch(`${apiUrl}/api/labs/user/${user.id}`);
-      
-      if (response.ok) {
-        const apiLabs = await response.json();
-        console.log('📚 Labs fetched from API:', apiLabs);
-        
-        // Map API format to UI format
-        const mappedLabs: Lab[] = apiLabs.map((al: any) => ({
-          id: al.id,
-          user_id: user.id,
-          title: al.title,
-          description: al.description || al.goal || al.raw?.substring(0, 100) + "...",
-          topic: al.topic || al.question,
-          difficulty: al.difficulty || "intermediate",
-          total_steps: al.total_steps || 0,
-          completed_steps: al.completed_steps || 0,
-          status: al.status || "in_progress",
-          created_at: al.created_at,
-          tasks: (al.tasks || []).map((at: any) => ({
-            id: at.id,
-            lab_id: al.id,
-            task_order: at.task_order,
-            title: at.title,
-            description: at.description || "",
-            steps: (at.steps || []).map((as: any) => ({
-              id: as.id,
-              task_id: at.id,
-              step_order: as.step_order,
-              title: as.title,
-              content: as.content,
-              is_completed: as.is_completed || false
-            }))
+      const apiLabs = await api.getLabsForUser(user.id);
+      const mappedLabs: Lab[] = (apiLabs || []).map((al: ApiLab) => ({
+        id: al.id,
+        user_id: user.id,
+        title: al.title,
+        description: al.description || al.goal || String(al.raw || "").substring(0, 100) + "...",
+        topic: al.topic || al.question || "",
+        difficulty: al.difficulty || "intermediate",
+        total_steps: al.total_steps || 0,
+        completed_steps: al.completed_steps || 0,
+        status: al.status || "in_progress",
+        created_at: al.created_at,
+        task_states: al.task_states,
+        tasks: (al.tasks || []).map((at) => ({
+          id: at.id,
+          lab_id: al.id,
+          task_order: at.task_order,
+          title: at.title,
+          description: at.description || "",
+          steps: (at.steps || []).map((step) => ({
+            id: step.id,
+            task_id: at.id,
+            step_order: step.step_order,
+            title: step.title,
+            content: step.content,
+            is_completed: step.is_completed || false
           }))
-        }));
-
-        setLabs(mappedLabs);
-      } else {
-        console.error('Failed to fetch labs from API, falling back to Supabase');
-        // Original Supabase fallback
-        const [{ data: labsData }, { data: tasksData }, { data: stepsData }] = await Promise.all([
-          supabase.from("labs").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-          supabase.from("lab_tasks").select("*").order("task_order"),
-          supabase.from("lab_task_steps").select("*").order("step_order"),
-        ]);
-
-        const stepsMap = new Map<string, LabTaskStep[]>();
-        (stepsData ?? []).forEach((s: any) => {
-          const list = stepsMap.get(s.task_id) || [];
-          list.push(s);
-          stepsMap.set(s.task_id, list);
-        });
-
-        const tasksMap = new Map<string, LabTask[]>();
-        (tasksData ?? []).forEach((t: any) => {
-          const task: LabTask = { ...t, steps: stepsMap.get(t.id) || [] };
-          const list = tasksMap.get(t.lab_id) || [];
-          list.push(task);
-          tasksMap.set(t.lab_id, list);
-        });
-
-        const enriched: Lab[] = (labsData ?? []).map((l: any) => ({
-          ...l,
-          tasks: tasksMap.get(l.id) || [],
-        }));
-
-        setLabs(enriched);
-      }
+        }))
+      }));
+      setLabs(mappedLabs);
     } catch (err) {
       console.error('Error in fetchLabs:', err);
+      toast.error("Failed to load labs");
     } finally {
       setLoading(false);
     }
@@ -134,67 +103,15 @@ export function useLabs(options?: { autoFetch?: boolean }) {
     setGenerating(true);
     try {
       console.log('🧪 Starting lab generation for topic:', topic);
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
-      const response = await fetch(`${apiUrl}/api/labs/generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ topic, difficulty }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = await api.generateLab({ topic, difficulty, user_id: user.id });
       console.log('✅ Lab data received from API:', data);
-
-      // Create lab record
-      const totalSteps = (data.tasks || []).reduce((sum: number, t: any) => sum + (t.steps?.length || 0), 0);
-      const { data: newLab, error: labErr } = await supabase.from("labs").insert({
-        user_id: user.id,
-        title: data.title,
-        description: data.description,
-        topic,
-        difficulty: data.difficulty || difficulty,
-        total_steps: totalSteps,
-        completed_steps: 0,
-        status: "in_progress",
-      }).select().single();
-
-      if (labErr || !newLab) throw labErr;
-
-      // Insert tasks and steps
-      for (let ti = 0; ti < (data.tasks || []).length; ti++) {
-        const taskData = data.tasks[ti];
-        const { data: newTask, error: taskErr } = await supabase.from("lab_tasks").insert({
-          lab_id: newLab.id,
-          task_order: ti + 1,
-          title: taskData.title,
-          description: taskData.description || "",
-        }).select().single();
-
-        if (taskErr || !newTask) continue;
-
-        for (let si = 0; si < (taskData.steps || []).length; si++) {
-          const stepData = taskData.steps[si];
-          await supabase.from("lab_task_steps").insert({
-            task_id: newTask.id,
-            step_order: si + 1,
-            title: stepData.title,
-            content: stepData.content || "",
-            is_completed: false,
-          });
-        }
-      }
 
       toast.success("Lab created successfully!");
       await fetchLabs();
-      return newLab.id;
-    } catch (e: any) {
+      return data?.id;
+    } catch (e: unknown) {
       console.error(e);
-      toast.error(e?.message || "Failed to generate lab");
+      toast.error(getErrorMessage(e) || "Failed to generate lab");
     } finally {
       setGenerating(false);
     }
@@ -215,10 +132,8 @@ export function useLabs(options?: { autoFetch?: boolean }) {
     const newCompleted = !targetStep.is_completed;
     
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
-      
       // Update task_states locally
-      const newTaskStates = { ...(lab as any).task_states || {} };
+      const newTaskStates = { ...(lab.task_states || {}) };
       newTaskStates[targetStep.content] = newCompleted;
 
       // The API expects the tasks in the background format
@@ -228,39 +143,13 @@ export function useLabs(options?: { autoFetch?: boolean }) {
         subtasks: t.steps.map(s => s.content)
       }));
 
-      const response = await fetch(`${apiUrl}/api/labs/${labId}/progress`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          task_states: newTaskStates,
-          tasks: apiTasks
-        }),
-      });
-
-      if (response.ok) {
-        // Recalculate locally for UI feedback
-        const newCompletedCount = lab.tasks.reduce((sum, t) =>
-          sum + t.steps.filter(s => s.id === stepId ? newCompleted : s.is_completed).length, 0
-        );
-        const allDone = newCompletedCount === lab.total_steps;
-        if (allDone) toast.success("🎉 Lab completed!");
-        
-        await fetchLabs();
-      } else {
-        // Fallback to Supabase
-        await supabase.from("lab_task_steps").update({ is_completed: newCompleted }).eq("id", stepId);
-        const newCompletedCount = lab.tasks.reduce((sum, t) =>
-          sum + t.steps.filter(s => s.id === stepId ? newCompleted : s.is_completed).length, 0
-        );
-        const allDone = newCompletedCount === lab.total_steps;
-        await supabase.from("labs").update({
-          completed_steps: newCompletedCount,
-          status: allDone ? "completed" : "in_progress",
-          updated_at: new Date().toISOString(),
-        }).eq("id", labId);
-        if (allDone) toast.success("🎉 Lab completed!");
-        await fetchLabs();
-      }
+      await api.updateLabProgress(labId, { task_states: newTaskStates, tasks: apiTasks });
+      const newCompletedCount = lab.tasks.reduce((sum, t) =>
+        sum + t.steps.filter(s => s.id === stepId ? newCompleted : s.is_completed).length, 0
+      );
+      const allDone = newCompletedCount === lab.total_steps;
+      if (allDone) toast.success("🎉 Lab completed!");
+      await fetchLabs();
     } catch (err) {
       console.error('Error toggling step:', err);
       toast.error("Failed to update step progress");
@@ -269,17 +158,8 @@ export function useLabs(options?: { autoFetch?: boolean }) {
 
   const deleteLab = useCallback(async (labId: string) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
-      const response = await fetch(`${apiUrl}/api/labs/${labId}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        toast.success("Lab deleted");
-      } else {
-        await supabase.from("labs").delete().eq("id", labId);
-        toast.success("Lab deleted");
-      }
+      await api.deleteLab(labId);
+      toast.success("Lab deleted");
       await fetchLabs();
     } catch (err) {
       console.error('Error deleting lab:', err);
@@ -289,10 +169,7 @@ export function useLabs(options?: { autoFetch?: boolean }) {
 
   const fetchLabFromApi = useCallback(async (labId: string) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
-      const response = await fetch(`${apiUrl}/api/labs/${labId}`);
-      if (!response.ok) throw new Error("Lab not found on API");
-      return await response.json();
+      return await api.getLabById(labId);
     } catch (e) {
       console.error("Error fetching lab from API:", e);
       return null;

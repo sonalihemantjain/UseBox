@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Heart, MessageCircle, Share2, Send, ArrowLeft, Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
@@ -46,37 +46,21 @@ const ArticleEngagement = () => {
   const fetchArticle = useCallback(async () => {
     if (!id) return;
     setLoading(true);
-
-    const { data, error } = await supabase
-      .from("knowledge_articles")
-      .select("*")
-      .eq("id", id)
-      .single();
-
-    if (error || !data) {
+    try {
+      const [a, e] = await Promise.all([
+        api.getArticle(id),
+        api.getArticleEngagement(id, user?.id),
+      ]);
+      setArticle(a as Article);
+      setLiked(Boolean(e.liked));
+      setLikeCount(e.likeCount || 0);
+      setShareCount(e.shareCount || 0);
+      setComments((e.comments || []) as Comment[]);
+    } catch {
       toast.error("Article not found");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setArticle(data as Article);
-
-    // Fetch engagement data
-    const [likesRes, commentsRes, sharesRes] = await Promise.all([
-      supabase.from("article_likes").select("id, user_id").eq("article_id", id),
-      supabase.from("article_comments").select("*").eq("article_id", id).order("created_at", { ascending: true }),
-      supabase.from("article_shares").select("id").eq("article_id", id),
-    ]);
-
-    setLikeCount((likesRes.data ?? []).length);
-    setComments((commentsRes.data ?? []) as Comment[]);
-    setShareCount((sharesRes.data ?? []).length);
-
-    if (user) {
-      setLiked((likesRes.data ?? []).some((l: any) => l.user_id === user.id));
-    }
-
-    setLoading(false);
   }, [id, user]);
 
   useEffect(() => {
@@ -98,17 +82,10 @@ const ArticleEngagement = () => {
     if (!id || requireAuth()) return;
     setSubmitting(true);
 
-    if (liked) {
-      await supabase.from("article_likes").delete().eq("user_id", user.id).eq("article_id", id);
-      setLiked(false);
-      setLikeCount((c) => c - 1);
-      toast.success("Like removed");
-    } else {
-      await supabase.from("article_likes").insert({ user_id: user.id, article_id: id });
-      setLiked(true);
-      setLikeCount((c) => c + 1);
-      toast.success("Liked! Author earned 1 credit 🎉");
-    }
+    const result = await api.toggleArticleLike(id, user.id);
+    setLiked(result.liked);
+    setLikeCount((c) => (result.liked ? c + (liked ? 0 : 1) : c - (liked ? 1 : 0)));
+    toast.success(result.liked ? "Liked! Author earned 1 credit 🎉" : "Like removed");
     setSubmitting(false);
   };
 
@@ -116,18 +93,13 @@ const ArticleEngagement = () => {
     if (!id || !commentText.trim() || requireAuth()) return;
     setSubmitting(true);
 
-    const { data, error } = await supabase
-      .from("article_comments")
-      .insert({ user_id: user.id, article_id: id, content: commentText.trim() })
-      .select()
-      .single();
-
-    if (error) {
-      toast.error("Failed to post comment");
-    } else {
+    try {
+      const data = await api.createArticleComment(id, { user_id: user.id, content: commentText.trim() });
       setComments((prev) => [...prev, data as Comment]);
       setCommentText("");
       toast.success("Comment posted!");
+    } catch {
+      toast.error("Failed to post comment");
     }
     setSubmitting(false);
   };
@@ -135,7 +107,7 @@ const ArticleEngagement = () => {
   const handleShare = async () => {
     if (!id || requireAuth()) return;
 
-    await supabase.from("article_shares").insert({ user_id: user.id, article_id: id });
+    await api.createArticleShare(id, user.id);
     setShareCount((c) => c + 1);
 
     // Copy link to clipboard

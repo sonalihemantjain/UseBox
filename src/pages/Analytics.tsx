@@ -34,12 +34,15 @@ const anim = (i: number) => ({
   transition: { delay: i * 0.06, duration: 0.35 },
 });
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+type TooltipPayloadItem = { name: string; color: string; value: string | number };
+type CustomTooltipProps = { active?: boolean; payload?: TooltipPayloadItem[]; label?: string };
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-lg bg-popover border border-border px-3 py-2 shadow-lg text-xs">
       <p className="font-medium text-foreground mb-1">{label}</p>
-      {payload.map((p: any) => (
+      {payload.map((p) => (
         <p key={p.name} style={{ color: p.color }}>
           {p.name}: {p.value}
         </p>
@@ -54,7 +57,7 @@ const Analytics = () => {
   if (loading || !data) {
     return (
       <div className="h-full overflow-y-auto">
-          <div className="container mx-auto px-6 lg:px-10 py-8 max-w-7xl">
+          <div className="w-full px-4 sm:px-8 lg:px-12 py-8">
           <Skeleton className="h-10 w-48 mb-2" />
           <Skeleton className="h-6 w-72 mb-8" />
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -86,7 +89,7 @@ const Analytics = () => {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="container mx-auto px-6 lg:px-10 py-8 max-w-7xl">
+      <div className="w-full px-4 sm:px-8 lg:px-12 py-8">
         {/* Header */}
         <motion.div {...anim(0)} className="mb-8">
           <h1 className="font-display text-3xl sm:text-4xl font-bold mb-2">Analytics</h1>
