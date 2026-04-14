@@ -25,6 +25,7 @@ export async function streamChat({
   userId,
   model,
   models,
+  platform, // Platform name for future business logic
   onDelta,
   onDone,
   onError,
@@ -36,6 +37,7 @@ export async function streamChat({
   userId?: string | null;
   model?: string;
   models?: string[];
+  platform?: string; // Platform name parameter
   onDelta: (text: string) => void;
   onDone: () => void;
   onError: (error: string) => void;
@@ -47,7 +49,8 @@ export async function streamChat({
     role: role || undefined, 
     userId: userId || undefined, 
     model: model || undefined,
-    models: models || undefined
+    models: models || undefined,
+    platform: platform || undefined
   };
 
   const resp = await fetch(CHAT_URL, {

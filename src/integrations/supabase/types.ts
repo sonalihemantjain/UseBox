@@ -601,6 +601,62 @@ export type Database = {
         }
         Relationships: []
       }
+      platforms: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      user_platforms: {
+        Row: {
+          created_at: string
+          id: string
+          is_selected: boolean
+          platform_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_selected?: boolean
+          platform_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_selected?: boolean
+          platform_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_platforms_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platforms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_settings: {
         Row: {
           id: string

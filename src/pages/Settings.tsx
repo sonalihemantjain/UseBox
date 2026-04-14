@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Settings as SettingsIcon, KeyRound, User, Cpu, BookmarkCheck, MessageSquare, ExternalLink, Trash2, Pencil, Check, X, Search } from "lucide-react";
+import { Settings as SettingsIcon, KeyRound, User, Layers, BookmarkCheck, MessageSquare, ExternalLink, Trash2, Pencil, Check, X, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
-import { useModelSelection } from "@/hooks/useModelSelection";
+import { usePlatformSelection } from "@/hooks/usePlatformSelection";
 import { useChatHistory } from "@/hooks/useChatHistory";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -16,7 +16,7 @@ import { useNavigate } from "react-router-dom";
 const Settings = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { selectedModels, toggleModel, availableModels } = useModelSelection();
+  const { platforms, selectedPlatformIds, togglePlatform, loaded } = usePlatformSelection();
   const { chats, toggleSaveChat, renameChat } = useChatHistory();
 
   // Password reset
@@ -114,45 +114,53 @@ const Settings = () => {
 
           <Separator />
 
-          {/* Model Selection */}
+          {/* Platform Selection */}
           <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
             <div className="flex items-center gap-2 mb-4">
-              <Cpu className="h-5 w-5 text-primary" />
-              <h2 className="font-display text-xl font-semibold">Model Selection</h2>
+              <Layers className="h-5 w-5 text-primary" />
+              <h2 className="font-display text-xl font-semibold">Platform Selection</h2>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Select exactly 2 AI models for the comparison view in Learn.
+              Select one or more platforms to display in your learning experience.
             </p>
             <div className="rounded-xl border border-border bg-card p-5">
-              <div className="space-y-3">
-                {availableModels.map((m) => {
-                  const isSelected = selectedModels.includes(m.id);
-                  const isDisabled = !isSelected && selectedModels.length >= 2;
-                  return (
-                    <div
-                      key={m.id}
-                      onClick={() => !isDisabled && toggleModel(m.id)}
-                      className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
-                        isSelected
-                          ? "border-primary/30 bg-primary/5 cursor-pointer"
-                          : isDisabled
-                          ? "border-border opacity-50 cursor-not-allowed"
-                          : "border-border hover:border-primary/20 cursor-pointer"
-                      }`}
-                    >
-                      <Checkbox
-                        checked={isSelected}
-                        disabled={isDisabled}
-                        onCheckedChange={() => toggleModel(m.id)}
-                      />
-                      <span className="text-sm font-medium text-foreground">{m.label}</span>
-                      <span className="text-xs text-muted-foreground ml-auto">{m.id.split("/")[0]}</span>
-                    </div>
-                  );
-                })}
-              </div>
-              {selectedModels.length < 2 && (
-                <p className="text-xs text-destructive mt-3">Please select 2 models for comparison.</p>
+              {!loaded ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-sm text-muted-foreground">Loading platforms...</div>
+                </div>
+              ) : platforms.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-muted-foreground mb-2">No platforms available</p>
+                  <p className="text-xs text-muted-foreground">Please run the database migration (database_schema.sql)</p>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-3">
+                    {platforms.map((platform) => {
+                      const isSelected = selectedPlatformIds.includes(platform.id);
+                      return (
+                        <div
+                          key={platform.id}
+                          onClick={() => togglePlatform(platform.id)}
+                          className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${
+                            isSelected
+                              ? "border-primary/30 bg-primary/5"
+                              : "border-border hover:border-primary/20"
+                          }`}
+                        >
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => togglePlatform(platform.id)}
+                          />
+                          <span className="text-sm font-medium text-foreground">{platform.display_name}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {selectedPlatformIds.length === 0 && (
+                    <p className="text-xs text-destructive mt-3">Please select at least one platform.</p>
+                  )}
+                </>
               )}
             </div>
           </motion.section>
