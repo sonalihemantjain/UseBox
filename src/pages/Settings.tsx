@@ -1,34 +1,23 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Settings as SettingsIcon, KeyRound, User, Cpu, BookmarkCheck, MessageSquare, ExternalLink, Trash2, Pencil, Check, X, Search } from "lucide-react";
+import { KeyRound, User, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
-import { useModelSelection } from "@/hooks/useModelSelection";
-import { useChatHistory } from "@/hooks/useChatHistory";
+import { usePlatformSelection } from "@/hooks/usePlatformSelection";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
 
 const Settings = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const { selectedModels, toggleModel, availableModels } = useModelSelection();
-  const { chats, toggleSaveChat, renameChat } = useChatHistory();
+  const { platforms, selectedPlatformIds, togglePlatform, loaded } = usePlatformSelection();
 
   // Password reset
   const [newPassword, setNewPassword] = useState("");
   const [changingPw, setChangingPw] = useState(false);
-
-  // Saved chats
-  const [chatSearch, setChatSearch] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState("");
-
-  const savedChats = chats.filter((c) => c.saved && c.title.toLowerCase().includes(chatSearch.toLowerCase()));
 
   const handlePasswordReset = async () => {
     if (!newPassword || newPassword.length < 6) {
@@ -44,18 +33,6 @@ const Settings = () => {
       toast.success("Password updated successfully");
       setNewPassword("");
     }
-  };
-
-  const handleUnsave = async (chatId: string) => {
-    await toggleSaveChat(chatId, false);
-    toast.success("Removed from saved chats");
-  };
-
-  const saveEdit = async () => {
-    if (!editingId || !editValue.trim()) return;
-    await renameChat(editingId, editValue.trim());
-    setEditingId(null);
-    toast.success("Chat renamed");
   };
 
   return (
@@ -114,135 +91,57 @@ const Settings = () => {
 
           <Separator />
 
-          {/* Model Selection */}
+          {/* Platform Selection */}
           <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
             <div className="flex items-center gap-2 mb-4">
-              <Cpu className="h-5 w-5 text-primary" />
-              <h2 className="font-display text-xl font-semibold">Model Selection</h2>
+              <Layers className="h-5 w-5 text-primary" />
+              <h2 className="font-display text-xl font-semibold">Platform Selection</h2>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Select exactly 2 AI models for the comparison view in Learn.
+              Select one or more platforms to display in your learning experience.
             </p>
             <div className="rounded-xl border border-border bg-card p-5">
-              <div className="space-y-3">
-                {availableModels.map((m) => {
-                  const isSelected = selectedModels.includes(m.id);
-                  const isDisabled = !isSelected && selectedModels.length >= 2;
-                  return (
-                    <div
-                      key={m.id}
-                      onClick={() => !isDisabled && toggleModel(m.id)}
-                      className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
-                        isSelected
-                          ? "border-primary/30 bg-primary/5 cursor-pointer"
-                          : isDisabled
-                          ? "border-border opacity-50 cursor-not-allowed"
-                          : "border-border hover:border-primary/20 cursor-pointer"
-                      }`}
-                    >
-                      <Checkbox
-                        checked={isSelected}
-                        disabled={isDisabled}
-                        onCheckedChange={() => toggleModel(m.id)}
-                      />
-                      <span className="text-sm font-medium text-foreground">{m.label}</span>
-                      <span className="text-xs text-muted-foreground ml-auto">{m.id.split("/")[0]}</span>
-                    </div>
-                  );
-                })}
-              </div>
-              {selectedModels.length < 2 && (
-                <p className="text-xs text-destructive mt-3">Please select 2 models for comparison.</p>
+              {!loaded ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-sm text-muted-foreground">Loading platforms...</div>
+                </div>
+              ) : platforms.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-muted-foreground mb-2">No platforms available</p>
+                  <p className="text-xs text-muted-foreground">Please run the database migration (database_schema.sql)</p>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-3">
+                    {platforms.map((platform) => {
+                      const isSelected = selectedPlatformIds.includes(platform.id);
+                      return (
+                        <div
+                          key={platform.id}
+                          onClick={() => togglePlatform(platform.id)}
+                          className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${
+                            isSelected
+                              ? "border-primary/30 bg-primary/5"
+                              : "border-border hover:border-primary/20"
+                          }`}
+                        >
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => togglePlatform(platform.id)}
+                          />
+                          <span className="text-sm font-medium text-foreground">{platform.display_name}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {selectedPlatformIds.length === 0 && (
+                    <p className="text-xs text-destructive mt-3">Please select at least one platform.</p>
+                  )}
+                </>
               )}
             </div>
           </motion.section>
 
-          <Separator />
-
-          {/* Saved Chats */}
-          <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-            <div className="flex items-center gap-2 mb-4">
-              <BookmarkCheck className="h-5 w-5 text-primary" />
-              <h2 className="font-display text-xl font-semibold">Saved Chats</h2>
-            </div>
-
-            <div className="relative max-w-sm mb-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={chatSearch}
-                onChange={(e) => setChatSearch(e.target.value)}
-                placeholder="Search saved chats..."
-                className="pl-9"
-              />
-            </div>
-
-            {savedChats.length === 0 ? (
-              <div className="text-center py-12 rounded-xl border border-border bg-card">
-                <BookmarkCheck className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-muted-foreground">
-                  {chatSearch ? "No matching saved chats" : "No saved chats yet"}
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {savedChats.map((chat) => (
-                  <div
-                    key={chat.id}
-                    className="group flex items-center gap-4 rounded-xl border border-border bg-card p-4 hover:border-primary/30 transition-colors"
-                  >
-                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <MessageSquare className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      {editingId === chat.id ? (
-                        <div className="flex items-center gap-1">
-                          <Input
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") saveEdit();
-                              if (e.key === "Escape") setEditingId(null);
-                            }}
-                            className="h-7 text-sm"
-                            autoFocus
-                          />
-                          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={saveEdit}>
-                            <Check className="h-3.5 w-3.5 text-green-600" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setEditingId(null)}>
-                            <X className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <>
-                          <h4 className="text-sm font-medium text-foreground truncate">{chat.title}</h4>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(chat.updated_at).toLocaleDateString()}
-                          </p>
-                        </>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {editingId !== chat.id && (
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                          onClick={() => { setEditingId(chat.id); setEditValue(chat.title); }}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                        onClick={() => navigate(`/chat?id=${chat.id}`)}>
-                        <ExternalLink className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        onClick={() => handleUnsave(chat.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </motion.section>
         </div>
       </div>
     </div>

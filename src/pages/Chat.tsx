@@ -14,7 +14,7 @@ import ReactMarkdown from "react-markdown";
 import { type ChatMessage, type SourceReference } from "@/lib/chat-stream";
 import { SourceLinks } from "@/components/chat/SourceLinks";
 import { useChatHistory } from "@/hooks/useChatHistory";
-import { DualModelResponse } from "@/components/chat/DualModelResponse";
+import { PlatformResponse } from "@/components/chat/PlatformResponse";
 import { useLabs } from "@/hooks/useLabs";
 
 const SUGGESTIONS = [
@@ -157,7 +157,7 @@ const Chat = () => {
     }
 
     if (!role) {
-      toast.info("Tip: Select a persona in the sidebar for personalized dual-model comparisons!");
+      toast.info("Tip: Select a persona in the sidebar for personalized platform comparisons!");
     }
 
     pendingChatIdRef.current = chatId;
@@ -222,7 +222,7 @@ const Chat = () => {
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-5xl px-6 sm:px-10 py-6 space-y-5">
+        <div className="w-full px-4 sm:px-8 lg:px-12 py-6 space-y-5">
           {messages.length === 0 && comparingIndex === null && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -237,8 +237,8 @@ const Chat = () => {
               </h2>
               <p className="text-muted-foreground text-sm max-w-sm mx-auto mb-8">
                 {role
-                  ? <>Responses from two AI models — compare and pick the best one.</>
-                  : <>Select a persona in the sidebar to get personalized dual-model comparisons.</>
+                  ? <>Responses from multiple platforms — compare and pick the best one.</>
+                  : <>Select a persona in the sidebar to get personalized platform comparisons.</>
                 }
               </p>
               <div className="grid sm:grid-cols-2 gap-2.5 max-w-lg mx-auto">
@@ -288,7 +288,7 @@ const Chat = () => {
           </AnimatePresence>
 
           {comparingIndex !== null && (
-            <DualModelResponse
+            <PlatformResponse
               messages={pendingMessagesRef.current}
               role={role}
               onPick={handlePick}
@@ -303,13 +303,13 @@ const Chat = () => {
       {/* Input area — centered, ChatGPT-style */}
       <div className="shrink-0 pb-4 pt-2 px-4">
         {!role && messages.length > 0 && (
-          <div className="mx-auto max-w-5xl mb-2 px-4 py-1.5 rounded-lg bg-primary/5 border border-primary/10 flex items-center justify-center gap-2">
+          <div className="w-full mb-2 px-4 py-1.5 rounded-lg bg-primary/5 border border-primary/10 flex items-center justify-center gap-2">
             <span className="text-[11px] font-medium text-primary">
-              Select a persona in the sidebar to enable dual-model comparison
+              Select a persona in the sidebar to enable platform comparison
             </span>
           </div>
         )}
-        <form onSubmit={handleSubmit} className="mx-auto max-w-5xl">
+        <form onSubmit={handleSubmit} className="w-full">
           <div className="flex items-end gap-2 bg-muted/40 rounded-2xl px-4 py-3 border border-border/60 focus-within:border-primary/40 focus-within:bg-muted/60 transition-all shadow-sm">
             <textarea
               ref={inputRef}
