@@ -1,0 +1,31 @@
+name: UseBox CI/CD
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Stop Existing Containers
+        run: |
+          docker-compose down || true
+
+      - name: Build and Start Containers
+        run: |
+          docker-compose up -d --build
+
+      - name: Cleanup old Docker images (keep last 5)
+        run: |
+          docker images --format "{{.ID}}" | awk '!seen[$0]++' | tail -n +6 | xargs -r docker rmi -f
+
+      - name: Verify Running Containers
+        run: |
+          docker ps
