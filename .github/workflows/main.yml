@@ -13,23 +13,46 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Export ENV for Docker Build
+      # =========================
+      # Load server .env file
+      # =========================
+      - name: Load Environment Variables
         run: |
-          export $(cat .env | xargs)
+          set -a
+          source /home/ubuntu/docker/usebox/.env
+          set +a
 
-      - name: Stop Existing Containers
+      # =========================
+      # Stop existing containers
+      # =========================
+      - name: Stop Containers
         run: |
           docker compose down || true
 
-      - name: Build and Start Containers
+      # =========================
+      # Build Docker image (VITE injected here)
+      # =========================
+      - name: Build Docker Image
         run: |
           docker compose build --no-cache
+
+      # =========================
+      # Start containers
+      # =========================
+      - name: Start Containers
+        run: |
           docker compose up -d
 
+      # =========================
+      # Verify deployment
+      # =========================
       - name: Verify Running Containers
         run: |
           docker ps
 
+      # =========================
+      # Success Email
+      # =========================
       - name: Send Success Mail
         if: success()
         uses: dawidd6/action-send-mail@v3
@@ -49,6 +72,11 @@ jobs:
             Build:   #${{ github.run_number }}
             By:      ${{ github.actor }}
 
+            View run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      # =========================
+      # Failure Email
+      # =========================
       - name: Send Failure Mail
         if: failure()
         uses: dawidd6/action-send-mail@v3
@@ -67,3 +95,5 @@ jobs:
             Commit:  ${{ github.sha }}
             Build:   #${{ github.run_number }}
             By:      ${{ github.actor }}
+
+            View logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
