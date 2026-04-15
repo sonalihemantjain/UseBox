@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { api } from "@/lib/api";
 
 const AVAILABLE_MODELS = [
   { id: "google/gemini-3-flash-preview", label: "Gemini Flash" },
@@ -22,14 +22,13 @@ export function useModelSelection() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data } = await supabase
-        .from("user_settings")
-        .select("selected_models")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (data?.selected_models?.length === 2) {
-        setSelectedModels(data.selected_models);
+      try {
+        const data = await api.getUserSettings(user.id);
+        if (data?.selectedModels?.length === 2) {
+          setSelectedModels(data.selectedModels);
+        }
+      } catch (e) {
+        console.error("Failed to load model settings:", e);
       }
       setLoaded(true);
     })();
@@ -38,22 +37,10 @@ export function useModelSelection() {
   // Save to DB
   const persist = useCallback(async (models: string[]) => {
     if (!user) return;
-    const { data: existing } = await supabase
-      .from("user_settings")
-      .select("id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (existing) {
-      await supabase.from("user_settings").update({
-        selected_models: models,
-        updated_at: new Date().toISOString(),
-      }).eq("user_id", user.id);
-    } else {
-      await supabase.from("user_settings").insert({
-        user_id: user.id,
-        selected_models: models,
-      } as any);
+    try {
+      await api.updateUserModels({ user_id: user.id, selected_models: models });
+    } catch (e) {
+      console.error("Failed to save model settings:", e);
     }
   }, [user]);
 

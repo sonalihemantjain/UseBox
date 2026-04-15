@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlatformSelection } from "@/hooks/usePlatformSelection";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { toast } from "sonner";
 
 const Settings = () => {
@@ -24,20 +24,25 @@ const Settings = () => {
       toast.error("Password must be at least 6 characters");
       return;
     }
+    if (!user?.id) {
+      toast.error("Please log in again");
+      return;
+    }
     setChangingPw(true);
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    setChangingPw(false);
-    if (error) {
-      toast.error(error.message);
-    } else {
+    try {
+      await api.changePassword({ user_id: user.id, new_password: newPassword });
       toast.success("Password updated successfully");
       setNewPassword("");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to update password");
+    } finally {
+      setChangingPw(false);
     }
   };
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="container mx-auto px-6 lg:px-10 py-8 max-w-7xl">
+      <div className="w-full px-4 sm:px-8 lg:px-12 py-8">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <h1 className="font-display text-3xl sm:text-4xl font-bold mb-2">Settings</h1>

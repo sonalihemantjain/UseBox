@@ -29,7 +29,7 @@ export function LearningPathDetail({ path, onBack, onEnroll, onToggleStep }: Pro
   const [readingStep, setReadingStep] = useState<LearningPathStep | null>(null);
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="w-full">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <Button variant="ghost" size="sm" onClick={onBack} className="mb-6 gap-2 text-muted-foreground">
           <ArrowLeft className="h-4 w-4" /> Back to paths

@@ -27,7 +27,11 @@ export function LabDetail({ lab, onBack, onToggleStep }: Props) {
   const toggleTask = (taskId: string) => {
     setExpandedTasks(prev => {
       const next = new Set(prev);
-      next.has(taskId) ? next.delete(taskId) : next.add(taskId);
+      if (next.has(taskId)) {
+        next.delete(taskId);
+      } else {
+        next.add(taskId);
+      }
       return next;
     });
   };
@@ -39,7 +43,7 @@ export function LabDetail({ lab, onBack, onToggleStep }: Props) {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="container mx-auto px-6 lg:px-10 py-8 max-w-7xl">
+      <div className="w-full px-4 sm:px-8 lg:px-12 py-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
           <Button variant="ghost" size="sm" onClick={onBack} className="mb-6 gap-2 text-muted-foreground">
             <ArrowLeft className="h-4 w-4" /> Back to labs

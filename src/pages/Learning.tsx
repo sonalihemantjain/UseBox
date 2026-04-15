@@ -11,6 +11,11 @@ const Learning = () => {
   const { paths, loading, generating, enrollInPath, toggleStepComplete, generateAIPath, deleteAIPath } = useLearningPaths();
   const [selected, setSelected] = useState<LearningPath | null>(null);
   const [tab, setTab] = useState<"all" | "enrolled" | "ai">("all");
+  const handleTabChange = (value: string) => {
+    if (value === "all" || value === "enrolled" || value === "ai") {
+      setTab(value);
+    }
+  };
 
   const filtered = paths.filter((p) => {
     if (tab === "enrolled") return !!p.enrollment;
@@ -24,7 +29,7 @@ const Learning = () => {
   if (currentSelected) {
     return (
       <div className="h-full overflow-y-auto">
-           <div className="container mx-auto px-6 lg:px-10 py-8 max-w-7xl">
+           <div className="w-full px-4 sm:px-8 lg:px-12 py-8">
           <LearningPathDetail
             path={currentSelected}
             onBack={() => setSelected(null)}
@@ -38,7 +43,7 @@ const Learning = () => {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="container mx-auto px-6 lg:px-10 py-8 max-w-7xl">
+      <div className="w-full px-4 sm:px-8 lg:px-12 py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -54,7 +59,7 @@ const Learning = () => {
           <GeneratePathDialog generating={generating} onGenerate={generateAIPath} />
         </motion.div>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="mb-8">
+        <Tabs value={tab} onValueChange={handleTabChange} className="mb-8">
           <TabsList>
             <TabsTrigger value="all">All Paths</TabsTrigger>
             <TabsTrigger value="enrolled">My Learning</TabsTrigger>
