@@ -1,4 +1,6 @@
-# Build stage
+# =========================
+# Build Stage
+# =========================
 FROM node:20-alpine AS builder
 
 WORKDIR /app
@@ -12,18 +14,31 @@ RUN npm install --legacy-peer-deps
 # Copy source code
 COPY . .
 
-# Build the application
+# -------------------------
+# VITE BUILD ARGS
+# -------------------------
+ARG VITE_API_URL
+ARG VITE_GOOGLE_CLIENT_ID
+
+# Make them available during build
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+
+# Build frontend
 RUN npm run build
 
-# Production stage - serve with Node.js http-server
+
+# =========================
+# Production Stage
+# =========================
 FROM node:20-alpine AS production
 
 WORKDIR /app
 
-# Copy built assets from builder stage
+# Copy build output
 COPY --from=builder /app/dist ./dist
 
-# Install http-server for serving static files
+# Install static server
 RUN npm install -g http-server
 
 EXPOSE 80
