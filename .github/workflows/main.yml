@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - develop
 
 jobs:
   deploy:
@@ -14,18 +13,23 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      - name: Export ENV for Docker Build
+        run: |
+          export $(cat .env | xargs)
+
       - name: Stop Existing Containers
         run: |
           docker compose down || true
 
       - name: Build and Start Containers
         run: |
-          docker compose up -d --build
+          docker compose build --no-cache
+          docker compose up -d
 
       - name: Verify Running Containers
         run: |
           docker ps
-          
+
       - name: Send Success Mail
         if: success()
         uses: dawidd6/action-send-mail@v3
@@ -45,8 +49,6 @@ jobs:
             Build:   #${{ github.run_number }}
             By:      ${{ github.actor }}
 
-            View run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
       - name: Send Failure Mail
         if: failure()
         uses: dawidd6/action-send-mail@v3
@@ -65,5 +67,3 @@ jobs:
             Commit:  ${{ github.sha }}
             Build:   #${{ github.run_number }}
             By:      ${{ github.actor }}
-
-            View logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
