@@ -11,37 +11,52 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # =========================
       # Load server .env file
+      # Persists vars to $GITHUB_ENV so all subsequent steps inherit them
       # =========================
       - name: Load Environment Variables
         run: |
-          set -a
-          source /home/ubuntu/docker/usebox/.env
-          set +a
+          grep -v '^\s*#' /home/ubuntu/docker/usebox/.env \
+            | grep -v '^\s*$' \
+            >> $GITHUB_ENV
+
+      # =========================
+      # Validate required vars exist and are non-empty
+      # Fail fast before wasting a full build
+      # =========================
+      - name: Validate Environment
+        run: |
+          : "${VITE_API_URL:?❌ VITE_API_URL is not set in .env}"
+          : "${VITE_GOOGLE_CLIENT_ID:?❌ VITE_GOOGLE_CLIENT_ID is not set in .env}"
+          echo "✅ VITE_API_URL      = $VITE_API_URL"
+          echo "✅ VITE_GOOGLE_CLIENT_ID is set"
 
       # =========================
       # Stop existing containers
       # =========================
       - name: Stop Containers
-        run: |
-          docker compose down || true
+        run: docker compose down || true
 
       # =========================
-      # Build Docker image (VITE injected here)
+      # Build Docker image (VITE vars now available in this shell)
       # =========================
       - name: Build Docker Image
-        run: |
-          docker compose build --no-cache
+        run: docker compose build --no-cache
+
+      # =========================
+      # Prune dangling images left by previous builds
+      # =========================
+      - name: Prune Old Images
+        run: docker image prune -f
 
       # =========================
       # Start containers
       # =========================
       - name: Start Containers
-        run: |
-          docker compose up -d
+        run: docker compose up -d
 
       # =========================
       # Verify deployment
@@ -49,6 +64,16 @@ jobs:
       - name: Verify Running Containers
         run: |
           docker ps
+          echo "---"
+          echo "🔍 Verifying bundle contains baked API URL..."
+          BUNDLE_CHECK=$(docker exec usebox-app \
+            sh -c "grep -rl '$VITE_API_URL' /app/dist/assets/*.js 2>/dev/null")
+          if [ -n "$BUNDLE_CHECK" ]; then
+            echo "✅ VITE_API_URL value confirmed in bundle"
+          else
+            echo "❌ VITE_API_URL value NOT found in bundle — build may have used empty value"
+            exit 1
+          fi
 
       # =========================
       # Success Email
