@@ -16,6 +16,15 @@ import { SourceLinks } from "@/components/chat/SourceLinks";
 import { useChatHistory } from "@/hooks/useChatHistory";
 import { PlatformResponse } from "@/components/chat/PlatformResponse";
 import { useLabs } from "@/hooks/useLabs";
+import { useUserContextFilters } from "@/hooks/useUserContextFilters";
+import { useContextFilterOptions } from "@/hooks/useContextFilterOptions";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
 
 const SUGGESTIONS = [
   "How do I get started with product adoption strategies?",
@@ -23,6 +32,15 @@ const SUGGESTIONS = [
   "What are best practices for onboarding enterprise users?",
   "Help me create a learning path for my team",
 ];
+
+const roleOptions: UserRole[] = ["nocode", "lowcode", "prodeveloper", "architect", "admin"];
+const ROLE_COLORS: Record<UserRole, string> = {
+  nocode: "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20",
+  lowcode: "from-amber-500/10 to-amber-500/5 border-amber-500/20",
+  prodeveloper: "from-blue-500/10 to-blue-500/5 border-blue-500/20",
+  architect: "from-purple-500/10 to-purple-500/5 border-purple-500/20",
+  admin: "from-red-500/10 to-red-500/5 border-red-500/20",
+};
 
 function stripMetaTags(content: string): string {
   return content
@@ -37,6 +55,8 @@ type DisplayMessage = ChatMessage & { comparing?: boolean; sources?: SourceRefer
 const Chat = () => {
   const { user } = useAuth();
   const { role, setRole } = useUserRole();
+  const { functionalArea, industry, setFunctionalArea, setIndustry } = useUserContextFilters();
+  const { functionalAreas, industries, loading: filtersLoading } = useContextFilterOptions();
   const navigate = useNavigate();
   const { generateLab } = useLabs({ autoFetch: false });
   const { chats, loading: historyLoading, createChat, renameChat, deleteChat, toggleSaveChat, loadMessages, saveMessage, autoTitle } = useChatHistory();
@@ -222,6 +242,85 @@ const Chat = () => {
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto">
+        {/* Sticky context bar */}
+        <div className="sticky top-0 z-10 border-b border-border/60 bg-background/80 backdrop-blur">
+          <div className="w-full px-4 sm:px-8 lg:px-12 py-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mr-1">
+                Context
+              </span>
+
+              {/* Persona */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={[
+                      "flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-gradient-to-b border",
+                      role ? ROLE_COLORS[role] : "from-muted/60 to-muted/20 border-dashed border-border",
+                      "hover:opacity-90 transition-opacity min-w-[180px]",
+                    ].join(" ")}
+                  >
+                    <span className="text-xs font-semibold text-foreground truncate text-left">
+                      {role ? ROLE_LABELS[role] : "Select Persona"}
+                    </span>
+                    <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuItem onClick={() => setRole(null)}>Select Persona</DropdownMenuItem>
+                  {roleOptions.map((r) => (
+                    <DropdownMenuItem key={r} onClick={() => setRole(r)}>
+                      {ROLE_LABELS[r]}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Functional Area */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-gradient-to-b border from-muted/60 to-muted/20 border-dashed border-border hover:opacity-90 transition-opacity min-w-[200px]">
+                    <span className="text-xs font-semibold text-foreground truncate text-left">
+                      {functionalAreas.find((f) => f.key === functionalArea)?.display_name || "All Functional Areas"}
+                    </span>
+                    <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-64">
+                  <DropdownMenuItem onClick={() => setFunctionalArea(null)}>All Functional Areas</DropdownMenuItem>
+                  {filtersLoading && functionalAreas.length === 0 && <DropdownMenuItem disabled>Loading...</DropdownMenuItem>}
+                  {functionalAreas.map((opt) => (
+                    <DropdownMenuItem key={opt.key} onClick={() => setFunctionalArea(opt.key)}>
+                      {opt.display_name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Industry */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-gradient-to-b border from-muted/60 to-muted/20 border-dashed border-border hover:opacity-90 transition-opacity min-w-[180px]">
+                    <span className="text-xs font-semibold text-foreground truncate text-left">
+                      {industries.find((i) => i.key === industry)?.display_name || "All Industries"}
+                    </span>
+                    <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuItem onClick={() => setIndustry(null)}>All Industries</DropdownMenuItem>
+                  {filtersLoading && industries.length === 0 && <DropdownMenuItem disabled>Loading...</DropdownMenuItem>}
+                  {industries.map((opt) => (
+                    <DropdownMenuItem key={opt.key} onClick={() => setIndustry(opt.key)}>
+                      {opt.display_name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </div>
+
         <div className="w-full px-4 sm:px-8 lg:px-12 py-6 space-y-5">
           {messages.length === 0 && comparingIndex === null && (
             <motion.div

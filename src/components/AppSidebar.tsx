@@ -243,10 +243,10 @@ export function AppSidebar() {
             <PanelLeft className="h-4 w-4" />
           </Button>
         )}
-        {!collapsed && (
+        {!collapsed && !isOnChat && (
           <p className="text-[10px] font-medium text-sidebar-foreground/40 uppercase tracking-wider px-2 mb-1">Persona</p>
         )}
-        {!collapsed ? (
+        {!collapsed && !isOnChat ? (
           <div className="px-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -277,7 +277,7 @@ export function AppSidebar() {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-        ) : (
+        ) : !isOnChat ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -298,8 +298,8 @@ export function AppSidebar() {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-        )}
-        {!collapsed && (
+        ) : null}
+        {!collapsed && !isOnChat && (
           <div className="px-2 mt-2 space-y-2 max-h-[28vh] overflow-y-auto">
             <div>
               <p className="text-[10px] font-medium text-sidebar-foreground/40 uppercase tracking-wider mb-1">Functional Area</p>
