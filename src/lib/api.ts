@@ -74,6 +74,12 @@ export type ApiLab = {
   task_states?: Record<string, boolean>;
 };
 
+export type ChatPlatformsSummaryResponse = {
+  summary: string;
+  platforms: string[];
+  showPlatformTabs: boolean;
+};
+
 export const api = {
   request,
   getUserSettings: (userId: string, signal?: AbortSignal) =>
@@ -165,6 +171,18 @@ export const api = {
     request<{ status: string }>(`/api/labs/${labId}/progress`, { method: "PATCH", body: payload }),
   deleteLab: (labId: string) => request<{ status: string }>(`/api/labs/${labId}`, { method: "DELETE" }),
   getLabById: (labId: string) => request<ApiLab>(`/api/labs/${labId}`),
+  getChatPlatformsSummary: (payload: {
+    messages: Array<{ role: string; content: string }>;
+    role?: string | null;
+    userId?: string | null;
+    functionalArea?: string | null;
+    industry?: string | null;
+    platforms: string[];
+  }) =>
+    request<ChatPlatformsSummaryResponse>("/api/chat/platforms", {
+      method: "POST",
+      body: { ...payload, mode: "summary" },
+    }),
   getChatFollowups: (payload: { userId?: string; prompt?: string; pickedPlatform?: string; pickedAnswer?: string }) =>
     request<{ questions: string[] }>("/api/chat/followups", { method: "POST", body: payload }),
 };

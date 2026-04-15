@@ -4,9 +4,6 @@ import useBoxLogo from "@/assets/usebox-logo.png";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { ROLE_LABELS, useUserRole, type UserRole } from "@/hooks/useUserRole";
-import { useUserContextFilters } from "@/hooks/useUserContextFilters";
-import { useContextFilterOptions } from "@/hooks/useContextFilterOptions";
 import { useChatHistory, type ChatSession } from "@/hooks/useChatHistory";
 import { cn } from "@/lib/utils";
 import {
@@ -39,26 +36,13 @@ const navItems = [
   { title: "Pages", url: "/saved-chats", icon: BookmarkCheck },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
-const roleOptions: UserRole[] = ["nocode", "lowcode", "prodeveloper", "architect", "admin"];
-const ROLE_COLORS: Record<UserRole, string> = {
-  nocode: "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20",
-  lowcode: "from-amber-500/10 to-amber-500/5 border-amber-500/20",
-  prodeveloper: "from-blue-500/10 to-blue-500/5 border-blue-500/20",
-  architect: "from-purple-500/10 to-purple-500/5 border-purple-500/20",
-  admin: "from-red-500/10 to-red-500/5 border-red-500/20",
-};
-
 export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { role, setRole } = useUserRole();
-  const { functionalArea, industry, setFunctionalArea, setIndustry } = useUserContextFilters();
-  const { functionalAreas, industries, loading: filtersLoading } = useContextFilterOptions();
   const { chats, createChat, renameChat, deleteChat, toggleSaveChat } = useChatHistory();
-  const isOnChat = location.pathname === "/chat";
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -242,128 +226,6 @@ export function AppSidebar() {
           <Button variant="ghost" size="icon" className="w-full h-8 text-sidebar-foreground/60 hover:text-sidebar-foreground mb-2" onClick={toggleSidebar}>
             <PanelLeft className="h-4 w-4" />
           </Button>
-        )}
-        {!collapsed && !isOnChat && (
-          <p className="text-[10px] font-medium text-sidebar-foreground/40 uppercase tracking-wider px-2 mb-1">Persona</p>
-        )}
-        {!collapsed && !isOnChat ? (
-          <div className="px-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  className={cn(
-                    "w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg bg-gradient-to-b border",
-                    role
-                      ? ROLE_COLORS[role]
-                      : "from-muted/60 to-muted/20 border-dashed border-border",
-                    "hover:opacity-90 transition-opacity"
-                  )}
-                >
-                  <span className="text-xs font-semibold text-foreground truncate text-left">
-                    {role ? ROLE_LABELS[role] : "Select Persona"}
-                  </span>
-                  <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                <DropdownMenuItem onClick={() => setRole(null)}>
-                  Select Persona
-                </DropdownMenuItem>
-                {roleOptions.map((r) => (
-                  <DropdownMenuItem key={r} onClick={() => setRole(r)}>
-                    {ROLE_LABELS[r]}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        ) : !isOnChat ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                className="w-10 h-10 mx-auto rounded-lg border border-sidebar-border bg-sidebar-accent/30 flex items-center justify-center"
-                title={role ? ROLE_LABELS[role] : "Select Persona"}
-              >
-                <ChevronDown className="h-3.5 w-3.5 text-sidebar-foreground/60" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent side="right" align="start" className="w-56">
-              <DropdownMenuItem onClick={() => setRole(null)}>
-                Select Persona
-              </DropdownMenuItem>
-              {roleOptions.map((r) => (
-                <DropdownMenuItem key={r} onClick={() => setRole(r)}>
-                  {ROLE_LABELS[r]}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : null}
-        {!collapsed && !isOnChat && (
-          <div className="px-2 mt-2 space-y-2 max-h-[28vh] overflow-y-auto">
-            <div>
-              <p className="text-[10px] font-medium text-sidebar-foreground/40 uppercase tracking-wider mb-1">Functional Area</p>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    className={cn(
-                      "w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg bg-gradient-to-b border",
-                      "from-muted/60 to-muted/20 border-dashed border-border hover:opacity-90 transition-opacity"
-                    )}
-                  >
-                    <span className="text-xs font-semibold text-foreground truncate text-left">
-                      {functionalAreas.find((f) => f.key === functionalArea)?.display_name || "All Functional Areas"}
-                    </span>
-                    <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-56">
-                  <DropdownMenuItem onClick={() => setFunctionalArea(null)}>
-                    All Functional Areas
-                  </DropdownMenuItem>
-                  {filtersLoading && functionalAreas.length === 0 && (
-                    <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
-                  )}
-                  {functionalAreas.map((opt) => (
-                    <DropdownMenuItem key={opt.key} onClick={() => setFunctionalArea(opt.key)}>
-                      {opt.display_name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-            <div>
-              <p className="text-[10px] font-medium text-sidebar-foreground/40 uppercase tracking-wider mb-1">Industry</p>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    className={cn(
-                      "w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg bg-gradient-to-b border",
-                      "from-muted/60 to-muted/20 border-dashed border-border hover:opacity-90 transition-opacity"
-                    )}
-                  >
-                    <span className="text-xs font-semibold text-foreground truncate text-left">
-                      {industries.find((i) => i.key === industry)?.display_name || "All Industries"}
-                    </span>
-                    <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-56">
-                  <DropdownMenuItem onClick={() => setIndustry(null)}>
-                    All Industries
-                  </DropdownMenuItem>
-                  {filtersLoading && industries.length === 0 && (
-                    <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
-                  )}
-                  {industries.map((opt) => (
-                    <DropdownMenuItem key={opt.key} onClick={() => setIndustry(opt.key)}>
-                      {opt.display_name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
         )}
         {!collapsed && <Separator className="my-2 bg-sidebar-border" />}
         {user && (

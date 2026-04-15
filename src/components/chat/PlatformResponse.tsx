@@ -6,9 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ReactMarkdown from "react-markdown";
 import { streamChatPlatforms, type ChatMessage, type SourceReference } from "@/lib/chat-stream";
-import { usePlatformSelection } from "@/hooks/usePlatformSelection";
 import { useUserContextFilters } from "@/hooks/useUserContextFilters";
-import { SourceLinks } from "./SourceLinks";
 import { useLabs } from "@/hooks/useLabs";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -24,13 +22,27 @@ function stripMetaTags(content: string): string {
 
 interface PlatformResponseProps {
   messages: ChatMessage[];
+  platforms: string[];
   role?: string | null;
+  initialActivePlatformName?: string | null;
   onPick: (content: string, platform: string, sources?: SourceReference[]) => void;
   onError: (err: string) => void;
 }
 
-export function PlatformResponse({ messages, role, onPick, onError }: PlatformResponseProps) {
-  const { selectedPlatforms } = usePlatformSelection();
+function toPlatformLabel(name: string): string {
+  const normalized = (name || "").trim().toLowerCase();
+  if (normalized === "openai") return "OpenAI";
+  if (normalized === "google") return "Google";
+  if (normalized === "microsoft") return "Microsoft";
+  if (normalized === "anthropic") return "Anthropic";
+  return name
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+export function PlatformResponse({ messages, platforms, role, initialActivePlatformName, onPick, onError }: PlatformResponseProps) {
   const { functionalArea, industry } = useUserContextFilters();
   const navigate = useNavigate();
   const { user, isReady } = useAuth();
@@ -41,18 +53,20 @@ export function PlatformResponse({ messages, role, onPick, onError }: PlatformRe
   const [doneStates, setDoneStates] = useState<Record<string, boolean>>({});
   const [picked, setPicked] = useState<string | null>(null);
   const [sourcesMap, setSourcesMap] = useState<Record<string, SourceReference[]>>({});
-  const [showSources, setShowSources] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("");
   const buffers = useRef<Record<string, string>>({});
 
   const platformKey = useMemo(
-    () => selectedPlatforms.map((p) => p.id).sort().join("|"),
-    [selectedPlatforms]
+    () => (platforms || []).map((p) => p.trim()).filter(Boolean).sort().join("|"),
+    [platforms]
   );
 
-  const platformIds = useMemo(() => selectedPlatforms.map((p) => p.id), [selectedPlatforms]);
-  const platformNames = useMemo(() => selectedPlatforms.map((p) => p.name), [selectedPlatforms]);
-  const idByName = useMemo(() => new Map(selectedPlatforms.map((p) => [p.name, p.id])), [selectedPlatforms]);
+  const platformNames = useMemo(
+    () => (platforms || []).map((p) => p.trim()).filter(Boolean),
+    [platforms]
+  );
+  const platformIds = useMemo(() => platformNames, [platformNames]);
+  const idByName = useMemo(() => new Map(platformNames.map((p) => [p, p])), [platformNames]);
 
   const messageKey = useMemo(() => {
     // Stable “signature” for this compare run
@@ -64,16 +78,20 @@ export function PlatformResponse({ messages, role, onPick, onError }: PlatformRe
   }, [platformKey, role, messageKey, user?.id]);
 
   useEffect(() => {
-    if (selectedPlatforms.length === 0) return;
-    const first = selectedPlatforms[0].id;
-    if (!activeTab || !platformIds.includes(activeTab)) {
-      setActiveTab(first);
+    if (platformNames.length === 0) return;
+    const preferredId = initialActivePlatformName
+      ? (idByName.get(initialActivePlatformName) || initialActivePlatformName)
+      : null;
+    const fallback = platformNames[0];
+    const nextTab = preferredId && platformIds.includes(preferredId) ? preferredId : fallback;
+    if (!activeTab || !platformIds.includes(activeTab) || activeTab !== nextTab) {
+      setActiveTab(nextTab);
     }
-  }, [platformKey, activeTab, platformIds, selectedPlatforms]);
+  }, [platformKey, activeTab, platformIds, platformNames, initialActivePlatformName, idByName]);
 
   useEffect(() => {
     // Don't start streaming until user is ready
-    if (!isReady || selectedPlatforms.length === 0) {
+    if (!isReady || platformNames.length === 0) {
       return;
     }
 
@@ -85,7 +103,6 @@ export function PlatformResponse({ messages, role, onPick, onError }: PlatformRe
     setDoneStates({});
     setPicked(null);
     setSourcesMap({});
-    setShowSources(false);
 
     // Validation: Check if userId is available
     if (!user?.id) {
@@ -148,8 +165,8 @@ export function PlatformResponse({ messages, role, onPick, onError }: PlatformRe
     };
 
     // Single streaming call for all platforms
-    selectedPlatforms.forEach((p) => {
-      buffers.current[p.id] = "";
+    platformIds.forEach((id) => {
+      buffers.current[id] = "";
     });
 
     streamChatPlatforms({
@@ -178,10 +195,9 @@ export function PlatformResponse({ messages, role, onPick, onError }: PlatformRe
         });
       },
       onError,
-      onSources: (platformName, sources, show) => {
+      onSources: (platformName, sources, _show) => {
         const platformId = idByName.get(platformName) || platformName;
         setSourcesMap((prev) => ({ ...prev, [platformId]: sources }));
-        setShowSources(show);
       },
       onLabDetected: (_platformName, lab) => {
         // Labs are currently derived from the user prompt; treat as global for this message.
@@ -199,22 +215,16 @@ export function PlatformResponse({ messages, role, onPick, onError }: PlatformRe
   const handlePick = (platformId: string) => {
     setPicked(platformId);
     const content = responses[platformId];
-    const platform = selectedPlatforms.find((p) => p.id === platformId);
     const sources = sourcesMap[platformId] || [];
-    onPick(content, platform?.name || platformId, sources);
+    onPick(content, platformId, sources);
   };
 
-  // Merge sources from all platforms (deduplicate by id)
-  const allSources = Object.values(sourcesMap)
-    .flat()
-    .filter((s, i, arr) => arr.findIndex((x) => x.id === s.id) === i);
+  const allDone = platformIds.every((id) => doneStates[id]);
 
-  const allDone = selectedPlatforms.every((p) => doneStates[p.id]);
-
-  if (selectedPlatforms.length === 0) {
+  if (platformNames.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        Please select at least one platform in Settings to see responses.
+        No platforms available for comparison.
       </div>
     );
   }
@@ -234,33 +244,33 @@ export function PlatformResponse({ messages, role, onPick, onError }: PlatformRe
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="w-full justify-start">
-          {selectedPlatforms.map((platform) => (
-            <TabsTrigger key={platform.id} value={platform.id} className="relative">
-              {platform.display_name}
-              {picked === platform.id && (
+          {platformNames.map((platformName) => (
+            <TabsTrigger key={platformName} value={platformName} className="relative">
+              {toPlatformLabel(platformName)}
+              {picked === platformName && (
                 <Check className="h-3 w-3 ml-1.5 text-primary" />
               )}
-              {!doneStates[platform.id] && (
+              {!doneStates[platformName] && (
                 <Loader2 className="h-3 w-3 ml-1.5 animate-spin text-muted-foreground" />
               )}
             </TabsTrigger>
           ))}
         </TabsList>
 
-        {selectedPlatforms.map((platform) => (
-          <TabsContent key={platform.id} value={platform.id} className="mt-3">
+        {platformNames.map((platformName) => (
+          <TabsContent key={platformName} value={platformName} className="mt-3">
             <div
               className={`relative rounded-xl border p-4 transition-all ${
-                picked === platform.id
+                picked === platformName
                   ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                  : picked && picked !== platform.id
+                  : picked && picked !== platformName
                   ? "border-border/50 opacity-50"
                   : "border-border bg-card"
               }`}
             >
               <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-secondary [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-secondary [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_li]:text-muted-foreground [&_p]:text-card-foreground min-h-[60px] max-h-[400px] overflow-y-auto">
-                {responses[platform.id] ? (
-                  <ReactMarkdown>{stripMetaTags(responses[platform.id])}</ReactMarkdown>
+                {responses[platformName] ? (
+                  <ReactMarkdown>{stripMetaTags(responses[platformName])}</ReactMarkdown>
                 ) : (
                   <div className="flex items-center gap-2 text-muted-foreground text-sm">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating…
@@ -272,7 +282,7 @@ export function PlatformResponse({ messages, role, onPick, onError }: PlatformRe
                   size="sm"
                   variant="outline"
                   className="mt-3 w-full border-primary/30 hover:bg-primary/10 hover:text-primary"
-                  onClick={() => handlePick(platform.id)}
+                  onClick={() => handlePick(platformName)}
                 >
                   <Check className="h-3.5 w-3.5 mr-1.5" /> Pick this response
                 </Button>
@@ -282,12 +292,7 @@ export function PlatformResponse({ messages, role, onPick, onError }: PlatformRe
         ))}
       </Tabs>
 
-      {/* Source links below all responses - only show if is_source is true */}
-      {showSources && allSources.length > 0 && (
-        <div className="mt-3">
-          <SourceLinks sources={allSources} />
-        </div>
-      )}
+      {/* Sources hidden temporarily */}
     </motion.div>
   );
 }
