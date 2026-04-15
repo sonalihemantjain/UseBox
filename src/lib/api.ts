@@ -80,6 +80,49 @@ export type ChatPlatformsSummaryResponse = {
   showPlatformTabs: boolean;
 };
 
+export type ApiAssessmentEligibleItem = {
+  lab_id: string;
+  title: string;
+  topic: string;
+  completed_at?: string;
+};
+
+export type ApiAssessmentQuestion = {
+  id: string;
+  question_text: string;
+  options: string[];
+  question_order: number;
+};
+
+export type ApiAssessmentStartResponse = {
+  attempt_id: string;
+  lab_id: string;
+  topic: string;
+  pass_threshold: number;
+  questions: ApiAssessmentQuestion[];
+};
+
+export type ApiCertificate = {
+  id: string;
+  certificate_code: string;
+  user_id: string;
+  lab_id: string;
+  topic: string;
+  score_percent: number;
+  issued_at: string;
+  user_email?: string | null;
+  user_name?: string | null;
+};
+
+export type ApiAssessmentSubmitResponse = {
+  attempt_id: string;
+  score_percent: number;
+  correct_answers: number;
+  total_questions: number;
+  passed: boolean;
+  certificate?: ApiCertificate | null;
+};
+
 export const api = {
   request,
   getUserSettings: (userId: string, signal?: AbortSignal) =>
@@ -185,5 +228,21 @@ export const api = {
     }),
   getChatFollowups: (payload: { userId?: string; prompt?: string; pickedPlatform?: string; pickedAnswer?: string }) =>
     request<{ questions: string[] }>("/api/chat/followups", { method: "POST", body: payload }),
+  getEligibleAssessments: (userId: string) =>
+    request<{ items: ApiAssessmentEligibleItem[] }>(`/api/assessments/eligible/${encodeURIComponent(userId)}`),
+  startAssessment: (payload: { user_id: string; lab_id: string; topic?: string }) =>
+    request<ApiAssessmentStartResponse>("/api/assessments/start", { method: "POST", body: payload }),
+  submitAssessment: (
+    attemptId: string,
+    payload: { user_id: string; answers: Array<{ question_id: string; selected_option: string }> }
+  ) =>
+    request<ApiAssessmentSubmitResponse>(`/api/assessments/${encodeURIComponent(attemptId)}/submit`, {
+      method: "POST",
+      body: payload,
+    }),
+  getCertificates: (userId: string) =>
+    request<{ items: ApiCertificate[] }>(`/api/assessments/certificates/${encodeURIComponent(userId)}`),
+  getCertificateById: (certificateId: string) =>
+    request<ApiCertificate>(`/api/assessments/certificate/${encodeURIComponent(certificateId)}`),
 };
 
