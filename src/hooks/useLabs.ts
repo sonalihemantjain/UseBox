@@ -34,8 +34,6 @@ export interface Lab {
   created_at: string;
   tasks: LabTask[];
   task_states?: Record<string, boolean>;
-  assessment_ready?: boolean;
-  assessment_question_count?: number;
 }
 
 const getErrorMessage = (error: unknown): string => {
@@ -84,31 +82,6 @@ export function useLabs(options?: { autoFetch?: boolean }) {
           }))
         }))
       }));
-
-      // Fetch cached assessment readiness for completed labs (batch, single call)
-      const completedIds = mappedLabs.filter((l) => l.status === "completed").map((l) => l.id);
-      if (completedIds.length > 0) {
-        try {
-          const status = await api.getAssessmentQuestionSetStatus({ user_id: user.id, lab_ids: completedIds });
-          const readyBy = status.readyByLabId || {};
-          mappedLabs.forEach((l) => {
-            if (l.status !== "completed") return;
-            const s = readyBy[l.id];
-            if (s) {
-              l.assessment_ready = Boolean(s.ready);
-              l.assessment_question_count = s.question_count || 0;
-            } else {
-              l.assessment_ready = false;
-              l.assessment_question_count = 0;
-            }
-          });
-        } catch (e) {
-          // Non-blocking: labs should still render even if status check fails
-          mappedLabs.forEach((l) => {
-            if (l.status === "completed") l.assessment_ready = false;
-          });
-        }
-      }
       setLabs(mappedLabs);
     } catch (err) {
       console.error('Error in fetchLabs:', err);

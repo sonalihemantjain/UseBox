@@ -8,8 +8,9 @@ import { useNavigate } from "react-router-dom";
 
 type ActiveAttempt = {
   attemptId: string;
-  labId: string;
-  topic: string;
+  assessmentId: string;
+  title: string;
+  provider: string;
   passThreshold: number;
   questions: Array<{ id: string; question_text: string; options: string[]; question_order: number }>;
 };
@@ -17,7 +18,7 @@ type ActiveAttempt = {
 export default function Assessment() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { eligible, certificates, loading, submitting, loadEligible, loadCertificates, start, submit } = useAssessments();
+  const { catalog, certificates, loading, submitting, loadCatalog, loadCertificates, start, submit } = useAssessments();
   const [activeAttempt, setActiveAttempt] = useState<ActiveAttempt | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [result, setResult] = useState<{
@@ -30,20 +31,21 @@ export default function Assessment() {
 
   useEffect(() => {
     if (!user?.id) return;
-    loadEligible(user.id);
+    loadCatalog();
     loadCertificates(user.id);
-  }, [user?.id, loadEligible, loadCertificates]);
+  }, [user?.id, loadCatalog, loadCertificates]);
 
   const answeredCount = useMemo(() => Object.keys(answers).length, [answers]);
 
-  const startAssessment = async (labId: string, topic: string) => {
+  const startAssessment = async (assessmentId: string) => {
     if (!user?.id) return;
     try {
-      const res = await start({ user_id: user.id, lab_id: labId, topic });
+      const res = await start({ user_id: user.id, assessment_id: assessmentId });
       setActiveAttempt({
         attemptId: res.attempt_id,
-        labId: res.lab_id,
-        topic: res.topic,
+        assessmentId: res.assessment_id,
+        title: res.title,
+        provider: res.provider,
         passThreshold: res.pass_threshold,
         questions: res.questions || [],
       });
@@ -95,25 +97,27 @@ export default function Assessment() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <div className="xl:col-span-1 rounded-xl border border-border bg-card p-5">
             <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-              <ClipboardCheck className="h-4 w-4" /> Eligible Labs
+              <ClipboardCheck className="h-4 w-4" /> Available Assessments
             </h2>
 
             {loading ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" /> Loading...
               </div>
-            ) : eligible.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Complete a lab first to unlock assessments.</p>
+            ) : catalog.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No assessments available.</p>
             ) : (
               <div className="space-y-3">
-                {eligible.map((item) => (
-                  <div key={item.lab_id} className="rounded-lg border border-border p-3">
-                    <div className="text-sm font-medium">{item.title}</div>
-                    <div className="text-xs text-muted-foreground mt-1">{item.topic}</div>
+                {catalog.map((item) => (
+                  <div key={item.id} className="rounded-lg border border-border p-3">
+                    <div className="text-xs text-muted-foreground">{item.provider}</div>
+                    <div className="text-sm font-medium mt-1">{item.title}</div>
+                    <div className="text-xs text-muted-foreground mt-1 capitalize">{item.level}</div>
+                    <div className="text-xs text-muted-foreground mt-2 line-clamp-3">{item.description}</div>
                     <Button
                       size="sm"
                       className="mt-3 w-full"
-                      onClick={() => startAssessment(item.lab_id, item.topic)}
+                      onClick={() => startAssessment(item.id)}
                     >
                       Start Assessment
                     </Button>
@@ -132,7 +136,8 @@ export default function Assessment() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold">{activeAttempt.topic}</h3>
+                    <h3 className="text-lg font-semibold">{activeAttempt.title}</h3>
+                    <p className="text-xs text-muted-foreground">{activeAttempt.provider}</p>
                     <p className="text-xs text-muted-foreground">
                       Pass threshold: {activeAttempt.passThreshold}% | Answered: {answeredCount}/{activeAttempt.questions.length}
                     </p>
