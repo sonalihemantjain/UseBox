@@ -1,23 +1,23 @@
 import { useCallback, useState } from "react";
 import {
   api,
-  type ApiAssessmentEligibleItem,
+  type ApiAssessmentCatalogItem,
   type ApiAssessmentStartResponse,
   type ApiAssessmentSubmitResponse,
   type ApiCertificate,
 } from "@/lib/api";
 
 export function useAssessments() {
-  const [eligible, setEligible] = useState<ApiAssessmentEligibleItem[]>([]);
+  const [catalog, setCatalog] = useState<ApiAssessmentCatalogItem[]>([]);
   const [certificates, setCertificates] = useState<ApiCertificate[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const loadEligible = useCallback(async (userId: string) => {
+  const loadCatalog = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.getEligibleAssessments(userId);
-      setEligible(res.items || []);
+      const res = await api.getAssessmentCatalog();
+      setCatalog(res.items || []);
     } finally {
       setLoading(false);
     }
@@ -29,7 +29,7 @@ export function useAssessments() {
   }, []);
 
   const start = useCallback(
-    async (payload: { user_id: string; lab_id: string; topic?: string }): Promise<ApiAssessmentStartResponse> => {
+    async (payload: { user_id: string; assessment_id: string }): Promise<ApiAssessmentStartResponse> => {
       return api.startAssessment(payload);
     },
     []
@@ -51,11 +51,11 @@ export function useAssessments() {
   );
 
   return {
-    eligible,
+    catalog,
     certificates,
     loading,
     submitting,
-    loadEligible,
+    loadCatalog,
     loadCertificates,
     start,
     submit,

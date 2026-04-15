@@ -77,14 +77,18 @@ export type ApiLab = {
 export type ChatPlatformsSummaryResponse = {
   summary: string;
   platforms: string[];
+  platformCount?: number;
   showPlatformTabs: boolean;
 };
 
-export type ApiAssessmentEligibleItem = {
-  lab_id: string;
+export type ApiAssessmentCatalogItem = {
+  id: string;
+  provider: string;
   title: string;
-  topic: string;
-  completed_at?: string;
+  level: string;
+  description: string;
+  skills_json: string[];
+  active: boolean;
 };
 
 export type ApiAssessmentQuestion = {
@@ -96,8 +100,9 @@ export type ApiAssessmentQuestion = {
 
 export type ApiAssessmentStartResponse = {
   attempt_id: string;
-  lab_id: string;
-  topic: string;
+  assessment_id: string;
+  title: string;
+  provider: string;
   pass_threshold: number;
   questions: ApiAssessmentQuestion[];
 };
@@ -106,15 +111,14 @@ export type ApiCertificate = {
   id: string;
   certificate_code: string;
   user_id: string;
-  lab_id: string;
-  topic: string;
+  assessment_id?: string;
+  topic: string; // kept for UI compatibility (maps to title_snapshot)
+  provider?: string;
   score_percent: number;
   issued_at: string;
   user_email?: string | null;
   user_name?: string | null;
 };
-
-export type ApiQuestionSetStatus = Record<string, { ready: boolean; question_count: number }>;
 
 export type ApiAssessmentSubmitResponse = {
   attempt_id: string;
@@ -222,7 +226,6 @@ export const api = {
     userId?: string | null;
     functionalArea?: string | null;
     industry?: string | null;
-    platforms: string[];
   }) =>
     request<ChatPlatformsSummaryResponse>("/api/chat/platforms", {
       method: "POST",
@@ -230,9 +233,9 @@ export const api = {
     }),
   getChatFollowups: (payload: { userId?: string; prompt?: string; pickedPlatform?: string; pickedAnswer?: string }) =>
     request<{ questions: string[] }>("/api/chat/followups", { method: "POST", body: payload }),
-  getEligibleAssessments: (userId: string) =>
-    request<{ items: ApiAssessmentEligibleItem[] }>(`/api/assessments/eligible/${encodeURIComponent(userId)}`),
-  startAssessment: (payload: { user_id: string; lab_id: string; topic?: string }) =>
+  getAssessmentCatalog: () =>
+    request<{ items: ApiAssessmentCatalogItem[] }>(`/api/assessments/catalog`),
+  startAssessment: (payload: { user_id: string; assessment_id: string }) =>
     request<ApiAssessmentStartResponse>("/api/assessments/start", { method: "POST", body: payload }),
   submitAssessment: (
     attemptId: string,
@@ -246,7 +249,5 @@ export const api = {
     request<{ items: ApiCertificate[] }>(`/api/assessments/certificates/${encodeURIComponent(userId)}`),
   getCertificateById: (certificateId: string) =>
     request<ApiCertificate>(`/api/assessments/certificate/${encodeURIComponent(certificateId)}`),
-  getAssessmentQuestionSetStatus: (payload: { user_id: string; lab_ids: string[] }) =>
-    request<{ readyByLabId: ApiQuestionSetStatus }>("/api/assessments/question-sets/status", { method: "POST", body: payload }),
 };
 

@@ -160,8 +160,10 @@ export function LabDetail({ lab, onBack, onToggleStep }: Props) {
                     </div>
                     <div>
                       <h2 className="font-display text-2xl font-bold">{lab.title}</h2>
-                      <p className="text-muted-foreground mt-1">{lab.description}</p>
-                      <div className="flex items-center gap-3 mt-3">
+                      <div className="prose prose-sm dark:prose-invert max-w-none mt-2">
+                        <ReactMarkdown>{lab.description}</ReactMarkdown>
+                      </div>
+                      <div className="flex items-center gap-3 mt-4">
                         <Badge variant="outline" className={difficultyColors[lab.difficulty] || ""}>
                           {lab.difficulty}
                         </Badge>

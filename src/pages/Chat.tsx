@@ -64,7 +64,14 @@ function stripMetaTags(content: string): string {
     .trim();
 }
 
-type DisplayMessage = ChatMessage & { comparing?: boolean; sources?: SourceReference[] };
+type DisplayMessage = ChatMessage & { 
+  isComparing?: boolean; 
+  summaryText?: string; 
+  summaryPlatforms?: string[];
+  initialActivePlatform?: string | null;
+  selectedPlatform?: string | null;
+  sources?: SourceReference[];
+};
 
 const Chat = () => {
   const { user } = useAuth();
@@ -85,10 +92,7 @@ const Chat = () => {
   const pendingMessagesRef = useRef<ChatMessage[]>([]);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveName, setSaveName] = useState("");
-  const [summaryText, setSummaryText] = useState("");
-  const [summaryPlatforms, setSummaryPlatforms] = useState<string[]>([]);
-  const [summaryVisible, setSummaryVisible] = useState(false);
-  const [initialActivePlatformName, setInitialActivePlatformName] = useState<string | null>(null);
+  const [lockedPlatform, setLockedPlatform] = useState<string | null>(null);
   const [followups, setFollowups] = useState<string[]>([]);
   const [followupsLoading, setFollowupsLoading] = useState(false);
 
@@ -107,6 +111,9 @@ const Chat = () => {
     setComparingIndex(null);
     const msgs = await loadMessages(chatId);
     setMessages(msgs);
+    // Try to find the last picked platform in history to re-lock it
+    const lastAssistant = msgs.slice().reverse().find(m => m.role === 'assistant' && m.selectedPlatform);
+    setLockedPlatform(lastAssistant?.selectedPlatform || null);
   }, [loadMessages]);
 
   useEffect(() => {
@@ -126,10 +133,7 @@ const Chat = () => {
       setMessages([]);
       setComparingIndex(null);
       setInput("");
-      setSummaryText("");
-      setSummaryPlatforms([]);
-      setSummaryVisible(false);
-      setInitialActivePlatformName(null);
+      setLockedPlatform(null);
       setFollowups([]);
       setFollowupsLoading(false);
     };
@@ -185,10 +189,6 @@ const Chat = () => {
     // Clear followups once user continues the conversation
     setFollowups([]);
     setFollowupsLoading(false);
-    setSummaryText("");
-    setSummaryPlatforms([]);
-    setSummaryVisible(false);
-    setInitialActivePlatformName(null);
 
     let chatId = activeChatId;
     if (!chatId) {
@@ -212,17 +212,37 @@ const Chat = () => {
     pendingChatIdRef.current = chatId;
     pendingMessagesRef.current = newMessages.map(({ role, content }) => ({ role, content }));
     try {
+      if (lockedPlatform) {
+        // Skip summary and go straight to the locked platform
+        const assistantMsg: DisplayMessage = {
+          role: "assistant",
+          content: "",
+          isComparing: true, // We use this to trigger PlatformResponse in one-tab mode
+          summaryText: "", 
+          summaryPlatforms: [lockedPlatform],
+          selectedPlatform: lockedPlatform,
+        };
+        setMessages((prev) => [...prev, assistantMsg]);
+        return;
+      }
+
       const summary = await api.getChatPlatformsSummary({
         messages: pendingMessagesRef.current,
         role,
         userId: user?.id || null,
         functionalArea,
         industry,
-        platforms: DEFAULT_COMPARE_PLATFORMS,
       });
-      setSummaryText(summary.summary || "");
-      setSummaryPlatforms(summary.platforms || []);
-      setSummaryVisible(Boolean(summary.showPlatformTabs));
+
+      const assistantMsg: DisplayMessage = {
+        role: "assistant",
+        content: "",
+        isComparing: true,
+        summaryText: summary.summary || "",
+        summaryPlatforms: summary.platforms || [],
+        initialActivePlatform: null,
+      };
+      setMessages((prev) => [...prev, assistantMsg]);
     } catch (e) {
       console.error("Failed to load summary:", e);
       toast.error("Failed to load summary");
@@ -231,35 +251,32 @@ const Chat = () => {
     }
   };
 
-  const handleSummaryPlatformClick = (platformName: string) => {
-    setInitialActivePlatformName(platformName);
-    setSummaryVisible(false);
-    setComparingIndex(messages.length);
-    setIsLoading(true);
-  };
+  // Platform selection happens inside the platform tabs (lazy-loaded per tab).
 
-  const handlePick = async (content: string, _model: string, sources?: SourceReference[]) => {
+  const handlePick = async (content: string, platform: string, sources?: SourceReference[]) => {
     const chatId = pendingChatIdRef.current;
     content = content.replace(/\[PERSONA_DETECTED:\w+\]/g, "").trim();
-    const assistantMsg: DisplayMessage = { role: "assistant", content, sources };
-    setMessages((prev) => [...prev, assistantMsg]);
-    setComparingIndex(null);
-    setIsLoading(false);
-    if (chatId) await saveMessage(chatId, { role: "assistant", content });
+    
+    setMessages((prev) => {
+      const last = prev[prev.length - 1];
+      if (last?.role === "assistant" && last.isComparing) {
+        return [
+          ...prev.slice(0, -1),
+          { ...last, isComparing: false, content, sources, selectedPlatform: platform }
+        ];
+      }
+      return prev;
+    });
 
-    // Fetch follow-up questions (dummy API for now)
+    setIsLoading(false);
+    setLockedPlatform(platform);
+    if (chatId) await saveMessage(chatId, { role: "assistant", content, selectedPlatform: platform });
+
+    // Fetch follow-up questions...
     try {
       setFollowupsLoading(true);
-      const lastUserPrompt =
-        pendingMessagesRef.current
-          .slice()
-          .reverse()
-          .find((m) => m.role === "user")?.content || "";
-      const res = await api.getChatFollowups({
-        userId: user?.id,
-        prompt: lastUserPrompt,
-        pickedAnswer: content,
-      });
+      const lastUserPrompt = pendingMessagesRef.current.slice().reverse().find(m => m.role === 'user')?.content || '';
+      const res = await api.getChatFollowups({ userId: user?.id, prompt: lastUserPrompt, pickedAnswer: content });
       setFollowups(res.questions || []);
     } catch (e) {
       console.error("Failed to load followups", e);
@@ -452,58 +469,55 @@ const Chat = () => {
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 py-3 ${msg.role === "user"
-                    ? "bg-primary text-primary-foreground rounded-br-sm"
-                    : "bg-muted/50 rounded-bl-sm"
+                  className={`max-w-[85%] sm:max-w-[80%] rounded-2xl ${msg.role === "user"
+                    ? "bg-primary text-primary-foreground rounded-br-sm px-4 py-3"
+                    : msg.isComparing ? "bg-card border border-border p-5 rounded-bl-sm w-full" : "bg-muted/50 rounded-bl-sm px-4 py-3"
                     }`}
                 >
                   {msg.role === "assistant" ? (
-                    <>
-                      <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-background [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-background [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_li]:text-foreground/70 [&_p]:text-foreground">
-                        <ReactMarkdown>{stripMetaTags(msg.content)}</ReactMarkdown>
-                      </div>
-                    </>
+                    <div className="flex flex-col gap-4">
+                      {msg.summaryText && (
+                        <div className="border-b border-border/40 pb-4">
+                          <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                            Cross-platform overview
+                          </div>
+                          <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-background [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-background [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_li]:text-foreground/70 [&_p]:text-foreground">
+                            <ReactMarkdown>{msg.summaryText}</ReactMarkdown>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <PlatformResponse
+                        messages={pendingMessagesRef.current}
+                        platforms={msg.summaryPlatforms || []}
+                        role={role}
+                        initialActivePlatformName={msg.selectedPlatform || null}
+                        allowPick={msg.isComparing && (msg.summaryPlatforms?.length || 0) > 1}
+                        onPick={handlePick}
+                        onError={handleCompareError}
+                        autoStart={msg.isComparing ? (msg.summaryPlatforms?.length === 1) : true}
+                        finalContent={msg.content}
+                      />
+                    </div>
                   ) : (
                     <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                   )}
                 </div>
               </motion.div>
             ))}
+            {isLoading && !messages.some(m => m.isComparing) && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex justify-start"
+              >
+                <div className="bg-muted/50 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-2 text-sm text-muted-foreground shadow-sm border border-border/40">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <span className="animate-pulse font-medium">Thinking...</span>
+                </div>
+              </motion.div>
+            )}
           </AnimatePresence>
-
-          {comparingIndex !== null && (
-            <PlatformResponse
-              messages={pendingMessagesRef.current}
-              platforms={summaryPlatforms}
-              role={role}
-              initialActivePlatformName={initialActivePlatformName}
-              onPick={handlePick}
-              onError={handleCompareError}
-            />
-          )}
-
-          {summaryVisible && comparingIndex === null && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="rounded-xl border border-border bg-card p-4"
-            >
-              <div className="text-sm text-foreground mb-3">
-                {summaryText || "You can build this using multiple platforms."}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {summaryPlatforms.map((platform) => (
-                  <button
-                    key={platform}
-                    onClick={() => handleSummaryPlatformClick(platform)}
-                    className="text-left text-sm px-3 py-2 rounded-xl border border-border hover:border-primary/30 hover:bg-secondary/50 transition-all text-muted-foreground hover:text-foreground"
-                  >
-                    {toPlatformLabel(platform)}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          )}
 
           {/* Follow-up suggestions after user picks a response */}
           {(followupsLoading || followups.length > 0) && comparingIndex === null && (
