@@ -57,7 +57,7 @@ const Chat = () => {
   const { user } = useAuth();
   const { role, setRole } = useUserRole();
   const { functionalArea, industry, setFunctionalArea, setIndustry } = useUserContextFilters();
-  const { functionalAreas, industries, loading: filtersLoading } = useContextFilterOptions();
+  const { functionalAreas, industries, loading: filtersLoading, error: filtersError, refetch: refetchFilters } = useContextFilterOptions();
   const navigate = useNavigate();
   const { generateLab } = useLabs({ autoFetch: false });
   const { chats, loading: historyLoading, createChat, renameChat, deleteChat, toggleSaveChat, loadMessages, saveMessage, autoTitle } = useChatHistory();
@@ -310,13 +310,20 @@ const Chat = () => {
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-gradient-to-b border from-muted/60 to-muted/20 border-dashed border-border hover:opacity-90 transition-opacity min-w-[200px]">
                     <span className="text-xs font-semibold text-foreground truncate text-left">
-                      {functionalAreas.find((f) => f.key === functionalArea)?.display_name || "All Functional Areas"}
+                      {filtersLoading
+                        ? "Loading…"
+                        : functionalAreas.find((f) => f.key === functionalArea)?.display_name || "All Functional Areas"}
                     </span>
                     <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-64">
                   <DropdownMenuItem onClick={() => setFunctionalArea(null)}>All Functional Areas</DropdownMenuItem>
+                  {filtersError && (
+                    <DropdownMenuItem onClick={refetchFilters}>
+                      Retry loading options
+                    </DropdownMenuItem>
+                  )}
                   {filtersLoading && functionalAreas.length === 0 && <DropdownMenuItem disabled>Loading...</DropdownMenuItem>}
                   {functionalAreas.map((opt) => (
                     <DropdownMenuItem key={opt.key} onClick={() => setFunctionalArea(opt.key)}>
@@ -331,13 +338,20 @@ const Chat = () => {
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-gradient-to-b border from-muted/60 to-muted/20 border-dashed border-border hover:opacity-90 transition-opacity min-w-[180px]">
                     <span className="text-xs font-semibold text-foreground truncate text-left">
-                      {industries.find((i) => i.key === industry)?.display_name || "All Industries"}
+                      {filtersLoading
+                        ? "Loading…"
+                        : industries.find((i) => i.key === industry)?.display_name || "All Industries"}
                     </span>
                     <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-56">
                   <DropdownMenuItem onClick={() => setIndustry(null)}>All Industries</DropdownMenuItem>
+                  {filtersError && (
+                    <DropdownMenuItem onClick={refetchFilters}>
+                      Retry loading options
+                    </DropdownMenuItem>
+                  )}
                   {filtersLoading && industries.length === 0 && <DropdownMenuItem disabled>Loading...</DropdownMenuItem>}
                   {industries.map((opt) => (
                     <DropdownMenuItem key={opt.key} onClick={() => setIndustry(opt.key)}>
