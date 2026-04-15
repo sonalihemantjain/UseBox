@@ -40,6 +40,11 @@ export function LabCard({ lab, index, onSelect, onDelete }: Props) {
           {lab.status === "completed" && (
             <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Done</Badge>
           )}
+          {lab.status === "completed" && lab.assessment_ready && (
+            <Badge className="bg-amber-500/10 text-amber-700 border-amber-500/20">
+              Assessment ready
+            </Badge>
+          )}
         </div>
       </div>
 

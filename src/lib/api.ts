@@ -114,6 +114,8 @@ export type ApiCertificate = {
   user_name?: string | null;
 };
 
+export type ApiQuestionSetStatus = Record<string, { ready: boolean; question_count: number }>;
+
 export type ApiAssessmentSubmitResponse = {
   attempt_id: string;
   score_percent: number;
@@ -244,5 +246,7 @@ export const api = {
     request<{ items: ApiCertificate[] }>(`/api/assessments/certificates/${encodeURIComponent(userId)}`),
   getCertificateById: (certificateId: string) =>
     request<ApiCertificate>(`/api/assessments/certificate/${encodeURIComponent(certificateId)}`),
+  getAssessmentQuestionSetStatus: (payload: { user_id: string; lab_ids: string[] }) =>
+    request<{ readyByLabId: ApiQuestionSetStatus }>("/api/assessments/question-sets/status", { method: "POST", body: payload }),
 };
 
