@@ -165,5 +165,7 @@ export const api = {
     request<{ status: string }>(`/api/labs/${labId}/progress`, { method: "PATCH", body: payload }),
   deleteLab: (labId: string) => request<{ status: string }>(`/api/labs/${labId}`, { method: "DELETE" }),
   getLabById: (labId: string) => request<ApiLab>(`/api/labs/${labId}`),
+  getChatFollowups: (payload: { userId?: string; prompt?: string; pickedPlatform?: string; pickedAnswer?: string }) =>
+    request<{ questions: string[] }>("/api/chat/followups", { method: "POST", body: payload }),
 };
 

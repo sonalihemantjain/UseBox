@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
+import { api } from "@/lib/api";
 
 const SUGGESTIONS = [
   "How do I get started with product adoption strategies?",
@@ -71,6 +72,8 @@ const Chat = () => {
   const pendingMessagesRef = useRef<ChatMessage[]>([]);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveName, setSaveName] = useState("");
+  const [followups, setFollowups] = useState<string[]>([]);
+  const [followupsLoading, setFollowupsLoading] = useState(false);
 
   const activeChat = chats.find((c) => c.id === activeChatId);
 
@@ -106,6 +109,8 @@ const Chat = () => {
       setMessages([]);
       setComparingIndex(null);
       setInput("");
+      setFollowups([]);
+      setFollowupsLoading(false);
     };
     window.addEventListener("usebox-new-chat", handler);
     return () => window.removeEventListener("usebox-new-chat", handler);
@@ -156,6 +161,9 @@ const Chat = () => {
 
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
+    // Clear followups once user continues the conversation
+    setFollowups([]);
+    setFollowupsLoading(false);
 
     let chatId = activeChatId;
     if (!chatId) {
@@ -193,6 +201,27 @@ const Chat = () => {
     setComparingIndex(null);
     setIsLoading(false);
     if (chatId) await saveMessage(chatId, { role: "assistant", content });
+
+    // Fetch follow-up questions (dummy API for now)
+    try {
+      setFollowupsLoading(true);
+      const lastUserPrompt =
+        pendingMessagesRef.current
+          .slice()
+          .reverse()
+          .find((m) => m.role === "user")?.content || "";
+      const res = await api.getChatFollowups({
+        userId: user?.id,
+        prompt: lastUserPrompt,
+        pickedAnswer: content,
+      });
+      setFollowups(res.questions || []);
+    } catch (e) {
+      console.error("Failed to load followups", e);
+      setFollowups([]);
+    } finally {
+      setFollowupsLoading(false);
+    }
   };
 
   const handleCompareError = (err: string) => {
@@ -393,6 +422,33 @@ const Chat = () => {
               onPick={handlePick}
               onError={handleCompareError}
             />
+          )}
+
+          {/* Follow-up suggestions after user picks a response */}
+          {(followupsLoading || followups.length > 0) && comparingIndex === null && (
+            <div className="pt-2">
+              <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                Follow-up questions
+              </div>
+              {followupsLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Generating suggestions…
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {followups.map((q) => (
+                    <button
+                      key={q}
+                      onClick={() => sendMessage(q)}
+                      className="text-left text-sm px-3 py-2 rounded-xl border border-border hover:border-primary/30 hover:bg-secondary/50 transition-all text-muted-foreground hover:text-foreground"
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
           <div ref={messagesEndRef} />
