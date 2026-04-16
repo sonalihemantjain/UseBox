@@ -12,10 +12,19 @@ import { useUserRole, ROLE_LABELS, type UserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { type ChatMessage, type SourceReference } from "@/lib/chat-stream";
-import { SourceLinks } from "@/components/chat/SourceLinks";
 import { useChatHistory } from "@/hooks/useChatHistory";
 import { PlatformResponse } from "@/components/chat/PlatformResponse";
 import { useLabs } from "@/hooks/useLabs";
+import { useUserContextFilters } from "@/hooks/useUserContextFilters";
+import { useContextFilterOptions } from "@/hooks/useContextFilterOptions";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
+import { api } from "@/lib/api";
 
 const SUGGESTIONS = [
   "How do I get started with product adoption strategies?",
@@ -23,6 +32,29 @@ const SUGGESTIONS = [
   "What are best practices for onboarding enterprise users?",
   "Help me create a learning path for my team",
 ];
+const DEFAULT_COMPARE_PLATFORMS = ["openai", "google", "microsoft"];
+
+const roleOptions: UserRole[] = ["nocode", "lowcode", "prodeveloper", "architect", "admin"];
+const ROLE_COLORS: Record<UserRole, string> = {
+  nocode: "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20",
+  lowcode: "from-amber-500/10 to-amber-500/5 border-amber-500/20",
+  prodeveloper: "from-blue-500/10 to-blue-500/5 border-blue-500/20",
+  architect: "from-purple-500/10 to-purple-500/5 border-purple-500/20",
+  admin: "from-red-500/10 to-red-500/5 border-red-500/20",
+};
+
+function toPlatformLabel(name: string): string {
+  const normalized = (name || "").trim().toLowerCase();
+  if (normalized === "openai") return "OpenAI";
+  if (normalized === "google") return "Google";
+  if (normalized === "microsoft") return "Microsoft";
+  if (normalized === "anthropic") return "Anthropic";
+  return name
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
 
 function stripMetaTags(content: string): string {
   return content
@@ -32,11 +64,20 @@ function stripMetaTags(content: string): string {
     .trim();
 }
 
-type DisplayMessage = ChatMessage & { comparing?: boolean; sources?: SourceReference[] };
+type DisplayMessage = ChatMessage & { 
+  isComparing?: boolean; 
+  summaryText?: string; 
+  summaryPlatforms?: string[];
+  initialActivePlatform?: string | null;
+  selectedPlatform?: string | null;
+  sources?: SourceReference[];
+};
 
 const Chat = () => {
   const { user } = useAuth();
   const { role, setRole } = useUserRole();
+  const { functionalArea, industry, setFunctionalArea, setIndustry } = useUserContextFilters();
+  const { functionalAreas, industries, loading: filtersLoading, error: filtersError, refetch: refetchFilters } = useContextFilterOptions();
   const navigate = useNavigate();
   const { generateLab } = useLabs({ autoFetch: false });
   const { chats, loading: historyLoading, createChat, renameChat, deleteChat, toggleSaveChat, loadMessages, saveMessage, autoTitle } = useChatHistory();
@@ -51,6 +92,9 @@ const Chat = () => {
   const pendingMessagesRef = useRef<ChatMessage[]>([]);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveName, setSaveName] = useState("");
+  const [lockedPlatform, setLockedPlatform] = useState<string | null>(null);
+  const [followups, setFollowups] = useState<string[]>([]);
+  const [followupsLoading, setFollowupsLoading] = useState(false);
 
   const activeChat = chats.find((c) => c.id === activeChatId);
 
@@ -67,6 +111,9 @@ const Chat = () => {
     setComparingIndex(null);
     const msgs = await loadMessages(chatId);
     setMessages(msgs);
+    // Try to find the last picked platform in history to re-lock it
+    const lastAssistant = msgs.slice().reverse().find(m => m.role === 'assistant' && m.selectedPlatform);
+    setLockedPlatform(lastAssistant?.selectedPlatform || null);
   }, [loadMessages]);
 
   useEffect(() => {
@@ -86,6 +133,9 @@ const Chat = () => {
       setMessages([]);
       setComparingIndex(null);
       setInput("");
+      setLockedPlatform(null);
+      setFollowups([]);
+      setFollowupsLoading(false);
     };
     window.addEventListener("usebox-new-chat", handler);
     return () => window.removeEventListener("usebox-new-chat", handler);
@@ -136,6 +186,9 @@ const Chat = () => {
 
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
+    // Clear followups once user continues the conversation
+    setFollowups([]);
+    setFollowupsLoading(false);
 
     let chatId = activeChatId;
     if (!chatId) {
@@ -156,23 +209,81 @@ const Chat = () => {
       autoTitle(chatId, content.trim());
     }
 
-    if (!role) {
-      toast.info("Tip: Select a persona in the sidebar for personalized platform comparisons!");
-    }
-
     pendingChatIdRef.current = chatId;
     pendingMessagesRef.current = newMessages.map(({ role, content }) => ({ role, content }));
-    setComparingIndex(newMessages.length);
+    try {
+      if (lockedPlatform) {
+        // Skip summary and go straight to the locked platform
+        const assistantMsg: DisplayMessage = {
+          role: "assistant",
+          content: "",
+          isComparing: true, // We use this to trigger PlatformResponse in one-tab mode
+          summaryText: "", 
+          summaryPlatforms: [lockedPlatform],
+          selectedPlatform: lockedPlatform,
+        };
+        setMessages((prev) => [...prev, assistantMsg]);
+        return;
+      }
+
+      const summary = await api.getChatPlatformsSummary({
+        messages: pendingMessagesRef.current,
+        role,
+        userId: user?.id || null,
+        functionalArea,
+        industry,
+      });
+
+      const assistantMsg: DisplayMessage = {
+        role: "assistant",
+        content: "",
+        isComparing: true,
+        summaryText: summary.summary || "",
+        summaryPlatforms: summary.platforms || [],
+        initialActivePlatform: null,
+      };
+      setMessages((prev) => [...prev, assistantMsg]);
+    } catch (e) {
+      console.error("Failed to load summary:", e);
+      toast.error("Failed to load summary");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handlePick = async (content: string, _model: string, sources?: SourceReference[]) => {
+  // Platform selection happens inside the platform tabs (lazy-loaded per tab).
+
+  const handlePick = async (content: string, platform: string, sources?: SourceReference[]) => {
     const chatId = pendingChatIdRef.current;
     content = content.replace(/\[PERSONA_DETECTED:\w+\]/g, "").trim();
-    const assistantMsg: DisplayMessage = { role: "assistant", content, sources };
-    setMessages((prev) => [...prev, assistantMsg]);
-    setComparingIndex(null);
+    
+    setMessages((prev) => {
+      const last = prev[prev.length - 1];
+      if (last?.role === "assistant" && last.isComparing) {
+        return [
+          ...prev.slice(0, -1),
+          { ...last, isComparing: false, content, sources, selectedPlatform: platform }
+        ];
+      }
+      return prev;
+    });
+
     setIsLoading(false);
-    if (chatId) await saveMessage(chatId, { role: "assistant", content });
+    setLockedPlatform(platform);
+    if (chatId) await saveMessage(chatId, { role: "assistant", content, selectedPlatform: platform });
+
+    // Fetch follow-up questions...
+    try {
+      setFollowupsLoading(true);
+      const lastUserPrompt = pendingMessagesRef.current.slice().reverse().find(m => m.role === 'user')?.content || '';
+      const res = await api.getChatFollowups({ userId: user?.id, prompt: lastUserPrompt, pickedAnswer: content });
+      setFollowups(res.questions || []);
+    } catch (e) {
+      console.error("Failed to load followups", e);
+      setFollowups([]);
+    } finally {
+      setFollowupsLoading(false);
+    }
   };
 
   const handleCompareError = (err: string) => {
@@ -204,19 +315,112 @@ const Chat = () => {
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Minimal top bar for active chat */}
+      {/* Context bar - always visible at top */}
+      <div className="z-10 border-b border-border/60 bg-background/95 backdrop-blur">
+        <div className="w-full px-4 sm:px-8 lg:px-12 py-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mr-1">
+              Domain
+            </span>
+
+            {/* Persona */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className={[
+                    "flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-gradient-to-b border",
+                    role ? ROLE_COLORS[role] : "from-muted/60 to-muted/20 border-dashed border-border",
+                    "hover:opacity-90 transition-opacity min-w-[180px]",
+                  ].join(" ")}
+                >
+                  <span className="text-xs font-semibold text-foreground truncate text-left">
+                    {role ? ROLE_LABELS[role] : "Select Persona"}
+                  </span>
+                  <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuItem onClick={() => setRole(null)}>Select Persona</DropdownMenuItem>
+                {roleOptions.map((r) => (
+                  <DropdownMenuItem key={r} onClick={() => setRole(r)}>
+                    {ROLE_LABELS[r]}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Functional Area */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-gradient-to-b border from-muted/60 to-muted/20 border-dashed border-border hover:opacity-90 transition-opacity min-w-[200px]">
+                  <span className="text-xs font-semibold text-foreground truncate text-left">
+                    {filtersLoading
+                      ? "Loading…"
+                      : functionalAreas.find((f) => f.key === functionalArea)?.display_name || "All Functional Areas"}
+                  </span>
+                  <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-64">
+                <DropdownMenuItem onClick={() => setFunctionalArea(null)}>All Functional Areas</DropdownMenuItem>
+                {filtersError && (
+                  <DropdownMenuItem onClick={refetchFilters}>
+                    Retry loading options
+                  </DropdownMenuItem>
+                )}
+                {filtersLoading && functionalAreas.length === 0 && <DropdownMenuItem disabled>Loading...</DropdownMenuItem>}
+                {functionalAreas.map((opt) => (
+                  <DropdownMenuItem key={opt.key} onClick={() => setFunctionalArea(opt.key)}>
+                    {opt.display_name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Industry */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-gradient-to-b border from-muted/60 to-muted/20 border-dashed border-border hover:opacity-90 transition-opacity min-w-[180px]">
+                  <span className="text-xs font-semibold text-foreground truncate text-left">
+                    {filtersLoading
+                      ? "Loading…"
+                      : industries.find((i) => i.key === industry)?.display_name || "All Industries"}
+                  </span>
+                  <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuItem onClick={() => setIndustry(null)}>All Industries</DropdownMenuItem>
+                {filtersError && (
+                  <DropdownMenuItem onClick={refetchFilters}>
+                    Retry loading options
+                  </DropdownMenuItem>
+                )}
+                {filtersLoading && industries.length === 0 && <DropdownMenuItem disabled>Loading...</DropdownMenuItem>}
+                {industries.map((opt) => (
+                  <DropdownMenuItem key={opt.key} onClick={() => setIndustry(opt.key)}>
+                    {opt.display_name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </div>
+      {/* Save action below context row once chat exists */}
       {activeChatId && activeChat && (
-        <div className="flex items-center justify-between px-6 py-2.5 border-b border-border/50">
-          <h3 className="text-sm font-medium truncate text-foreground/70">{activeChat.title}</h3>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleToggleSave}
-            className={activeChat.saved ? "text-primary" : "text-muted-foreground hover:text-foreground"}
-          >
-            {activeChat.saved ? <BookmarkCheck className="h-4 w-4 mr-1.5" /> : <Bookmark className="h-4 w-4 mr-1.5" />}
-            <span className="hidden sm:inline">{activeChat.saved ? "Saved" : "Save"}</span>
-          </Button>
+        <div className="z-10 border-b border-border/50 bg-background/95">
+          <div className="w-full px-4 sm:px-8 lg:px-12 py-1.5 flex justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleToggleSave}
+              className={activeChat.saved ? "text-primary" : "text-muted-foreground hover:text-foreground"}
+            >
+              {activeChat.saved ? <BookmarkCheck className="h-4 w-4 mr-1.5" /> : <Bookmark className="h-4 w-4 mr-1.5" />}
+              <span>{activeChat.saved ? "Saved" : "Save"}</span>
+            </Button>
+          </div>
         </div>
       )}
 
@@ -265,35 +469,81 @@ const Chat = () => {
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 py-3 ${msg.role === "user"
-                    ? "bg-primary text-primary-foreground rounded-br-sm"
-                    : "bg-muted/50 rounded-bl-sm"
+                  className={`max-w-[85%] sm:max-w-[80%] rounded-2xl ${msg.role === "user"
+                    ? "bg-primary text-primary-foreground rounded-br-sm px-4 py-3"
+                    : msg.isComparing ? "bg-card border border-border p-5 rounded-bl-sm w-full" : "bg-muted/50 rounded-bl-sm px-4 py-3"
                     }`}
                 >
                   {msg.role === "assistant" ? (
-                    <>
-                      <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-background [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-background [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_li]:text-foreground/70 [&_p]:text-foreground">
-                        <ReactMarkdown>{stripMetaTags(msg.content)}</ReactMarkdown>
-                      </div>
-                      {msg.sources && msg.sources.length > 0 && (
-                        <SourceLinks sources={msg.sources} />
+                    <div className="flex flex-col gap-4">
+                      {msg.summaryText && (
+                        <div className="border-b border-border/40 pb-4">
+                          <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                            Cross-platform overview
+                          </div>
+                          <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-background [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-background [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_li]:text-foreground/70 [&_p]:text-foreground">
+                            <ReactMarkdown>{msg.summaryText}</ReactMarkdown>
+                          </div>
+                        </div>
                       )}
-                    </>
+                      
+                      <PlatformResponse
+                        messages={pendingMessagesRef.current}
+                        platforms={msg.summaryPlatforms || []}
+                        role={role}
+                        initialActivePlatformName={msg.selectedPlatform || null}
+                        allowPick={msg.isComparing && (msg.summaryPlatforms?.length || 0) > 1}
+                        onPick={handlePick}
+                        onError={handleCompareError}
+                        autoStart={msg.isComparing ? (msg.summaryPlatforms?.length === 1) : true}
+                        finalContent={msg.content}
+                      />
+                    </div>
                   ) : (
                     <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                   )}
                 </div>
               </motion.div>
             ))}
+            {isLoading && !messages.some(m => m.isComparing) && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex justify-start"
+              >
+                <div className="bg-muted/50 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-2 text-sm text-muted-foreground shadow-sm border border-border/40">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <span className="animate-pulse font-medium">Thinking...</span>
+                </div>
+              </motion.div>
+            )}
           </AnimatePresence>
 
-          {comparingIndex !== null && (
-            <PlatformResponse
-              messages={pendingMessagesRef.current}
-              role={role}
-              onPick={handlePick}
-              onError={handleCompareError}
-            />
+          {/* Follow-up suggestions after user picks a response */}
+          {(followupsLoading || followups.length > 0) && comparingIndex === null && (
+            <div className="pt-2">
+              <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                Follow-up questions
+              </div>
+              {followupsLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Generating suggestions…
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {followups.map((q) => (
+                    <button
+                      key={q}
+                      onClick={() => sendMessage(q)}
+                      className="text-left text-sm px-3 py-2 rounded-xl border border-border hover:border-primary/30 hover:bg-secondary/50 transition-all text-muted-foreground hover:text-foreground"
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
           <div ref={messagesEndRef} />

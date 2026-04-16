@@ -1,14 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Check, Loader2, Sparkles } from "lucide-react";
+import { Check, Loader2, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ReactMarkdown from "react-markdown";
 import { streamChatPlatforms, type ChatMessage, type SourceReference } from "@/lib/chat-stream";
-import { usePlatformSelection } from "@/hooks/usePlatformSelection";
 import { useUserContextFilters } from "@/hooks/useUserContextFilters";
-import { SourceLinks } from "./SourceLinks";
 import { useLabs } from "@/hooks/useLabs";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -24,13 +22,40 @@ function stripMetaTags(content: string): string {
 
 interface PlatformResponseProps {
   messages: ChatMessage[];
+  platforms: string[];
   role?: string | null;
+  initialActivePlatformName?: string | null;
+  autoStart?: boolean;
+  allowPick?: boolean;
   onPick: (content: string, platform: string, sources?: SourceReference[]) => void;
   onError: (err: string) => void;
+  finalContent?: string;
 }
 
-export function PlatformResponse({ messages, role, onPick, onError }: PlatformResponseProps) {
-  const { selectedPlatforms } = usePlatformSelection();
+function toPlatformLabel(name: string): string {
+  const normalized = (name || "").trim().toLowerCase();
+  if (normalized === "openai") return "OpenAI";
+  if (normalized === "google") return "Google";
+  if (normalized === "microsoft") return "Microsoft";
+  if (normalized === "anthropic") return "Anthropic";
+  return name
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+export function PlatformResponse({
+  messages,
+  platforms,
+  role,
+  initialActivePlatformName,
+  autoStart = false,
+  allowPick = true,
+  onPick,
+  onError,
+  finalContent,
+}: PlatformResponseProps) {
   const { functionalArea, industry } = useUserContextFilters();
   const navigate = useNavigate();
   const { user, isReady } = useAuth();
@@ -41,18 +66,21 @@ export function PlatformResponse({ messages, role, onPick, onError }: PlatformRe
   const [doneStates, setDoneStates] = useState<Record<string, boolean>>({});
   const [picked, setPicked] = useState<string | null>(null);
   const [sourcesMap, setSourcesMap] = useState<Record<string, SourceReference[]>>({});
-  const [showSources, setShowSources] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("");
   const buffers = useRef<Record<string, string>>({});
+  const startedRef = useRef<Set<string>>(new Set());
 
   const platformKey = useMemo(
-    () => selectedPlatforms.map((p) => p.id).sort().join("|"),
-    [selectedPlatforms]
+    () => (platforms || []).map((p) => p.trim()).filter(Boolean).sort().join("|"),
+    [platforms]
   );
 
-  const platformIds = useMemo(() => selectedPlatforms.map((p) => p.id), [selectedPlatforms]);
-  const platformNames = useMemo(() => selectedPlatforms.map((p) => p.name), [selectedPlatforms]);
-  const idByName = useMemo(() => new Map(selectedPlatforms.map((p) => [p.name, p.id])), [selectedPlatforms]);
+  const platformNames = useMemo(
+    () => (platforms || []).map((p) => p.trim()).filter(Boolean),
+    [platforms]
+  );
+  const platformIds = useMemo(() => platformNames, [platformNames]);
+  const idByName = useMemo(() => new Map(platformNames.map((p) => [p, p])), [platformNames]);
 
   const messageKey = useMemo(() => {
     // Stable “signature” for this compare run
@@ -60,32 +88,39 @@ export function PlatformResponse({ messages, role, onPick, onError }: PlatformRe
   }, [messages]);
 
   const requestKey = useMemo(() => {
-    return `${platformKey}::${role || ""}::${messageKey}::${user?.id || ""}`;
-  }, [platformKey, role, messageKey, user?.id]);
+    // Keyed to message history + user + persona + current active tab.
+    // We intentionally stream only the active tab (lazy-load per platform).
+    return `${role || ""}::${messageKey}::${user?.id || ""}::${activeTab || ""}`;
+  }, [role, messageKey, user?.id, activeTab]);
 
   useEffect(() => {
-    if (selectedPlatforms.length === 0) return;
-    const first = selectedPlatforms[0].id;
-    if (!activeTab || !platformIds.includes(activeTab)) {
-      setActiveTab(first);
+    if (platformNames.length === 0) return;
+    if (!autoStart) return;
+    const preferredId = initialActivePlatformName
+      ? (idByName.get(initialActivePlatformName) || initialActivePlatformName)
+      : null;
+    const fallback = platformNames[0];
+    const nextTab = preferredId && platformIds.includes(preferredId) ? preferredId : fallback;
+    if (!activeTab || !platformIds.includes(activeTab) || activeTab !== nextTab) {
+      setActiveTab(nextTab);
     }
-  }, [platformKey, activeTab, platformIds, selectedPlatforms]);
+  }, [autoStart, platformKey, activeTab, platformIds, platformNames, initialActivePlatformName, idByName]);
 
   useEffect(() => {
-    // Don't start streaming until user is ready
-    if (!isReady || selectedPlatforms.length === 0) {
+    // Don't start streaming if we already have the final content
+    if (finalContent || !isReady || platformNames.length === 0) {
       return;
     }
 
     const abort = new AbortController();
 
-    // Reset state
+    // Reset state for a new compare run (new message history / persona).
     buffers.current = {};
+    startedRef.current = new Set();
     setResponses({});
     setDoneStates({});
     setPicked(null);
     setSourcesMap({});
-    setShowSources(false);
 
     // Validation: Check if userId is available
     if (!user?.id) {
@@ -147,10 +182,70 @@ export function PlatformResponse({ messages, role, onPick, onError }: PlatformRe
       }
     };
 
-    // Single streaming call for all platforms
-    selectedPlatforms.forEach((p) => {
-      buffers.current[p.id] = "";
-    });
+    // Auto-start only when requested (e.g., locked platform).
+    if (!autoStart) {
+      return () => abort.abort();
+    }
+
+    const first = activeTab || platformNames[0];
+    if (first) {
+      buffers.current[first] = "";
+      startedRef.current.add(first);
+      streamChatPlatforms({
+        messages,
+        role,
+        userId: user.id,
+        functionalArea,
+        industry,
+        platforms: [first],
+        signal: abort.signal,
+        onPlatformDelta: (platformName, t) => {
+          const platformId = idByName.get(platformName) || platformName;
+          buffers.current[platformId] = (buffers.current[platformId] || "") + t;
+          setResponses((prev) => ({ ...prev, [platformId]: buffers.current[platformId] }));
+        },
+        onPlatformDone: (platformName) => {
+          const platformId = idByName.get(platformName) || platformName;
+          setDoneStates((prev) => ({ ...prev, [platformId]: true }));
+          
+          // Auto-pick if this was an auto-started direct response (locked platform)
+          if (!allowPick) {
+            const finalContent = buffers.current[platformId] || "";
+            const sources = sourcesMap[platformId] || [];
+            onPick(finalContent, platformName, sources);
+          }
+        },
+        onDone: () => {
+          // No-op: done is tracked per platform via onPlatformDone.
+        },
+        onError,
+        onSources: (platformName, sources, _show) => {
+          const platformId = idByName.get(platformName) || platformName;
+          setSourcesMap((prev) => ({ ...prev, [platformId]: sources }));
+        },
+        onLabDetected: (_platformName, lab) => {
+          handleLabDetected(lab);
+        },
+      });
+    }
+
+    return () => {
+      abort.abort();
+    };
+  // Keep effect keyed to compare request identity to avoid abort/restart loops.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReady, requestKey, functionalArea, industry, platformKey, autoStart]);
+
+  // When user clicks a different platform tab, fetch that platform only (once).
+  useEffect(() => {
+    if (finalContent || !isReady || !user?.id) return;
+    if (!activeTab) return;
+    if (startedRef.current.has(activeTab)) return;
+    if (!platformIds.includes(activeTab)) return;
+
+    const abort = new AbortController();
+    buffers.current[activeTab] = buffers.current[activeTab] || "";
+    startedRef.current.add(activeTab);
 
     streamChatPlatforms({
       messages,
@@ -158,7 +253,7 @@ export function PlatformResponse({ messages, role, onPick, onError }: PlatformRe
       userId: user.id,
       functionalArea,
       industry,
-      platforms: platformNames,
+      platforms: [activeTab],
       signal: abort.signal,
       onPlatformDelta: (platformName, t) => {
         const platformId = idByName.get(platformName) || platformName;
@@ -169,52 +264,36 @@ export function PlatformResponse({ messages, role, onPick, onError }: PlatformRe
         const platformId = idByName.get(platformName) || platformName;
         setDoneStates((prev) => ({ ...prev, [platformId]: true }));
       },
-      onDone: () => {
-        // If backend doesn't send explicit platformEnd for some reason, mark all as done.
-        setDoneStates((prev) => {
-          const next = { ...prev };
-          platformIds.forEach((id) => { next[id] = true; });
-          return next;
-        });
-      },
+      onDone: () => {},
       onError,
-      onSources: (platformName, sources, show) => {
+      onSources: (platformName, sources, _show) => {
         const platformId = idByName.get(platformName) || platformName;
         setSourcesMap((prev) => ({ ...prev, [platformId]: sources }));
-        setShowSources(show);
       },
       onLabDetected: (_platformName, lab) => {
         // Labs are currently derived from the user prompt; treat as global for this message.
+        // Avoid duplicate generation checks across platforms.
         handleLabDetected(lab);
       },
     });
 
-    return () => {
-      abort.abort();
-    };
-  // Keep effect keyed to compare request identity to avoid abort/restart loops.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isReady, requestKey, functionalArea, industry]);
+    return () => abort.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   const handlePick = (platformId: string) => {
     setPicked(platformId);
     const content = responses[platformId];
-    const platform = selectedPlatforms.find((p) => p.id === platformId);
     const sources = sourcesMap[platformId] || [];
-    onPick(content, platform?.name || platformId, sources);
+    onPick(content, platformId, sources);
   };
 
-  // Merge sources from all platforms (deduplicate by id)
-  const allSources = Object.values(sourcesMap)
-    .flat()
-    .filter((s, i, arr) => arr.findIndex((x) => x.id === s.id) === i);
+  const allDone = platformIds.every((id) => doneStates[id]);
 
-  const allDone = selectedPlatforms.every((p) => doneStates[p.id]);
-
-  if (selectedPlatforms.length === 0) {
+  if (platformNames.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        Please select at least one platform in Settings to see responses.
+        No platforms available for comparison.
       </div>
     );
   }
@@ -225,69 +304,68 @@ export function PlatformResponse({ messages, role, onPick, onError }: PlatformRe
       animate={{ opacity: 1, y: 0 }}
       className="w-full"
     >
-      <div className="flex items-center gap-2 mb-3">
-        <Sparkles className="h-4 w-4 text-primary" />
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-          Platform responses — pick the best one
-        </span>
+      <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
+        Explore platform responses
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full justify-start">
-          {selectedPlatforms.map((platform) => (
-            <TabsTrigger key={platform.id} value={platform.id} className="relative">
-              {platform.display_name}
-              {picked === platform.id && (
+        <TabsList className="w-full justify-start bg-transparent p-0 h-auto gap-2 flex-wrap">
+          {platformNames.map((platformName) => (
+            <TabsTrigger
+              key={platformName}
+              value={platformName}
+              className="relative rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-muted-foreground shadow-none data-[state=active]:border-primary/40 data-[state=active]:bg-primary/10 data-[state=active]:text-foreground data-[state=active]:shadow-none"
+            >
+              {toPlatformLabel(platformName)}
+              {picked === platformName ? (
                 <Check className="h-3 w-3 ml-1.5 text-primary" />
-              )}
-              {!doneStates[platform.id] && (
-                <Loader2 className="h-3 w-3 ml-1.5 animate-spin text-muted-foreground" />
+              ) : (
+                <ChevronRight 
+                  className={`h-3 w-3 ml-1 transition-colors ${
+                    !doneStates[platformName] 
+                      ? "text-primary animate-pulse" 
+                      : "text-muted-foreground group-data-[state=active]:text-primary"
+                  }`} 
+                />
               )}
             </TabsTrigger>
           ))}
         </TabsList>
 
-        {selectedPlatforms.map((platform) => (
-          <TabsContent key={platform.id} value={platform.id} className="mt-3">
-            <div
-              className={`relative rounded-xl border p-4 transition-all ${
-                picked === platform.id
-                  ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                  : picked && picked !== platform.id
-                  ? "border-border/50 opacity-50"
-                  : "border-border bg-card"
-              }`}
-            >
-              <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-secondary [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-secondary [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_li]:text-muted-foreground [&_p]:text-card-foreground min-h-[60px] max-h-[400px] overflow-y-auto">
-                {responses[platform.id] ? (
-                  <ReactMarkdown>{stripMetaTags(responses[platform.id])}</ReactMarkdown>
+        {!activeTab && (
+          <TabsContent value="__empty__" className="mt-3">
+            <div className="rounded-lg border border-border bg-background p-4 text-sm text-muted-foreground">
+              Select a platform above to generate its response.
+            </div>
+          </TabsContent>
+        )}
+
+        {platformNames.map((platformName) => (
+          <TabsContent key={platformName} value={platformName} className="mt-3">
+            <div className="relative rounded-lg border border-border bg-background p-4">
+              <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-muted [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_li]:text-muted-foreground [&_p]:text-foreground min-h-[60px] max-h-[340px] overflow-y-auto">
+                {finalContent && activeTab === platformName ? (
+                  <ReactMarkdown>{stripMetaTags(finalContent)}</ReactMarkdown>
+                ) : responses[platformName] ? (
+                  <ReactMarkdown>{stripMetaTags(responses[platformName])}</ReactMarkdown>
                 ) : (
                   <div className="flex items-center gap-2 text-muted-foreground text-sm">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating…
                   </div>
                 )}
               </div>
-              {allDone && !picked && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="mt-3 w-full border-primary/30 hover:bg-primary/10 hover:text-primary"
-                  onClick={() => handlePick(platform.id)}
-                >
-                  <Check className="h-3.5 w-3.5 mr-1.5" /> Pick this response
-                </Button>
-              )}
             </div>
           </TabsContent>
         ))}
       </Tabs>
 
-      {/* Source links below all responses - only show if is_source is true */}
-      {showSources && allSources.length > 0 && (
-        <div className="mt-3">
-          <SourceLinks sources={allSources} />
-        </div>
+      {allowPick && activeTab && doneStates[activeTab] && responses[activeTab] && (
+        <Button className="mt-3 w-full" onClick={() => handlePick(activeTab)}>
+          Continue chat with {toPlatformLabel(activeTab)} →
+        </Button>
       )}
+
+      {/* Sources hidden temporarily */}
     </motion.div>
   );
 }

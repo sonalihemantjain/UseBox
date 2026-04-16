@@ -50,60 +50,7 @@ export function LabDetail({ lab, onBack, onToggleStep }: Props) {
           </Button>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Content area - left side */}
-            <div className="lg:col-span-2">
-              {readingStep ? (
-                <motion.div
-                  key={readingStep.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="rounded-2xl bg-card border border-border p-8"
-                >
-                  <Button variant="ghost" size="sm" onClick={() => setReadingStep(null)} className="mb-4 gap-2 text-muted-foreground">
-                    <ArrowLeft className="h-4 w-4" /> Back to tasks
-                  </Button>
-                  <h2 className="font-display text-2xl font-bold mb-6">{readingStep.title}</h2>
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <ReactMarkdown>{readingStep.content}</ReactMarkdown>
-                  </div>
-                  <div className="mt-6 pt-4 border-t border-border flex gap-3">
-                    <Button
-                      variant={readingStep.is_completed ? "outline" : "default"}
-                      onClick={() => onToggleStep(lab.id, readingStep.id)}
-                      className="gap-2"
-                    >
-                      {readingStep.is_completed ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
-                      {readingStep.is_completed ? "Mark Incomplete" : "Mark Complete"}
-                    </Button>
-                  </div>
-                </motion.div>
-              ) : (
-                <div className="rounded-2xl bg-card border border-border p-8">
-                  <div className="flex items-start gap-4 mb-6">
-                    <div className="p-3 rounded-xl bg-primary/10 text-primary">
-                      <FlaskConical className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <h2 className="font-display text-2xl font-bold">{lab.title}</h2>
-                      <p className="text-muted-foreground mt-1">{lab.description}</p>
-                      <div className="flex items-center gap-3 mt-3">
-                        <Badge variant="outline" className={difficultyColors[lab.difficulty] || ""}>
-                          {lab.difficulty}
-                        </Badge>
-                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 gap-1">
-                          <FlaskConical className="h-3 w-3" /> Hands-on Lab
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-muted-foreground">
-                    Select a task from the right panel to begin working through the lab steps.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Right panel - progress & tasks */}
+            {/* Left panel - progress & tasks */}
             <div className="space-y-4">
               {/* Progress card */}
               <div className="rounded-xl border border-border bg-card p-5">
@@ -176,6 +123,61 @@ export function LabDetail({ lab, onBack, onToggleStep }: Props) {
               <p className="text-xs text-muted-foreground text-center">
                 Created: {new Date(lab.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit" })}
               </p>
+            </div>
+
+            {/* Content area - right side */}
+            <div className="lg:col-span-2">
+              {readingStep ? (
+                <motion.div
+                  key={readingStep.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="rounded-2xl bg-card border border-border p-8"
+                >
+                  <Button variant="ghost" size="sm" onClick={() => setReadingStep(null)} className="mb-4 gap-2 text-muted-foreground">
+                    <ArrowLeft className="h-4 w-4" /> Back to tasks
+                  </Button>
+                  <h2 className="font-display text-2xl font-bold mb-6">{readingStep.title}</h2>
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <ReactMarkdown>{readingStep.content}</ReactMarkdown>
+                  </div>
+                  <div className="mt-6 pt-4 border-t border-border flex gap-3">
+                    <Button
+                      variant={readingStep.is_completed ? "outline" : "default"}
+                      onClick={() => onToggleStep(lab.id, readingStep.id)}
+                      className="gap-2"
+                    >
+                      {readingStep.is_completed ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
+                      {readingStep.is_completed ? "Mark Incomplete" : "Mark Complete"}
+                    </Button>
+                  </div>
+                </motion.div>
+              ) : (
+                <div className="rounded-2xl bg-card border border-border p-8">
+                  <div className="flex items-start gap-4 mb-6">
+                    <div className="p-3 rounded-xl bg-primary/10 text-primary">
+                      <FlaskConical className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h2 className="font-display text-2xl font-bold">{lab.title}</h2>
+                      <div className="prose prose-sm dark:prose-invert max-w-none mt-2">
+                        <ReactMarkdown>{lab.description}</ReactMarkdown>
+                      </div>
+                      <div className="flex items-center gap-3 mt-4">
+                        <Badge variant="outline" className={difficultyColors[lab.difficulty] || ""}>
+                          {lab.difficulty}
+                        </Badge>
+                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 gap-1">
+                          <FlaskConical className="h-3 w-3" /> Hands-on Lab
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-muted-foreground">
+                    Select a task from the left panel to begin working through the lab steps.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </motion.div>
