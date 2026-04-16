@@ -497,6 +497,9 @@ const Chat = () => {
                         onError={handleCompareError}
                         autoStart={msg.isComparing ? (msg.summaryPlatforms?.length === 1) : true}
                         finalContent={msg.content}
+                        followups={i === messages.length - 1 ? followups : []}
+                        followupsLoading={i === messages.length - 1 ? followupsLoading : false}
+                        onFollowupClick={sendMessage}
                       />
                     </div>
                   ) : (
@@ -518,33 +521,6 @@ const Chat = () => {
               </motion.div>
             )}
           </AnimatePresence>
-
-          {/* Follow-up suggestions after user picks a response */}
-          {(followupsLoading || followups.length > 0) && comparingIndex === null && (
-            <div className="pt-2">
-              <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                Follow-up questions
-              </div>
-              {followupsLoading ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Generating suggestions…
-                </div>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {followups.map((q) => (
-                    <button
-                      key={q}
-                      onClick={() => sendMessage(q)}
-                      className="text-left text-sm px-3 py-2 rounded-xl border border-border hover:border-primary/30 hover:bg-secondary/50 transition-all text-muted-foreground hover:text-foreground"
-                    >
-                      {q}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
 
           <div ref={messagesEndRef} />
         </div>

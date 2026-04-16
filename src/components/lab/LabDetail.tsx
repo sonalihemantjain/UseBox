@@ -139,7 +139,13 @@ export function LabDetail({ lab, onBack, onToggleStep }: Props) {
                   </Button>
                   <h2 className="font-display text-2xl font-bold mb-6">{readingStep.title}</h2>
                   <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <ReactMarkdown>{readingStep.content}</ReactMarkdown>
+                    <ReactMarkdown>
+                      {readingStep.content
+                        .replace(/•/g, "  \n•")       // Ensure bullet starts on new line
+                        .replace(/•\s*-\s*/g, "• ") // Clean up "• -"
+                        .replace(/\n(?!\n)/g, "  \n") // Respect single newlines
+                      }
+                    </ReactMarkdown>
                   </div>
                   <div className="mt-6 pt-4 border-t border-border flex gap-3">
                     <Button
@@ -160,8 +166,14 @@ export function LabDetail({ lab, onBack, onToggleStep }: Props) {
                     </div>
                     <div>
                       <h2 className="font-display text-2xl font-bold">{lab.title}</h2>
-                      <div className="prose prose-sm dark:prose-invert max-w-none mt-2">
-                        <ReactMarkdown>{lab.description}</ReactMarkdown>
+                      <div className="prose prose-sm dark:prose-invert max-w-none mt-2 whitespace-pre-wrap">
+                        <ReactMarkdown>
+                          {lab.description
+                            .replace(/•/g, "  \n•")       // Ensure bullet starts on new line
+                            .replace(/•\s*-\s*/g, "• ") // Clean up "• -"
+                            .replace(/\n(?!\n)/g, "  \n") // Respect single newlines
+                          }
+                        </ReactMarkdown>
                       </div>
                       <div className="flex items-center gap-3 mt-4">
                         <Badge variant="outline" className={difficultyColors[lab.difficulty] || ""}>

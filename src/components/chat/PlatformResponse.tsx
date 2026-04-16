@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Check, Loader2, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Check, Loader2, ChevronRight, FlaskConical, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ReactMarkdown from "react-markdown";
@@ -30,6 +30,10 @@ interface PlatformResponseProps {
   onPick: (content: string, platform: string, sources?: SourceReference[]) => void;
   onError: (err: string) => void;
   finalContent?: string;
+  // Follow-up props
+  followups?: string[];
+  followupsLoading?: boolean;
+  onFollowupClick?: (question: string) => void;
 }
 
 function toPlatformLabel(name: string): string {
@@ -55,6 +59,9 @@ export function PlatformResponse({
   onPick,
   onError,
   finalContent,
+  followups,
+  followupsLoading,
+  onFollowupClick,
 }: PlatformResponseProps) {
   const { functionalArea, industry } = useUserContextFilters();
   const navigate = useNavigate();
@@ -64,11 +71,22 @@ export function PlatformResponse({
 
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [doneStates, setDoneStates] = useState<Record<string, boolean>>({});
+  const [pendingLabTopic, setPendingLabTopic] = useState<string | null>(null);
+  const [labGenerating, setLabGenerating] = useState(false);
   const [picked, setPicked] = useState<string | null>(null);
   const [sourcesMap, setSourcesMap] = useState<Record<string, SourceReference[]>>({});
   const [activeTab, setActiveTab] = useState<string>("");
   const buffers = useRef<Record<string, string>>({});
   const startedRef = useRef<Set<string>>(new Set());
+
+  // When the backend signals lab intent, just store the topic — don't create yet.
+  // The Yes/No prompt rendered at the bottom will trigger actual creation.
+  const handleLabDetected = (lab: { isLab: boolean; labTopic: string; labId?: string }) => {
+    if (lab.isLab && lab.labTopic && !labCreatedRef.current) {
+      labCreatedRef.current = true;
+      setPendingLabTopic(lab.labTopic);
+    }
+  };
 
   const platformKey = useMemo(
     () => (platforms || []).map((p) => p.trim()).filter(Boolean).sort().join("|"),
@@ -92,6 +110,15 @@ export function PlatformResponse({
     // We intentionally stream only the active tab (lazy-load per platform).
     return `${role || ""}::${messageKey}::${user?.id || ""}::${activeTab || ""}`;
   }, [role, messageKey, user?.id, activeTab]);
+
+  // Auto-dismiss the lab Yes/No prompt if the user sends a new question
+  // without responding — treat unanswered as "No".
+  useEffect(() => {
+    if (pendingLabTopic) {
+      setPendingLabTopic(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages.length]);
 
   useEffect(() => {
     if (platformNames.length === 0) return;
@@ -133,56 +160,9 @@ export function PlatformResponse({
       return;
     }
 
-    const handleLabDetected = async (lab: { isLab: boolean; labTopic: string; labId?: string }) => {
-      if (lab.isLab && lab.labTopic && !labCreatedRef.current) {
-        labCreatedRef.current = true;
-        
-        if (lab.labId) {
-          toast.success("🧪 A practical lab is being prepared for you!", {
-            description: "This may take 10-30 seconds. You'll be notified when it's ready.",
-            duration: 5000,
-          });
-          
-          const checkLabReady = async (attempts = 0): Promise<void> => {
-            if (attempts >= 30) {
-              toast.error("Lab generation is taking longer than expected. Please check your Labs page in a moment.");
-              return;
-            }
-            
-            try {
-              const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
-              const response = await fetch(`${apiUrl}/api/labs/${lab.labId}`);
-              
-              if (response.ok) {
-                toast.success("✅ Lab is ready!", {
-                  action: { label: "Open Lab", onClick: () => navigate("/lab") },
-                  duration: 10000,
-                });
-              } else if (response.status === 404) {
-                setTimeout(() => checkLabReady(attempts + 1), 2000);
-              } else {
-                throw new Error("Failed to check lab status");
-              }
-            } catch (error) {
-              console.error("Error checking lab status:", error);
-              setTimeout(() => checkLabReady(attempts + 1), 2000);
-            }
-          };
-          
-          setTimeout(() => checkLabReady(), 3000);
-        } else {
-          toast.info("🧪 Creating a lab for this topic...");
-          const labId = await generateLab(lab.labTopic);
-          if (labId) {
-            toast.success("Lab created! Check your Labs page.", {
-              action: { label: "Open Lab", onClick: () => navigate("/lab") },
-            });
-          }
-        }
-      }
-    };
-
-    // Auto-start only when requested (e.g., locked platform).
+    // When the backend signals lab intent, just store the topic — don't create yet.
+    // The Yes/No prompt in the UI will trigger actual creation.
+    // Note: handleLabDetected is defined at component level so both effects share it.
     if (!autoStart) {
       return () => abort.abort();
     }
@@ -207,7 +187,7 @@ export function PlatformResponse({
         onPlatformDone: (platformName) => {
           const platformId = idByName.get(platformName) || platformName;
           setDoneStates((prev) => ({ ...prev, [platformId]: true }));
-          
+
           // Auto-pick if this was an auto-started direct response (locked platform)
           if (!allowPick) {
             const finalContent = buffers.current[platformId] || "";
@@ -232,8 +212,8 @@ export function PlatformResponse({
     return () => {
       abort.abort();
     };
-  // Keep effect keyed to compare request identity to avoid abort/restart loops.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Keep effect keyed to compare request identity to avoid abort/restart loops.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isReady, requestKey, functionalArea, industry, platformKey, autoStart]);
 
   // When user clicks a different platform tab, fetch that platform only (once).
@@ -264,7 +244,7 @@ export function PlatformResponse({
         const platformId = idByName.get(platformName) || platformName;
         setDoneStates((prev) => ({ ...prev, [platformId]: true }));
       },
-      onDone: () => {},
+      onDone: () => { },
       onError,
       onSources: (platformName, sources, _show) => {
         const platformId = idByName.get(platformName) || platformName;
@@ -286,6 +266,33 @@ export function PlatformResponse({
     const content = responses[platformId];
     const sources = sourcesMap[platformId] || [];
     onPick(content, platformId, sources);
+  };
+
+  const handleLabYes = async () => {
+    if (!pendingLabTopic) return;
+    const topic = pendingLabTopic;
+    setPendingLabTopic(null);
+    setLabGenerating(true);
+    try {
+      const labId = await generateLab(topic);
+      if (labId) {
+        toast.success("✅ Lab created! Check your Labs page.", {
+          action: { label: "Open Lab", onClick: () => navigate("/lab") },
+          duration: 10000,
+        });
+      }
+    } finally {
+      setLabGenerating(false);
+    }
+  };
+
+  const handleLabNo = () => {
+    setPendingLabTopic(null);
+  };
+
+  const handleFollowupInternal = (q: string) => {
+    handleLabNo(); // Auto-dismiss lab if user picks a followup
+    if (onFollowupClick) onFollowupClick(q);
   };
 
   const allDone = platformIds.every((id) => doneStates[id]);
@@ -320,12 +327,11 @@ export function PlatformResponse({
               {picked === platformName ? (
                 <Check className="h-3 w-3 ml-1.5 text-primary" />
               ) : (
-                <ChevronRight 
-                  className={`h-3 w-3 ml-1 transition-colors ${
-                    !doneStates[platformName] 
-                      ? "text-primary animate-pulse" 
+                <ChevronRight
+                  className={`h-3 w-3 ml-1 transition-colors ${!doneStates[platformName]
+                      ? "text-primary animate-pulse"
                       : "text-muted-foreground group-data-[state=active]:text-primary"
-                  }`} 
+                    }`}
                 />
               )}
             </TabsTrigger>
@@ -365,7 +371,99 @@ export function PlatformResponse({
         </Button>
       )}
 
-      {/* Sources hidden temporarily */}
+      {/* Interaction Area: Lab + Followups */}
+      <AnimatePresence mode="popLayout">
+        {(pendingLabTopic || labGenerating || (followups && followups.length > 0) || followupsLoading) && (
+          <motion.div
+            key="interaction-area"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            className="mt-6 flex flex-col gap-3"
+          >
+            {/* Lab Prompt Section */}
+            {(pendingLabTopic || labGenerating) && (
+              <div className="flex flex-col gap-2">
+                <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                  Hands-on learning
+                </div>
+                {pendingLabTopic && (
+                  <motion.div
+                    key="lab-prompt"
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <FlaskConical className="h-4 w-4 shrink-0 text-primary" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground leading-snug">
+                          Would you like a hands-on lab for this?
+                        </p>
+                        <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                          {pendingLabTopic}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        className="h-7 px-3 text-xs"
+                        onClick={handleLabYes}
+                      >
+                        Yes, create lab
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2 text-xs text-muted-foreground"
+                        onClick={handleLabNo}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </motion.div>
+                )}
+
+                {labGenerating && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <span>Creating your lab...</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Follow-up Section */}
+            {(followupsLoading || (followups && followups.length > 0)) && (
+              <div className="flex flex-col gap-2">
+                <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                  Follow-up questions
+                </div>
+                {followupsLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                    <span>Generating suggestions…</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {followups?.map((q) => (
+                      <button
+                        key={q}
+                        onClick={() => handleFollowupInternal(q)}
+                        className="text-left text-xs px-3 py-2 rounded-xl border border-border bg-background hover:border-primary/30 hover:bg-secondary/50 transition-all text-muted-foreground hover:text-foreground"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
