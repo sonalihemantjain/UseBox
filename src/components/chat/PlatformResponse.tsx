@@ -30,6 +30,10 @@ interface PlatformResponseProps {
   onPick: (content: string, platform: string, sources?: SourceReference[]) => void;
   onError: (err: string) => void;
   finalContent?: string;
+  // Follow-up props
+  followups?: string[];
+  followupsLoading?: boolean;
+  onFollowupClick?: (question: string) => void;
 }
 
 function toPlatformLabel(name: string): string {
@@ -55,6 +59,9 @@ export function PlatformResponse({
   onPick,
   onError,
   finalContent,
+  followups,
+  followupsLoading,
+  onFollowupClick,
 }: PlatformResponseProps) {
   const { functionalArea, industry } = useUserContextFilters();
   const navigate = useNavigate();
@@ -283,6 +290,11 @@ export function PlatformResponse({
     setPendingLabTopic(null);
   };
 
+  const handleFollowupInternal = (q: string) => {
+    handleLabNo(); // Auto-dismiss lab if user picks a followup
+    if (onFollowupClick) onFollowupClick(q);
+  };
+
   const allDone = platformIds.every((id) => doneStates[id]);
 
   if (platformNames.length === 0) {
@@ -360,58 +372,96 @@ export function PlatformResponse({
         </Button>
       )}
 
-      {/* Lab Yes/No prompt */}
-      <AnimatePresence>
-        {pendingLabTopic && (
+      {/* Interaction Area: Lab + Followups */}
+      <AnimatePresence mode="popLayout">
+        {(pendingLabTopic || labGenerating || (followups && followups.length > 0) || followupsLoading) && (
           <motion.div
-            key="lab-prompt"
-            initial={{ opacity: 0, y: 6, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.97 }}
-            transition={{ duration: 0.2 }}
-            className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3"
+            key="interaction-area"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            className="mt-6 flex flex-col gap-3"
           >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <FlaskConical className="h-4 w-4 shrink-0 text-primary" />
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-foreground leading-snug">
-                  Would you like a hands-on lab for this?
-                </p>
-                <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                  {pendingLabTopic}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                size="sm"
-                className="h-7 px-3 text-xs"
-                onClick={handleLabYes}
-              >
-                Yes, create lab
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 px-2 text-xs text-muted-foreground"
-                onClick={handleLabNo}
-              >
-                <X className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </motion.div>
-        )}
+            {/* Lab Prompt Section */}
+            {(pendingLabTopic || labGenerating) && (
+              <div className="flex flex-col gap-2">
+                <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                  Hands-on learning
+                </div>
+                {pendingLabTopic && (
+                  <motion.div
+                    key="lab-prompt"
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <FlaskConical className="h-4 w-4 shrink-0 text-primary" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground leading-snug">
+                          Would you like a hands-on lab for this?
+                        </p>
+                        <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                          {pendingLabTopic}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        className="h-7 px-3 text-xs"
+                        onClick={handleLabYes}
+                      >
+                        Yes, create lab
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2 text-xs text-muted-foreground"
+                        onClick={handleLabNo}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </motion.div>
+                )}
 
-        {labGenerating && (
-          <motion.div
-            key="lab-generating"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="mt-3 flex items-center gap-2 text-sm text-muted-foreground"
-          >
-            <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            <span>Creating your lab in the background…</span>
+                {labGenerating && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <span>Creating your lab...</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Follow-up Section */}
+            {(followupsLoading || (followups && followups.length > 0)) && (
+              <div className="flex flex-col gap-2">
+                <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                  Follow-up questions
+                </div>
+                {followupsLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                    <span>Generating suggestions…</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {followups?.map((q) => (
+                      <button
+                        key={q}
+                        onClick={() => handleFollowupInternal(q)}
+                        className="text-left text-xs px-3 py-2 rounded-xl border border-border bg-background hover:border-primary/30 hover:bg-secondary/50 transition-all text-muted-foreground hover:text-foreground"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
