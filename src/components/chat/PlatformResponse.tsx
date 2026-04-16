@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Check, Loader2, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Check, Loader2, ChevronRight, FlaskConical, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ReactMarkdown from "react-markdown";
@@ -64,11 +64,22 @@ export function PlatformResponse({
 
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [doneStates, setDoneStates] = useState<Record<string, boolean>>({});
+  const [pendingLabTopic, setPendingLabTopic] = useState<string | null>(null);
+  const [labGenerating, setLabGenerating] = useState(false);
   const [picked, setPicked] = useState<string | null>(null);
   const [sourcesMap, setSourcesMap] = useState<Record<string, SourceReference[]>>({});
   const [activeTab, setActiveTab] = useState<string>("");
   const buffers = useRef<Record<string, string>>({});
   const startedRef = useRef<Set<string>>(new Set());
+
+  // When the backend signals lab intent, just store the topic — don't create yet.
+  // The Yes/No prompt rendered at the bottom will trigger actual creation.
+  const handleLabDetected = (lab: { isLab: boolean; labTopic: string; labId?: string }) => {
+    if (lab.isLab && lab.labTopic && !labCreatedRef.current) {
+      labCreatedRef.current = true;
+      setPendingLabTopic(lab.labTopic);
+    }
+  };
 
   const platformKey = useMemo(
     () => (platforms || []).map((p) => p.trim()).filter(Boolean).sort().join("|"),
@@ -92,6 +103,15 @@ export function PlatformResponse({
     // We intentionally stream only the active tab (lazy-load per platform).
     return `${role || ""}::${messageKey}::${user?.id || ""}::${activeTab || ""}`;
   }, [role, messageKey, user?.id, activeTab]);
+
+  // Auto-dismiss the lab Yes/No prompt if the user sends a new question
+  // without responding — treat unanswered as "No".
+  useEffect(() => {
+    if (pendingLabTopic) {
+      setPendingLabTopic(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages.length]);
 
   useEffect(() => {
     if (platformNames.length === 0) return;
@@ -133,56 +153,9 @@ export function PlatformResponse({
       return;
     }
 
-    const handleLabDetected = async (lab: { isLab: boolean; labTopic: string; labId?: string }) => {
-      if (lab.isLab && lab.labTopic && !labCreatedRef.current) {
-        labCreatedRef.current = true;
-        
-        if (lab.labId) {
-          toast.success("🧪 A practical lab is being prepared for you!", {
-            description: "This may take 10-30 seconds. You'll be notified when it's ready.",
-            duration: 5000,
-          });
-          
-          const checkLabReady = async (attempts = 0): Promise<void> => {
-            if (attempts >= 30) {
-              toast.error("Lab generation is taking longer than expected. Please check your Labs page in a moment.");
-              return;
-            }
-            
-            try {
-              const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
-              const response = await fetch(`${apiUrl}/api/labs/${lab.labId}`);
-              
-              if (response.ok) {
-                toast.success("✅ Lab is ready!", {
-                  action: { label: "Open Lab", onClick: () => navigate("/lab") },
-                  duration: 10000,
-                });
-              } else if (response.status === 404) {
-                setTimeout(() => checkLabReady(attempts + 1), 2000);
-              } else {
-                throw new Error("Failed to check lab status");
-              }
-            } catch (error) {
-              console.error("Error checking lab status:", error);
-              setTimeout(() => checkLabReady(attempts + 1), 2000);
-            }
-          };
-          
-          setTimeout(() => checkLabReady(), 3000);
-        } else {
-          toast.info("🧪 Creating a lab for this topic...");
-          const labId = await generateLab(lab.labTopic);
-          if (labId) {
-            toast.success("Lab created! Check your Labs page.", {
-              action: { label: "Open Lab", onClick: () => navigate("/lab") },
-            });
-          }
-        }
-      }
-    };
-
-    // Auto-start only when requested (e.g., locked platform).
+    // When the backend signals lab intent, just store the topic — don't create yet.
+    // The Yes/No prompt in the UI will trigger actual creation.
+    // Note: handleLabDetected is defined at component level so both effects share it.
     if (!autoStart) {
       return () => abort.abort();
     }
@@ -288,6 +261,28 @@ export function PlatformResponse({
     onPick(content, platformId, sources);
   };
 
+  const handleLabYes = async () => {
+    if (!pendingLabTopic) return;
+    const topic = pendingLabTopic;
+    setPendingLabTopic(null);
+    setLabGenerating(true);
+    try {
+      const labId = await generateLab(topic);
+      if (labId) {
+        toast.success("✅ Lab created! Check your Labs page.", {
+          action: { label: "Open Lab", onClick: () => navigate("/lab") },
+          duration: 10000,
+        });
+      }
+    } finally {
+      setLabGenerating(false);
+    }
+  };
+
+  const handleLabNo = () => {
+    setPendingLabTopic(null);
+  };
+
   const allDone = platformIds.every((id) => doneStates[id]);
 
   if (platformNames.length === 0) {
@@ -365,7 +360,61 @@ export function PlatformResponse({
         </Button>
       )}
 
-      {/* Sources hidden temporarily */}
+      {/* Lab Yes/No prompt */}
+      <AnimatePresence>
+        {pendingLabTopic && (
+          <motion.div
+            key="lab-prompt"
+            initial={{ opacity: 0, y: 6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.97 }}
+            transition={{ duration: 0.2 }}
+            className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <FlaskConical className="h-4 w-4 shrink-0 text-primary" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground leading-snug">
+                  Would you like a hands-on lab for this?
+                </p>
+                <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                  {pendingLabTopic}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                size="sm"
+                className="h-7 px-3 text-xs"
+                onClick={handleLabYes}
+              >
+                Yes, create lab
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs text-muted-foreground"
+                onClick={handleLabNo}
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
+        {labGenerating && (
+          <motion.div
+            key="lab-generating"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="mt-3 flex items-center gap-2 text-sm text-muted-foreground"
+          >
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            <span>Creating your lab in the background…</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
