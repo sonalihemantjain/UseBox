@@ -187,7 +187,7 @@ export function PlatformResponse({
         onPlatformDone: (platformName) => {
           const platformId = idByName.get(platformName) || platformName;
           setDoneStates((prev) => ({ ...prev, [platformId]: true }));
-          
+
           // Auto-pick if this was an auto-started direct response (locked platform)
           if (!allowPick) {
             const finalContent = buffers.current[platformId] || "";
@@ -212,8 +212,8 @@ export function PlatformResponse({
     return () => {
       abort.abort();
     };
-  // Keep effect keyed to compare request identity to avoid abort/restart loops.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Keep effect keyed to compare request identity to avoid abort/restart loops.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isReady, requestKey, functionalArea, industry, platformKey, autoStart]);
 
   // When user clicks a different platform tab, fetch that platform only (once).
@@ -244,7 +244,7 @@ export function PlatformResponse({
         const platformId = idByName.get(platformName) || platformName;
         setDoneStates((prev) => ({ ...prev, [platformId]: true }));
       },
-      onDone: () => {},
+      onDone: () => { },
       onError,
       onSources: (platformName, sources, _show) => {
         const platformId = idByName.get(platformName) || platformName;
@@ -327,12 +327,11 @@ export function PlatformResponse({
               {picked === platformName ? (
                 <Check className="h-3 w-3 ml-1.5 text-primary" />
               ) : (
-                <ChevronRight 
-                  className={`h-3 w-3 ml-1 transition-colors ${
-                    !doneStates[platformName] 
-                      ? "text-primary animate-pulse" 
+                <ChevronRight
+                  className={`h-3 w-3 ml-1 transition-colors ${!doneStates[platformName]
+                      ? "text-primary animate-pulse"
                       : "text-muted-foreground group-data-[state=active]:text-primary"
-                  }`} 
+                    }`}
                 />
               )}
             </TabsTrigger>
