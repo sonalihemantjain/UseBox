@@ -1,8 +1,9 @@
-import { MessageSquare, BookOpen, GraduationCap, FlaskConical, Settings, LogOut, Plus, Pencil, Trash2, Check, X, PanelLeftClose, PanelLeft, Bookmark, BookmarkCheck, ChevronUp, ChevronDown, ClipboardCheck } from "lucide-react";
+import { MessageSquare, BookOpen, GraduationCap, FlaskConical, Settings, LogOut, Plus, Trash2, Check, X, PanelLeftClose, PanelLeft, Bookmark, BookmarkCheck, ChevronUp, ChevronDown, ClipboardCheck } from "lucide-react";
+import { toast } from "sonner";
 import { useState, useCallback } from "react";
 import useBoxLogo from "@/assets/usebox-logo.png";
 import { NavLink } from "@/components/NavLink";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useChatHistory, type ChatSession } from "@/hooks/useChatHistory";
 import { cn } from "@/lib/utils";
@@ -40,10 +41,9 @@ const navItems = [
 export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
-  const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { chats, createChat, renameChat, deleteChat, toggleSaveChat } = useChatHistory();
+  const { chats, renameChat, deleteChat, toggleSaveChat, fetchChats, removeFromList } = useChatHistory();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -61,17 +61,45 @@ export function AppSidebar() {
     window.dispatchEvent(new Event("usebox-new-chat"));
   }, [navigate]);
 
-  const startEdit = (chat: ChatSession) => {
-    setEditingId(chat.id);
-    setEditTitle(chat.title);
-  };
-
   const confirmEdit = () => {
     if (editingId && editTitle.trim()) {
       renameChat(editingId, editTitle.trim());
     }
     setEditingId(null);
   };
+
+  const handleDelete = useCallback((e: React.MouseEvent, chatId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const activeChatId = localStorage.getItem("usebox_active_chat_id");
+
+    if (activeChatId === chatId) {
+      removeFromList(chatId);
+      navigate("/chat");
+      window.dispatchEvent(new Event("usebox-new-chat"));
+
+      let undone = false;
+      const timer = setTimeout(() => {
+        if (!undone) deleteChat(chatId);
+      }, 5000);
+
+      toast("Chat deleted", {
+        duration: 5000,
+        action: {
+          label: "Undo",
+          onClick: () => {
+            undone = true;
+            clearTimeout(timer);
+            fetchChats();
+            navigate(`/chat?id=${chatId}`);
+          },
+        },
+      });
+    } else {
+      deleteChat(chatId);
+    }
+  }, [deleteChat, fetchChats, removeFromList, navigate]);
 
   return (
     <Sidebar collapsible="icon" className="border-r-0 [&_[data-sidebar=content]]:overflow-x-hidden">
@@ -203,7 +231,7 @@ export function AppSidebar() {
                               {chat.saved ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
                             </button>
                             <button
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); deleteChat(chat.id); }}
+                              onClick={(e) => handleDelete(e, chat.id)}
                               className="p-1 rounded hover:bg-destructive/20 text-destructive"
                               title="Delete"
                             >

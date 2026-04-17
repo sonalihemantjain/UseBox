@@ -122,5 +122,9 @@ export function useChatHistory() {
     await renameChat(chatId, title);
   }, [renameChat]);
 
-  return { chats, loading, createChat, renameChat, deleteChat, toggleSaveChat, loadMessages, saveMessage, autoTitle, fetchChats };
+  const removeFromList = useCallback((chatId: string) => {
+    setChats(prev => prev.filter(c => c.id !== chatId));
+  }, []);
+
+  return { chats, loading, createChat, renameChat, deleteChat, toggleSaveChat, loadMessages, saveMessage, autoTitle, fetchChats, removeFromList };
 }
