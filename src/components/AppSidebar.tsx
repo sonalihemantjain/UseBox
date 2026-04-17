@@ -1,11 +1,11 @@
 import { MessageSquare, BookOpen, GraduationCap, FlaskConical, Settings, LogOut, Plus, Trash2, Check, X, PanelLeftClose, PanelLeft, Bookmark, BookmarkCheck, ChevronUp, ChevronDown, ClipboardCheck } from "lucide-react";
 import { toast } from "sonner";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import useBoxLogo from "@/assets/usebox-logo.png";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useChatHistory, type ChatSession } from "@/hooks/useChatHistory";
+import { useChatHistory } from "@/hooks/useChatHistory";
 import { cn } from "@/lib/utils";
 import {
   Sidebar,
@@ -48,6 +48,15 @@ export function AppSidebar() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [recentExpanded, setRecentExpanded] = useState(true);
+  const [activeChatId, setActiveChatId] = useState<string | null>(
+    () => localStorage.getItem("usebox_active_chat_id")
+  );
+
+  useEffect(() => {
+    const handler = () => setActiveChatId(localStorage.getItem("usebox_active_chat_id"));
+    window.addEventListener("usebox-active-chat-changed", handler);
+    return () => window.removeEventListener("usebox-active-chat-changed", handler);
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
@@ -198,7 +207,9 @@ export function AppSidebar() {
                       key={chat.id}
                       className={cn(
                         "group/chatitem flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] cursor-pointer transition-colors",
-                        "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                        activeChatId === chat.id
+                          ? "bg-sidebar-accent text-sidebar-foreground font-medium"
+                          : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                       )}
                       onClick={() => editingId !== chat.id && navigate(`/chat?id=${chat.id}`)}
                     >
