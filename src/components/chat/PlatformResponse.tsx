@@ -78,6 +78,7 @@ export function PlatformResponse({
   const [activeTab, setActiveTab] = useState<string>("");
   const buffers = useRef<Record<string, string>>({});
   const startedRef = useRef<Set<string>>(new Set());
+  const autoPickedRef = useRef(false);
 
   // When the backend signals lab intent, just store the topic — don't create yet.
   // The Yes/No prompt rendered at the bottom will trigger actual creation.
@@ -267,6 +268,18 @@ export function PlatformResponse({
     const sources = sourcesMap[platformId] || [];
     onPick(content, platformId, sources);
   };
+
+  // Auto-save when no pick button (single-platform / locked mode) and streaming finishes
+  useEffect(() => {
+    if (finalContent) return;
+    if (allowPick) return;
+    if (autoPickedRef.current) return;
+    if (!activeTab || !doneStates[activeTab] || !responses[activeTab]) return;
+    autoPickedRef.current = true;
+    const content = responses[activeTab];
+    const sources = sourcesMap[activeTab] || [];
+    onPick(content, activeTab, sources);
+  }, [allowPick, activeTab, doneStates, responses, sourcesMap, finalContent, onPick]);
 
   const handleLabYes = async () => {
     if (!pendingLabTopic) return;

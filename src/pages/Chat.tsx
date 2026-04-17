@@ -252,6 +252,10 @@ const Chat = () => {
         initialActivePlatform: null,
       };
       setMessages((prev) => [...prev, assistantMsg]);
+      // Save summary immediately so reopening the chat always shows something
+      if (summary.summary) {
+        saveMessage(chatId, { role: "assistant", content: summary.summary });
+      }
     } catch (e) {
       console.error("Failed to load summary:", e);
       toast.error("Failed to load summary");
