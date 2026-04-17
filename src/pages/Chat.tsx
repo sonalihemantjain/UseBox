@@ -490,32 +490,21 @@ const Chat = () => {
                 >
                   {msg.role === "assistant" ? (
                     msg.isComparing || (msg.summaryPlatforms && msg.summaryPlatforms.length > 0) ? (
-                      <div className="flex flex-col gap-4">
-                        {msg.summaryText && (
-                          <div className="border-b border-border/40 pb-4">
-                            <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                              Cross-platform overview
-                            </div>
-                            <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-background [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-background [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_li]:text-foreground/70 [&_p]:text-foreground">
-                              <ReactMarkdown>{msg.summaryText}</ReactMarkdown>
-                            </div>
-                          </div>
-                        )}
-                        <PlatformResponse
-                          messages={pendingMessagesRef.current}
-                          platforms={msg.summaryPlatforms || []}
-                          role={role}
-                          initialActivePlatformName={msg.selectedPlatform || null}
-                          allowPick={msg.isComparing && (msg.summaryPlatforms?.length || 0) > 1}
-                          onPick={handlePick}
-                          onError={handleCompareError}
-                          autoStart={msg.isComparing ? (msg.summaryPlatforms?.length === 1) : true}
-                          finalContent={msg.content}
-                          followups={i === messages.length - 1 ? followups : []}
-                          followupsLoading={i === messages.length - 1 ? followupsLoading : false}
-                          onFollowupClick={sendMessage}
-                        />
-                      </div>
+                      <PlatformResponse
+                        messages={pendingMessagesRef.current}
+                        platforms={msg.summaryPlatforms || []}
+                        role={role}
+                        initialActivePlatformName={msg.selectedPlatform || null}
+                        allowPick={msg.isComparing && (msg.summaryPlatforms?.length || 0) > 1}
+                        onPick={handlePick}
+                        onError={handleCompareError}
+                        autoStart={msg.isComparing ? (msg.summaryPlatforms?.length === 1) : true}
+                        finalContent={msg.content}
+                        summaryText={msg.summaryText}
+                        followups={i === messages.length - 1 ? followups : []}
+                        followupsLoading={i === messages.length - 1 ? followupsLoading : false}
+                        onFollowupClick={sendMessage}
+                      />
                     ) : (
                       <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-background [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-background [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_li]:text-foreground/70 [&_p]:text-foreground">
                         <ReactMarkdown>{msg.content}</ReactMarkdown>
