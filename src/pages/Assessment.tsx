@@ -1,10 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Award, ClipboardCheck } from "lucide-react";
+import {
+  Loader2, Award, ClipboardCheck, CheckCircle2, XCircle,
+  ChevronRight, ChevronLeft, RotateCcw, Trophy, X, BookOpen,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useAssessments } from "@/hooks/useAssessments";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 type ActiveAttempt = {
   attemptId: string;
@@ -15,18 +20,28 @@ type ActiveAttempt = {
   questions: Array<{ id: string; question_text: string; options: string[]; question_order: number }>;
 };
 
+const LEVEL_STYLES: Record<string, string> = {
+  beginner:     "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+  intermediate: "bg-amber-500/10  text-amber-600  border-amber-500/20",
+  advanced:     "bg-red-500/10    text-red-600    border-red-500/20",
+  foundational: "bg-blue-500/10   text-blue-600   border-blue-500/20",
+  associate:    "bg-violet-500/10 text-violet-600  border-violet-500/20",
+  professional: "bg-orange-500/10 text-orange-600  border-orange-500/20",
+};
+
+const OPTION_LABELS = ["A", "B", "C", "D", "E"];
+
 export default function Assessment() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
+  const navigate  = useNavigate();
+  const { user }  = useAuth();
   const { catalog, certificates, loading, submitting, loadCatalog, loadCertificates, start, submit } = useAssessments();
+
   const [activeAttempt, setActiveAttempt] = useState<ActiveAttempt | null>(null);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answers,       setAnswers]       = useState<Record<string, string>>({});
+  const [currentIdx,    setCurrentIdx]    = useState(0);
   const [result, setResult] = useState<{
-    passed: boolean;
-    score_percent: number;
-    correct_answers: number;
-    total_questions: number;
-    certificate_code?: string;
+    passed: boolean; score_percent: number;
+    correct_answers: number; total_questions: number; certificate_code?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -36,203 +51,416 @@ export default function Assessment() {
   }, [user?.id, loadCatalog, loadCertificates]);
 
   const answeredCount = useMemo(() => Object.keys(answers).length, [answers]);
+  const totalQ        = activeAttempt?.questions.length ?? 0;
+  const currentQ      = activeAttempt?.questions[currentIdx] ?? null;
+  const progressPct   = totalQ ? Math.round((answeredCount / totalQ) * 100) : 0;
+  const isLastQ       = currentIdx === totalQ - 1;
+  const allAnswered   = answeredCount === totalQ;
 
-  const startAssessment = async (assessmentId: string) => {
+  const openModal = async (assessmentId: string) => {
     if (!user?.id) return;
     try {
       const res = await start({ user_id: user.id, assessment_id: assessmentId });
       setActiveAttempt({
-        attemptId: res.attempt_id,
-        assessmentId: res.assessment_id,
-        title: res.title,
-        provider: res.provider,
+        attemptId:     res.attempt_id,
+        assessmentId:  res.assessment_id,
+        title:         res.title,
+        provider:      res.provider,
         passThreshold: res.pass_threshold,
-        questions: res.questions || [],
+        questions:     res.questions || [],
       });
       setAnswers({});
+      setCurrentIdx(0);
       setResult(null);
-    } catch (e) {
-      console.error(e);
+    } catch {
       toast.error("Failed to start assessment");
     }
+  };
+
+  const closeModal = () => {
+    setActiveAttempt(null);
+    setResult(null);
   };
 
   const submitAssessment = async () => {
     if (!user?.id || !activeAttempt) return;
     try {
-      const payload = {
+      const res = await submit(activeAttempt.attemptId, {
         user_id: user.id,
         answers: Object.entries(answers).map(([question_id, selected_option]) => ({ question_id, selected_option })),
-      };
-      const res = await submit(activeAttempt.attemptId, payload);
+      });
       setResult({
-        passed: res.passed,
-        score_percent: res.score_percent,
-        correct_answers: res.correct_answers,
-        total_questions: res.total_questions,
+        passed:           res.passed,
+        score_percent:    res.score_percent,
+        correct_answers:  res.correct_answers,
+        total_questions:  res.total_questions,
         certificate_code: res.certificate?.certificate_code,
       });
       if (res.passed) {
-        toast.success("Assessment passed. Certificate issued.");
-        await loadCertificates(user.id);
-      } else {
-        toast.error("Not passed", {
-          description: `Score ${res.score_percent}% (${res.correct_answers}/${res.total_questions}). Try again to reach ${activeAttempt.passThreshold}%.`,
-          action: {
-            label: "Retry",
-            onClick: () => startAssessment(activeAttempt.assessmentId),
-          },
-        });
+        toast.success("Assessment passed! Certificate issued.");
+        if (user?.id) await loadCertificates(user.id);
       }
-    } catch (e) {
-      console.error(e);
+    } catch {
       toast.error("Failed to submit assessment");
     }
   };
 
+  const selectOption = (questionId: string, opt: string) => {
+    setAnswers(prev => ({ ...prev, [questionId]: opt }));
+  };
+
+  // ─── Dashboard ────────────────────────────────────────────────────────────
   return (
     <div className="h-full overflow-y-auto">
-      <div className="w-full px-4 sm:px-8 lg:px-12 py-8 space-y-6">
-        <div>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold mb-2">Assessment</h1>
-          <p className="text-muted-foreground text-base">
-            Take assessments for completed labs and earn certifications.
-          </p>
+      <div className="w-full px-4 sm:px-8 lg:px-12 py-8 space-y-8">
+
+        {/* Header */}
+        <div className="flex items-end justify-between">
+          <div>
+            <h1 className="font-display text-3xl sm:text-4xl font-bold mb-1">Assessment</h1>
+            <p className="text-muted-foreground text-sm">
+              Test your knowledge and earn certifications.
+            </p>
+          </div>
+          {certificates.length > 0 && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+              <Award className="h-4 w-4 text-emerald-600" />
+              <span className="text-sm font-medium text-emerald-600">
+                {certificates.length} certificate{certificates.length > 1 ? "s" : ""} earned
+              </span>
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <div className="xl:col-span-1 rounded-xl border border-border bg-card p-5">
-            <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-              <ClipboardCheck className="h-4 w-4" /> Available Assessments
-            </h2>
+        {/* Catalog grid */}
+        <div>
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+            <ClipboardCheck className="h-4 w-4" /> Available Assessments
+          </h2>
 
-            {loading ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" /> Loading...
-              </div>
-            ) : catalog.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No assessments available.</p>
-            ) : (
-              <div className="space-y-3">
-                {catalog.map((item) => (
-                  <div key={item.id} className="rounded-lg border border-border p-3">
-                    <div className="text-xs text-muted-foreground">{item.provider}</div>
-                    <div className="text-sm font-medium mt-1">{item.title}</div>
-                    <div className="text-xs text-muted-foreground mt-1 capitalize">{item.level}</div>
-                    <div className="text-xs text-muted-foreground mt-2 line-clamp-3">{item.description}</div>
-                    <Button
-                      size="sm"
-                      className="mt-3 w-full"
-                      onClick={() => startAssessment(item.id)}
-                    >
-                      Start Assessment
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="xl:col-span-2 rounded-xl border border-border bg-card p-5">
-            {!activeAttempt ? (
-              <p className="text-sm text-muted-foreground">
-                Start an assessment from the left panel to see questions.
-              </p>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold">{activeAttempt.title}</h3>
-                    <p className="text-xs text-muted-foreground">{activeAttempt.provider}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Pass threshold: {activeAttempt.passThreshold}% | Answered: {answeredCount}/{activeAttempt.questions.length}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  {activeAttempt.questions.map((q) => (
-                    <div key={q.id} className="rounded-lg border border-border p-4">
-                      <p className="text-sm font-medium mb-3">
-                        {q.question_order}. {q.question_text}
-                      </p>
-                      <div className="space-y-2">
-                        {q.options.map((opt) => (
-                          <label key={opt} className="flex items-center gap-2 text-sm cursor-pointer">
-                            <input
-                              type="radio"
-                              name={q.id}
-                              value={opt}
-                              checked={answers[q.id] === opt}
-                              onChange={() => setAnswers((prev) => ({ ...prev, [q.id]: opt }))}
-                            />
-                            <span>{opt}</span>
-                          </label>
-                        ))}
-                      </div>
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-48 rounded-2xl bg-muted/40 animate-pulse" />
+              ))}
+            </div>
+          ) : catalog.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 rounded-2xl border border-dashed border-border">
+              <ClipboardCheck className="h-10 w-10 text-muted-foreground/30 mb-3" />
+              <p className="text-sm font-medium text-muted-foreground">No assessments available</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              {catalog.map((item) => (
+                <motion.div
+                  key={item.id}
+                  whileHover={{ y: -3, boxShadow: "0 8px 30px rgba(0,0,0,0.08)" }}
+                  transition={{ duration: 0.2 }}
+                  className="flex flex-col rounded-2xl border border-border bg-card p-5 gap-3"
+                >
+                  {/* Card header */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                      <BookOpen className="h-4 w-4 text-primary" />
                     </div>
-                  ))}
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    onClick={submitAssessment}
-                    disabled={submitting || answeredCount < activeAttempt.questions.length}
-                  >
-                    {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                    Submit Assessment
-                  </Button>
-                  <Button variant="outline" onClick={() => setActiveAttempt(null)}>
-                    Cancel
-                  </Button>
-                </div>
-
-                {result && (
-                  <div className="rounded-lg border border-border p-4 bg-muted/30">
-                    <p className="text-sm font-semibold">
-                      Result: {result.passed ? "Passed" : "Not Passed"} ({result.score_percent}%)
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Correct: {result.correct_answers}/{result.total_questions}
-                    </p>
-                    {result.certificate_code && (
-                      <p className="text-xs text-primary mt-1">Certificate code: {result.certificate_code}</p>
+                    {item.level && (
+                      <span className={cn(
+                        "text-[10px] font-semibold px-2 py-0.5 rounded-full border capitalize shrink-0",
+                        LEVEL_STYLES[item.level?.toLowerCase()] ?? "bg-muted text-muted-foreground border-border"
+                      )}>
+                        {item.level}
+                      </span>
                     )}
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
 
-        <div className="rounded-xl border border-border bg-card p-5">
-          <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-            <Award className="h-4 w-4" /> Certificates
-          </h2>
-          {certificates.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No certificates yet.</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {certificates.map((c) => (
-                <div key={c.id} className="rounded-lg border border-border p-3">
-                  <p className="text-sm font-semibold">{c.topic}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Code: {c.certificate_code}</p>
-                  <p className="text-xs text-muted-foreground">Score: {c.score_percent}%</p>
+                  {/* Card body */}
+                  <div className="flex-1">
+                    <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1">
+                      {item.provider}
+                    </p>
+                    <h3 className="text-sm font-semibold text-foreground leading-snug">{item.title}</h3>
+                    {item.description && (
+                      <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2 leading-relaxed">
+                        {item.description}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Start button */}
                   <Button
                     size="sm"
-                    variant="outline"
-                    className="mt-3"
+                    className="w-full mt-auto"
+                    onClick={() => openModal(item.id)}
+                  >
+                    Start Assessment <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Certificates */}
+        <div>
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+            <Award className="h-4 w-4" /> My Certificates
+          </h2>
+          {certificates.length === 0 ? (
+            <div className="flex items-center gap-4 p-4 rounded-2xl border border-dashed border-border">
+              <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
+                <Trophy className="h-5 w-5 text-muted-foreground/30" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">No certificates yet</p>
+                <p className="text-xs text-muted-foreground/60">Pass an assessment above to earn your first one.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              {certificates.map((c) => (
+                <motion.div
+                  key={c.id}
+                  whileHover={{ y: -2 }}
+                  className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 flex flex-col gap-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+                      <Award className="h-4 w-4 text-emerald-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">{c.topic}</p>
+                      <p className="text-xs text-muted-foreground">{c.provider}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-mono text-primary">{c.certificate_code}</span>
+                    <span className="font-bold text-emerald-600">{c.score_percent}%</span>
+                  </div>
+                  <Button
+                    size="sm" variant="outline"
+                    className="w-full h-8 text-xs border-emerald-500/30 hover:bg-emerald-500/10"
                     onClick={() => navigate(`/assessment/certificate/${c.id}`)}
                   >
                     View Certificate
                   </Button>
-                </div>
+                </motion.div>
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {/* ─── Full-screen Quiz Modal ─────────────────────────────────────────── */}
+      <AnimatePresence>
+        {activeAttempt && (
+          <motion.div
+            key="modal-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.div
+              key="modal-panel"
+              initial={{ opacity: 0, scale: 0.96, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 16 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="relative w-full max-w-2xl bg-card rounded-2xl border border-border shadow-2xl flex flex-col max-h-[90vh]"
+            >
+              {/* Modal header */}
+              <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-border shrink-0">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                    {activeAttempt.provider}
+                  </p>
+                  <h2 className="text-base font-semibold text-foreground truncate">{activeAttempt.title}</h2>
+                </div>
+                <button
+                  onClick={closeModal}
+                  className="ml-4 p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground shrink-0"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Progress bar */}
+              {!result && (
+                <div className="px-6 py-3 border-b border-border shrink-0">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+                    <span>Question {currentIdx + 1} of {totalQ}</span>
+                    <span>{answeredCount} answered · Pass: {activeAttempt.passThreshold}%</span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                    <motion.div
+                      className="h-full rounded-full bg-primary"
+                      animate={{ width: `${((currentIdx + 1) / totalQ) * 100}%` }}
+                      transition={{ ease: "easeOut", duration: 0.3 }}
+                    />
+                  </div>
+                  {/* Question dot indicators */}
+                  <div className="flex gap-1 mt-2 flex-wrap">
+                    {activeAttempt.questions.map((q, i) => (
+                      <button
+                        key={q.id}
+                        onClick={() => setCurrentIdx(i)}
+                        className={cn(
+                          "h-1.5 rounded-full transition-all",
+                          i === currentIdx
+                            ? "bg-primary w-4"
+                            : answers[q.id]
+                              ? "bg-primary/40 w-1.5"
+                              : "bg-muted-foreground/20 w-1.5"
+                        )}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Modal body */}
+              <div className="flex-1 overflow-y-auto px-6 py-6">
+                <AnimatePresence mode="wait">
+                  {result ? (
+                    /* ── Result ── */
+                    <motion.div
+                      key="result"
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="flex flex-col items-center text-center py-4"
+                    >
+                      <div className={cn(
+                        "w-20 h-20 rounded-full flex items-center justify-center mb-5",
+                        result.passed ? "bg-emerald-500/10" : "bg-red-500/10"
+                      )}>
+                        {result.passed
+                          ? <CheckCircle2 className="h-10 w-10 text-emerald-500" />
+                          : <XCircle className="h-10 w-10 text-red-500" />}
+                      </div>
+                      <h3 className="text-2xl font-bold mb-1">
+                        {result.passed ? "You Passed!" : "Not Quite"}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-6 max-w-xs">
+                        {result.passed
+                          ? "Great work! Your certificate has been issued."
+                          : `You need ${activeAttempt.passThreshold}% to pass. Give it another shot!`}
+                      </p>
+                      <div className={cn(
+                        "rounded-2xl border px-10 py-5 mb-6",
+                        result.passed ? "border-emerald-500/20 bg-emerald-500/5" : "border-red-500/20 bg-red-500/5"
+                      )}>
+                        <div className={cn(
+                          "text-5xl font-bold mb-1",
+                          result.passed ? "text-emerald-600" : "text-red-600"
+                        )}>
+                          {result.score_percent}%
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {result.correct_answers} / {result.total_questions} correct
+                        </div>
+                        {result.certificate_code && (
+                          <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
+                            Certificate: <span className="font-mono font-semibold text-primary">{result.certificate_code}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2 flex-wrap justify-center">
+                        {!result.passed && (
+                          <Button onClick={() => openModal(activeAttempt.assessmentId)}>
+                            <RotateCcw className="h-4 w-4 mr-1.5" /> Try Again
+                          </Button>
+                        )}
+                        <Button variant="outline" onClick={closeModal}>
+                          {result.passed ? "Done" : "Back to Catalog"}
+                        </Button>
+                      </div>
+                    </motion.div>
+                  ) : currentQ ? (
+                    /* ── Single Question ── */
+                    <motion.div
+                      key={currentQ.id}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.2 }}
+                      className="space-y-4"
+                    >
+                      <p className="text-base font-semibold text-foreground leading-relaxed">
+                        {currentQ.question_text}
+                      </p>
+                      <div className="space-y-2.5">
+                        {currentQ.options.map((opt, oi) => {
+                          const selected = answers[currentQ.id] === opt;
+                          return (
+                            <button
+                              key={opt}
+                              onClick={() => selectOption(currentQ.id, opt)}
+                              className={cn(
+                                "w-full text-left px-4 py-3.5 rounded-xl border transition-all flex items-center gap-3",
+                                selected
+                                  ? "border-primary bg-primary/8 shadow-sm"
+                                  : "border-border hover:border-primary/30 hover:bg-muted/40"
+                              )}
+                            >
+                              <span className={cn(
+                                "inline-flex items-center justify-center h-6 w-6 rounded-full border text-xs font-bold shrink-0",
+                                selected
+                                  ? "bg-primary border-primary text-primary-foreground"
+                                  : "border-border text-muted-foreground"
+                              )}>
+                                {OPTION_LABELS[oi]}
+                              </span>
+                              <span className={cn(
+                                "text-sm",
+                                selected ? "text-foreground font-medium" : "text-muted-foreground"
+                              )}>
+                                {opt}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
+              </div>
+
+              {/* Modal footer — navigation */}
+              {!result && (
+                <div className="px-6 pb-5 pt-3 border-t border-border flex items-center justify-between shrink-0">
+                  <Button
+                    variant="outline" size="sm"
+                    onClick={() => setCurrentIdx(i => Math.max(0, i - 1))}
+                    disabled={currentIdx === 0}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" /> Previous
+                  </Button>
+
+                  {isLastQ ? (
+                    <Button
+                      size="sm"
+                      onClick={submitAssessment}
+                      disabled={submitting || !allAnswered}
+                    >
+                      {submitting
+                        ? <><Loader2 className="h-4 w-4 animate-spin mr-1.5" /> Submitting…</>
+                        : allAnswered ? "Submit Assessment" : `${totalQ - answeredCount} unanswered`}
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      onClick={() => setCurrentIdx(i => Math.min(totalQ - 1, i + 1))}
+                    >
+                      Next <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
-

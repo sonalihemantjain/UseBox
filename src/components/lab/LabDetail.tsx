@@ -138,12 +138,12 @@ export function LabDetail({ lab, onBack, onToggleStep }: Props) {
                     <ArrowLeft className="h-4 w-4" /> Back to tasks
                   </Button>
                   <h2 className="font-display text-2xl font-bold mb-6">{readingStep.title}</h2>
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:my-1 [&_p]:leading-snug [&_ul]:my-1 [&_li]:my-0.5">
                     <ReactMarkdown>
                       {readingStep.content
-                        .replace(/•/g, "  \n•")       // Ensure bullet starts on new line
-                        .replace(/•\s*-\s*/g, "• ") // Clean up "• -"
-                        .replace(/\n(?!\n)/g, "  \n") // Respect single newlines
+                        .replace(/•/g, "  \n•")
+                        .replace(/•\s*-\s*/g, "• ")
+                        .replace(/\n(?!\n)/g, "  \n")
                       }
                     </ReactMarkdown>
                   </div>
@@ -166,12 +166,12 @@ export function LabDetail({ lab, onBack, onToggleStep }: Props) {
                     </div>
                     <div>
                       <h2 className="font-display text-2xl font-bold">{lab.title}</h2>
-                      <div className="prose prose-sm dark:prose-invert max-w-none mt-2 whitespace-pre-wrap">
+                      <div className="prose prose-sm dark:prose-invert max-w-none mt-2 [&_p]:my-1 [&_p]:leading-snug [&_ul]:my-1 [&_li]:my-0.5">
                         <ReactMarkdown>
                           {lab.description
-                            .replace(/•/g, "  \n•")       // Ensure bullet starts on new line
-                            .replace(/•\s*-\s*/g, "• ") // Clean up "• -"
-                            .replace(/\n(?!\n)/g, "  \n") // Respect single newlines
+                            .replace(/•/g, "  \n•")
+                            .replace(/•\s*-\s*/g, "• ")
+                            .replace(/\n(?!\n)/g, "  \n")
                           }
                         </ReactMarkdown>
                       </div>
