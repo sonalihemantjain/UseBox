@@ -109,6 +109,7 @@ const Chat = () => {
   useEffect(() => {
     if (activeChatId) localStorage.setItem("usebox_active_chat_id", activeChatId);
     else localStorage.removeItem("usebox_active_chat_id");
+    window.dispatchEvent(new Event("usebox-active-chat-changed"));
   }, [activeChatId]);
 
   const selectChat = useCallback(async (chatId: string) => {

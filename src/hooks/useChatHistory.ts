@@ -12,6 +12,12 @@ export interface ChatSession {
   updated_at: string;
 }
 
+const CHATS_CHANGED_EVENT = "usebox-chats-changed";
+
+function notifyChatsChanged() {
+  window.dispatchEvent(new Event(CHATS_CHANGED_EVENT));
+}
+
 export function useChatHistory() {
   const { user } = useAuth();
   const [chats, setChats] = useState<ChatSession[]>([]);
@@ -36,6 +42,13 @@ export function useChatHistory() {
     fetchChats();
   }, [fetchChats]);
 
+  // Re-fetch whenever any hook instance signals a change
+  useEffect(() => {
+    const handler = () => fetchChats();
+    window.addEventListener(CHATS_CHANGED_EVENT, handler);
+    return () => window.removeEventListener(CHATS_CHANGED_EVENT, handler);
+  }, [fetchChats]);
+
   const createChat = useCallback(async (): Promise<string | null> => {
     if (!user?.id) return null;
     try {
@@ -46,14 +59,14 @@ export function useChatHistory() {
       });
       if (resp.ok) {
         const data = await resp.json();
-        await fetchChats();
+        notifyChatsChanged();
         return (data as { id: string }).id;
       }
     } catch (err) {
       console.error("Error creating chat:", err);
     }
     return null;
-  }, [user?.id, fetchChats]);
+  }, [user?.id]);
 
   const renameChat = useCallback(async (chatId: string, title: string) => {
     try {
@@ -62,22 +75,22 @@ export function useChatHistory() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title })
       });
-      await fetchChats();
+      notifyChatsChanged();
     } catch (err) {
       console.error("Error renaming chat:", err);
     }
-  }, [fetchChats]);
+  }, []);
 
   const deleteChat = useCallback(async (chatId: string) => {
     try {
       await fetch(`${API_URL}/api/chats/${chatId}`, {
         method: "DELETE"
       });
-      await fetchChats();
+      notifyChatsChanged();
     } catch (err) {
       console.error("Error deleting chat:", err);
     }
-  }, [fetchChats]);
+  }, []);
 
   const toggleSaveChat = useCallback(async (chatId: string, saved: boolean) => {
     try {
@@ -86,11 +99,11 @@ export function useChatHistory() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ saved })
       });
-      await fetchChats();
+      notifyChatsChanged();
     } catch (err) {
       console.error("Error toggling saved chat:", err);
     }
-  }, [fetchChats]);
+  }, []);
 
   const loadMessages = useCallback(async (chatId: string): Promise<ChatMessage[]> => {
     try {
