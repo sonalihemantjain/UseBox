@@ -5,6 +5,7 @@ import { Check, Loader2, ChevronRight, FlaskConical, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { streamChatPlatforms, type ChatMessage, type SourceReference } from "@/lib/chat-stream";
 import { useUserContextFilters } from "@/hooks/useUserContextFilters";
 import { useLabs } from "@/hooks/useLabs";
@@ -391,7 +392,7 @@ export function PlatformResponse({
     setPendingLabTopic(null);
     setLabGenerating(true);
     try {
-      const labId = await generateLab(topic);
+      const labId = await generateLab(topic, "intermediate", role);
       if (labId) {
         toast.success("✅ Lab created! Check your Labs page.", {
           action: { label: "Open Lab", onClick: () => navigate("/lab") },
@@ -433,7 +434,7 @@ export function PlatformResponse({
               <Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating…
             </div>
           ) : (
-            <ReactMarkdown>{stripMetaTags(content)}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{stripMetaTags(content)}</ReactMarkdown>
           )}
         </div>
         {/* Lab + followups still shown in locked mode */}
@@ -501,8 +502,8 @@ export function PlatformResponse({
               <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
                 Cross-platform overview
               </div>
-              <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1 [&_p]:leading-snug [&_a]:text-primary [&_li]:text-foreground/70 [&_p]:text-foreground max-h-[340px] overflow-y-auto">
-                <ReactMarkdown>{summaryText}</ReactMarkdown>
+              <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1 [&_p]:leading-snug [&_a]:text-primary [&_li]:text-foreground/70 [&_p]:text-foreground [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm [&_th]:border [&_th]:border-border [&_th]:bg-muted/60 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:text-xs [&_th]:font-semibold [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_td]:align-top [&_tr:nth-child(even)_td]:bg-muted/20 max-h-[400px] overflow-y-auto">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{summaryText}</ReactMarkdown>
               </div>
             </div>
           </TabsContent>
@@ -512,11 +513,11 @@ export function PlatformResponse({
         {platformNames.map((platformName) => (
           <TabsContent key={platformName} value={platformName} className="mt-0">
             <div className="relative rounded-lg border border-border bg-background p-4">
-              <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-muted [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_li]:text-muted-foreground [&_p]:text-foreground min-h-[60px] max-h-[340px] overflow-y-auto">
+              <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-muted [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_li]:text-muted-foreground [&_p]:text-foreground [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm [&_th]:border [&_th]:border-border [&_th]:bg-muted/60 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:text-xs [&_th]:font-semibold [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_td]:align-top [&_tr:nth-child(even)_td]:bg-muted/20 min-h-[60px] max-h-[340px] overflow-y-auto">
                 {finalContent && activeTab === platformName ? (
-                  <ReactMarkdown>{stripMetaTags(finalContent)}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{stripMetaTags(finalContent)}</ReactMarkdown>
                 ) : responses[platformName] ? (
-                  <ReactMarkdown>{stripMetaTags(responses[platformName])}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{stripMetaTags(responses[platformName])}</ReactMarkdown>
                 ) : (
                   <div className="flex items-center gap-2 text-muted-foreground text-sm">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating…

@@ -98,12 +98,12 @@ export function useLabs(options?: { autoFetch?: boolean }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, autoFetch]); // Only re-fetch when user ID changes and autoFetch is enabled
 
-  const generateLab = useCallback(async (topic: string, difficulty: string = "intermediate") => {
+  const generateLab = useCallback(async (topic: string, difficulty: string = "intermediate", role?: string | null) => {
     if (!user) return;
     setGenerating(true);
     try {
       console.log('🧪 Starting lab generation for topic:', topic);
-      const data = await api.generateLab({ topic, difficulty, user_id: user.id });
+      const data = await api.generateLab({ topic, difficulty, user_id: user.id, role: role ?? undefined });
       console.log('✅ Lab data received from API:', data);
 
       toast.success("Lab created successfully!");

@@ -214,7 +214,7 @@ export const api = {
       { method: "POST", body: payload }
     ),
   getLabsForUser: (userId: string) => request<ApiLab[]>(`/api/labs/user/${encodeURIComponent(userId)}`),
-  generateLab: (payload: { topic: string; difficulty?: string; user_id?: string }) =>
+  generateLab: (payload: { topic: string; difficulty?: string; user_id?: string; role?: string }) =>
     request<ApiLab>("/api/labs/generate", { method: "POST", body: payload }),
   updateLabProgress: (labId: string, payload: { task_states: Record<string, boolean>; tasks: unknown[] }) =>
     request<{ status: string }>(`/api/labs/${labId}/progress`, { method: "PATCH", body: payload }),

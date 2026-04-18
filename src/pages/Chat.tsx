@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserRole, ROLE_LABELS, type UserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { type ChatMessage, type SourceReference } from "@/lib/chat-stream";
 import { useChatHistory } from "@/hooks/useChatHistory";
 import { PlatformResponse } from "@/components/chat/PlatformResponse";
@@ -34,10 +35,9 @@ const SUGGESTIONS = [
 ];
 const DEFAULT_COMPARE_PLATFORMS = ["openai", "google", "microsoft"];
 
-const roleOptions: UserRole[] = ["nocode", "lowcode", "prodeveloper", "architect", "admin"];
+const roleOptions: UserRole[] = ["businessuser", "prodeveloper", "architect", "admin"];
 const ROLE_COLORS: Record<UserRole, string> = {
-  nocode: "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20",
-  lowcode: "from-amber-500/10 to-amber-500/5 border-amber-500/20",
+  businessuser: "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20",
   prodeveloper: "from-blue-500/10 to-blue-500/5 border-blue-500/20",
   architect: "from-purple-500/10 to-purple-500/5 border-purple-500/20",
   admin: "from-red-500/10 to-red-500/5 border-red-500/20",
@@ -506,8 +506,8 @@ const Chat = () => {
                         onFollowupClick={sendMessage}
                       />
                     ) : (
-                      <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-background [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-background [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_li]:text-foreground/70 [&_p]:text-foreground">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-background [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-background [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_li]:text-foreground/70 [&_p]:text-foreground [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm [&_th]:border [&_th]:border-border [&_th]:bg-muted/60 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:text-xs [&_th]:font-semibold [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_td]:align-top [&_tr:nth-child(even)_td]:bg-muted/20">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                       </div>
                     )
                   ) : (
