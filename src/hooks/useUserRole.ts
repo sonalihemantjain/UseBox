@@ -1,11 +1,10 @@
 import { useCallback } from "react";
 import { useUserContext } from "@/hooks/useUserContext";
 
-export type UserRole = "nocode" | "lowcode" | "prodeveloper" | "architect" | "admin";
+export type UserRole = "businessuser" | "prodeveloper" | "architect" | "admin";
 
 export const ROLE_LABELS: Record<UserRole, string> = {
-  nocode: "No-Code User",
-  lowcode: "Low-Code Dev",
+  businessuser: "Business User",
   prodeveloper: "Pro Developer",
   architect: "Architect",
   admin: "Administrator",

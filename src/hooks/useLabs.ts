@@ -28,6 +28,7 @@ export interface Lab {
   description: string;
   topic: string;
   difficulty: string;
+  persona: string;
   total_steps: number;
   completed_steps: number;
   status: string;
@@ -61,6 +62,7 @@ export function useLabs(options?: { autoFetch?: boolean }) {
         description: al.description || al.goal || String(al.raw || "").substring(0, 100) + "...",
         topic: al.topic || al.question || "",
         difficulty: al.difficulty || "intermediate",
+        persona: al.persona || "no-persona",
         total_steps: al.total_steps || 0,
         completed_steps: al.completed_steps || 0,
         status: al.status || "in_progress",
@@ -98,12 +100,12 @@ export function useLabs(options?: { autoFetch?: boolean }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, autoFetch]); // Only re-fetch when user ID changes and autoFetch is enabled
 
-  const generateLab = useCallback(async (topic: string, difficulty: string = "intermediate") => {
+  const generateLab = useCallback(async (topic: string, difficulty: string = "intermediate", role?: string | null) => {
     if (!user) return;
     setGenerating(true);
     try {
       console.log('🧪 Starting lab generation for topic:', topic);
-      const data = await api.generateLab({ topic, difficulty, user_id: user.id });
+      const data = await api.generateLab({ topic, difficulty, user_id: user.id, role: role ?? undefined });
       console.log('✅ Lab data received from API:', data);
 
       toast.success("Lab created successfully!");

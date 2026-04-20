@@ -10,6 +10,7 @@ import { useAssessments } from "@/hooks/useAssessments";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useUserRole } from "@/hooks/useUserRole";
 
 type ActiveAttempt = {
   attemptId: string;
@@ -20,20 +21,23 @@ type ActiveAttempt = {
   questions: Array<{ id: string; question_text: string; options: string[]; question_order: number }>;
 };
 
-const LEVEL_STYLES: Record<string, string> = {
-  beginner:     "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-  intermediate: "bg-amber-500/10  text-amber-600  border-amber-500/20",
-  advanced:     "bg-red-500/10    text-red-600    border-red-500/20",
-  foundational: "bg-blue-500/10   text-blue-600   border-blue-500/20",
-  associate:    "bg-violet-500/10 text-violet-600  border-violet-500/20",
-  professional: "bg-orange-500/10 text-orange-600  border-orange-500/20",
+const PERSONA_BADGE: Record<string, { label: string; className: string }> = {
+  businessuser: { label: "Business User", className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
+  prodeveloper: { label: "Pro Developer", className: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
+  architect:    { label: "Architect",     className: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
+  admin:        { label: "Administrator", className: "bg-red-500/10 text-red-600 border-red-500/20" },
+  "no-persona": { label: "No Persona",    className: "bg-muted/60 text-muted-foreground border-border" },
 };
+
+const getPersonaBadge = (persona?: string | null) =>
+  PERSONA_BADGE[persona ?? "no-persona"] ?? PERSONA_BADGE["no-persona"];
 
 const OPTION_LABELS = ["A", "B", "C", "D", "E"];
 
 export default function Assessment() {
   const navigate  = useNavigate();
   const { user }  = useAuth();
+  const { role }  = useUserRole();
   const { catalog, certificates, loading, submitting, loadCatalog, loadCertificates, start, submit } = useAssessments();
 
   const [activeAttempt, setActiveAttempt] = useState<ActiveAttempt | null>(null);
@@ -46,9 +50,9 @@ export default function Assessment() {
 
   useEffect(() => {
     if (!user?.id) return;
-    loadCatalog();
+    loadCatalog(role);
     loadCertificates(user.id);
-  }, [user?.id, loadCatalog, loadCertificates]);
+  }, [user?.id, role, loadCatalog, loadCertificates]);
 
   const answeredCount = useMemo(() => Object.keys(answers).length, [answers]);
   const totalQ        = activeAttempt?.questions.length ?? 0;
@@ -60,7 +64,7 @@ export default function Assessment() {
   const openModal = async (assessmentId: string) => {
     if (!user?.id) return;
     try {
-      const res = await start({ user_id: user.id, assessment_id: assessmentId });
+      const res = await start({ user_id: user.id, assessment_id: assessmentId, persona: role });
       setActiveAttempt({
         attemptId:     res.attempt_id,
         assessmentId:  res.assessment_id,
@@ -115,12 +119,10 @@ export default function Assessment() {
       <div className="w-full px-4 sm:px-8 lg:px-12 py-8 space-y-8">
 
         {/* Header */}
-        <div className="flex items-end justify-between">
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex items-end justify-between">
           <div>
             <h1 className="font-display text-3xl sm:text-4xl font-bold mb-1">Assessment</h1>
-            <p className="text-muted-foreground text-sm">
-              Test your knowledge and earn certifications.
-            </p>
+            <p className="text-muted-foreground text-sm">Test your knowledge and earn certifications.</p>
           </div>
           {certificates.length > 0 && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
@@ -130,123 +132,116 @@ export default function Assessment() {
               </span>
             </div>
           )}
-        </div>
+        </motion.div>
 
-        {/* Catalog grid */}
-        <div>
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
-            <ClipboardCheck className="h-4 w-4" /> Available Assessments
-          </h2>
+        {/* ── Two-column layout ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-48 rounded-2xl bg-muted/40 animate-pulse" />
-              ))}
+          {/* Left — My Assessments (Certificates) */}
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+            <div className="flex items-center gap-2 mb-4">
+              <Trophy className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-semibold">My Assessments</h2>
+              {certificates.length > 0 && (
+                <span className="rounded-full bg-primary/10 text-primary text-[10px] font-bold px-1.5 py-0.5">
+                  {certificates.length}
+                </span>
+              )}
             </div>
-          ) : catalog.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 rounded-2xl border border-dashed border-border">
-              <ClipboardCheck className="h-10 w-10 text-muted-foreground/30 mb-3" />
-              <p className="text-sm font-medium text-muted-foreground">No assessments available</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {catalog.map((item) => (
-                <motion.div
-                  key={item.id}
-                  whileHover={{ y: -3, boxShadow: "0 8px 30px rgba(0,0,0,0.08)" }}
-                  transition={{ duration: 0.2 }}
-                  className="flex flex-col rounded-2xl border border-border bg-card p-5 gap-3"
-                >
-                  {/* Card header */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <BookOpen className="h-4 w-4 text-primary" />
-                    </div>
-                    {item.level && (
-                      <span className={cn(
-                        "text-[10px] font-semibold px-2 py-0.5 rounded-full border capitalize shrink-0",
-                        LEVEL_STYLES[item.level?.toLowerCase()] ?? "bg-muted text-muted-foreground border-border"
-                      )}>
-                        {item.level}
-                      </span>
-                    )}
-                  </div>
 
-                  {/* Card body */}
-                  <div className="flex-1">
-                    <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1">
-                      {item.provider}
-                    </p>
-                    <h3 className="text-sm font-semibold text-foreground leading-snug">{item.title}</h3>
-                    {item.description && (
-                      <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2 leading-relaxed">
-                        {item.description}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Start button */}
-                  <Button
-                    size="sm"
-                    className="w-full mt-auto"
-                    onClick={() => openModal(item.id)}
+            {certificates.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 rounded-xl border border-dashed border-border text-center">
+                <Trophy className="h-10 w-10 mb-3 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground mb-1">No certificates yet</p>
+                <p className="text-xs text-muted-foreground/70">Pass an assessment on the right to earn one</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {certificates.map((c) => (
+                  <motion.div
+                    key={c.id}
+                    whileHover={{ y: -1 }}
+                    className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 flex items-center gap-3"
                   >
-                    Start Assessment <ChevronRight className="h-3.5 w-3.5 ml-1" />
-                  </Button>
-                </motion.div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Certificates */}
-        <div>
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
-            <Award className="h-4 w-4" /> My Certificates
-          </h2>
-          {certificates.length === 0 ? (
-            <div className="flex items-center gap-4 p-4 rounded-2xl border border-dashed border-border">
-              <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
-                <Trophy className="h-5 w-5 text-muted-foreground/30" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">No certificates yet</p>
-                <p className="text-xs text-muted-foreground/60">Pass an assessment above to earn your first one.</p>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {certificates.map((c) => (
-                <motion.div
-                  key={c.id}
-                  whileHover={{ y: -2 }}
-                  className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 flex flex-col gap-3"
-                >
-                  <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
                       <Award className="h-4 w-4 text-emerald-600" />
                     </div>
-                    <div className="min-w-0">
+                    <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-foreground truncate">{c.topic}</p>
-                      <p className="text-xs text-muted-foreground">{c.provider}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs text-muted-foreground">{c.provider}</span>
+                        <span className="text-[10px] font-mono text-primary">{c.certificate_code}</span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-mono text-primary">{c.certificate_code}</span>
-                    <span className="font-bold text-emerald-600">{c.score_percent}%</span>
-                  </div>
-                  <Button
-                    size="sm" variant="outline"
-                    className="w-full h-8 text-xs border-emerald-500/30 hover:bg-emerald-500/10"
-                    onClick={() => navigate(`/assessment/certificate/${c.id}`)}
-                  >
-                    View Certificate
-                  </Button>
-                </motion.div>
-              ))}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-sm font-bold text-emerald-600">{c.score_percent}%</span>
+                      <Button
+                        size="sm" variant="outline"
+                        className="h-7 text-xs border-emerald-500/30 hover:bg-emerald-500/10"
+                        onClick={() => navigate(`/assessment/certificate/${c.id}`)}
+                      >
+                        View
+                      </Button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+
+          {/* Right — Available Assessments (Catalog) */}
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+            <div className="flex items-center gap-2 mb-4">
+              <ClipboardCheck className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-semibold">Available Assessments</h2>
+              <span className="text-xs text-muted-foreground ml-1">by Usebox</span>
             </div>
-          )}
+
+            {loading ? (
+              <div className="space-y-3">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="h-16 rounded-xl bg-muted/40 animate-pulse" />
+                ))}
+              </div>
+            ) : catalog.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 rounded-xl border border-dashed border-border">
+                <ClipboardCheck className="h-10 w-10 text-muted-foreground/30 mb-3" />
+                <p className="text-sm text-muted-foreground">No assessments available</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {catalog.map((item, i) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 + i * 0.04 }}
+                    className="rounded-xl border border-border bg-card p-4 flex items-center gap-3 hover:border-primary/30 hover:shadow-sm transition-all"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <BookOpen className="h-3.5 w-3.5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">{item.provider}</p>
+                      <h3 className="text-sm font-semibold text-foreground truncate">{item.title}</h3>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={cn(
+                        "text-[10px] font-semibold px-2 py-0.5 rounded-full border",
+                        getPersonaBadge(role).className
+                      )}>
+                        {getPersonaBadge(role).label}
+                      </span>
+                      <Button size="sm" className="h-7 text-xs gap-1" onClick={() => openModal(item.id)}>
+                        Start <ChevronRight className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+
         </div>
       </div>
 

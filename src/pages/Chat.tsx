@@ -11,19 +11,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserRole, ROLE_LABELS, type UserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { type ChatMessage, type SourceReference } from "@/lib/chat-stream";
 import { useChatHistory } from "@/hooks/useChatHistory";
 import { PlatformResponse } from "@/components/chat/PlatformResponse";
 import { useLabs } from "@/hooks/useLabs";
 import { useUserContextFilters } from "@/hooks/useUserContextFilters";
-import { useContextFilterOptions } from "@/hooks/useContextFilterOptions";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ChevronDown } from "lucide-react";
 import { api } from "@/lib/api";
 
 const SUGGESTIONS = [
@@ -33,15 +26,6 @@ const SUGGESTIONS = [
   "Help me create a learning path for my team",
 ];
 const DEFAULT_COMPARE_PLATFORMS = ["openai", "google", "microsoft"];
-
-const roleOptions: UserRole[] = ["nocode", "lowcode", "prodeveloper", "architect", "admin"];
-const ROLE_COLORS: Record<UserRole, string> = {
-  nocode: "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20",
-  lowcode: "from-amber-500/10 to-amber-500/5 border-amber-500/20",
-  prodeveloper: "from-blue-500/10 to-blue-500/5 border-blue-500/20",
-  architect: "from-purple-500/10 to-purple-500/5 border-purple-500/20",
-  admin: "from-red-500/10 to-red-500/5 border-red-500/20",
-};
 
 function toPlatformLabel(name: string): string {
   const normalized = (name || "").trim().toLowerCase();
@@ -76,8 +60,7 @@ type DisplayMessage = ChatMessage & {
 const Chat = () => {
   const { user } = useAuth();
   const { role, setRole } = useUserRole();
-  const { functionalArea, industry, setFunctionalArea, setIndustry } = useUserContextFilters();
-  const { functionalAreas, industries, loading: filtersLoading, error: filtersError, refetch: refetchFilters } = useContextFilterOptions();
+  const { functionalArea, industry } = useUserContextFilters();
   const navigate = useNavigate();
   const { generateLab } = useLabs({ autoFetch: false });
   const { chats, loading: historyLoading, createChat, renameChat, deleteChat, toggleSaveChat, loadMessages, saveMessage, autoTitle } = useChatHistory();
@@ -329,98 +312,6 @@ const Chat = () => {
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Context bar - always visible at top */}
-      <div className="z-10 border-b border-border/60 bg-background/95 backdrop-blur">
-        <div className="w-full px-4 sm:px-8 lg:px-12 py-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mr-1">
-              Domain
-            </span>
-
-            {/* Persona */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  className={[
-                    "flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-gradient-to-b border",
-                    role ? ROLE_COLORS[role] : "from-muted/60 to-muted/20 border-dashed border-border",
-                    "hover:opacity-90 transition-opacity min-w-[180px]",
-                  ].join(" ")}
-                >
-                  <span className="text-xs font-semibold text-foreground truncate text-left">
-                    {role ? ROLE_LABELS[role] : "Select Persona"}
-                  </span>
-                  <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                <DropdownMenuItem onClick={() => setRole(null)}>Select Persona</DropdownMenuItem>
-                {roleOptions.map((r) => (
-                  <DropdownMenuItem key={r} onClick={() => setRole(r)}>
-                    {ROLE_LABELS[r]}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Functional Area */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-gradient-to-b border from-muted/60 to-muted/20 border-dashed border-border hover:opacity-90 transition-opacity min-w-[200px]">
-                  <span className="text-xs font-semibold text-foreground truncate text-left">
-                    {filtersLoading
-                      ? "Loading…"
-                      : functionalAreas.find((f) => f.key === functionalArea)?.display_name || "All Functional Areas"}
-                  </span>
-                  <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-64">
-                <DropdownMenuItem onClick={() => setFunctionalArea(null)}>All Functional Areas</DropdownMenuItem>
-                {filtersError && (
-                  <DropdownMenuItem onClick={refetchFilters}>
-                    Retry loading options
-                  </DropdownMenuItem>
-                )}
-                {filtersLoading && functionalAreas.length === 0 && <DropdownMenuItem disabled>Loading...</DropdownMenuItem>}
-                {functionalAreas.map((opt) => (
-                  <DropdownMenuItem key={opt.key} onClick={() => setFunctionalArea(opt.key)}>
-                    {opt.display_name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Industry */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-gradient-to-b border from-muted/60 to-muted/20 border-dashed border-border hover:opacity-90 transition-opacity min-w-[180px]">
-                  <span className="text-xs font-semibold text-foreground truncate text-left">
-                    {filtersLoading
-                      ? "Loading…"
-                      : industries.find((i) => i.key === industry)?.display_name || "All Industries"}
-                  </span>
-                  <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                <DropdownMenuItem onClick={() => setIndustry(null)}>All Industries</DropdownMenuItem>
-                {filtersError && (
-                  <DropdownMenuItem onClick={refetchFilters}>
-                    Retry loading options
-                  </DropdownMenuItem>
-                )}
-                {filtersLoading && industries.length === 0 && <DropdownMenuItem disabled>Loading...</DropdownMenuItem>}
-                {industries.map((opt) => (
-                  <DropdownMenuItem key={opt.key} onClick={() => setIndustry(opt.key)}>
-                    {opt.display_name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      </div>
       {/* Save action below context row once chat exists */}
       {activeChatId && activeChat && (
         <div className="z-10 border-b border-border/50 bg-background/95">
@@ -448,7 +339,7 @@ const Chat = () => {
               className="text-center pt-[15vh]"
             >
               <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
-                <img src={useBoxLogo} alt="UseBox" className="h-7 w-7" />
+                <img src={useBoxLogo} alt="Usebox" className="h-7 w-7" />
               </div>
               <h2 className="font-display text-2xl sm:text-3xl font-bold mb-2">
                 What can I help with?
@@ -490,35 +381,24 @@ const Chat = () => {
                 >
                   {msg.role === "assistant" ? (
                     msg.isComparing || (msg.summaryPlatforms && msg.summaryPlatforms.length > 0) ? (
-                      <div className="flex flex-col gap-4">
-                        {msg.summaryText && (
-                          <div className="border-b border-border/40 pb-4">
-                            <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                              Cross-platform overview
-                            </div>
-                            <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-background [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-background [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_li]:text-foreground/70 [&_p]:text-foreground">
-                              <ReactMarkdown>{msg.summaryText}</ReactMarkdown>
-                            </div>
-                          </div>
-                        )}
-                        <PlatformResponse
-                          messages={pendingMessagesRef.current}
-                          platforms={msg.summaryPlatforms || []}
-                          role={role}
-                          initialActivePlatformName={msg.selectedPlatform || null}
-                          allowPick={msg.isComparing && (msg.summaryPlatforms?.length || 0) > 1}
-                          onPick={handlePick}
-                          onError={handleCompareError}
-                          autoStart={msg.isComparing ? (msg.summaryPlatforms?.length === 1) : true}
-                          finalContent={msg.content}
-                          followups={i === messages.length - 1 ? followups : []}
-                          followupsLoading={i === messages.length - 1 ? followupsLoading : false}
-                          onFollowupClick={sendMessage}
-                        />
-                      </div>
+                      <PlatformResponse
+                        messages={pendingMessagesRef.current}
+                        platforms={msg.summaryPlatforms || []}
+                        role={role}
+                        initialActivePlatformName={msg.selectedPlatform || null}
+                        allowPick={msg.isComparing && (msg.summaryPlatforms?.length || 0) > 1}
+                        onPick={handlePick}
+                        onError={handleCompareError}
+                        autoStart={msg.isComparing ? (msg.summaryPlatforms?.length === 1) : true}
+                        finalContent={msg.content}
+                        summaryText={msg.summaryText}
+                        followups={i === messages.length - 1 ? followups : []}
+                        followupsLoading={i === messages.length - 1 ? followupsLoading : false}
+                        onFollowupClick={sendMessage}
+                      />
                     ) : (
-                      <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-background [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-background [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_li]:text-foreground/70 [&_p]:text-foreground">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-background [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-background [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_li]:text-foreground/70 [&_p]:text-foreground [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm [&_th]:border [&_th]:border-border [&_th]:bg-muted/60 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:text-xs [&_th]:font-semibold [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_td]:align-top [&_tr:nth-child(even)_td]:bg-muted/20">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                       </div>
                     )
                   ) : (
@@ -561,7 +441,7 @@ const Chat = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Message UseBox..."
+              placeholder="Message Usebox..."
               rows={1}
               className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground resize-none outline-none min-h-[24px] max-h-[120px]"
               style={{ height: "auto", overflow: "hidden" }}
@@ -581,7 +461,7 @@ const Chat = () => {
             </Button>
           </div>
           <p className="text-center text-[11px] text-muted-foreground/60 mt-2">
-            UseBox may produce inaccurate information. Verify important details.
+            Usebox may produce inaccurate information. Verify important details.
           </p>
         </form>
       </div>

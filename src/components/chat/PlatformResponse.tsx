@@ -5,6 +5,7 @@ import { Check, Loader2, ChevronRight, FlaskConical, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { streamChatPlatforms, type ChatMessage, type SourceReference } from "@/lib/chat-stream";
 import { useUserContextFilters } from "@/hooks/useUserContextFilters";
 import { useLabs } from "@/hooks/useLabs";
@@ -30,10 +31,115 @@ interface PlatformResponseProps {
   onPick: (content: string, platform: string, sources?: SourceReference[]) => void;
   onError: (err: string) => void;
   finalContent?: string;
-  // Follow-up props
+  summaryText?: string;
   followups?: string[];
   followupsLoading?: boolean;
   onFollowupClick?: (question: string) => void;
+}
+
+const SUMMARY_TAB = "__summary__";
+
+interface LockedInteractionAreaProps {
+  pendingLabTopic: string | null;
+  labGenerating: boolean;
+  followups?: string[];
+  followupsLoading?: boolean;
+  onLabYes: () => void;
+  onLabNo: () => void;
+  onFollowup: (q: string) => void;
+}
+
+function LockedInteractionArea({
+  pendingLabTopic,
+  labGenerating,
+  followups,
+  followupsLoading,
+  onLabYes,
+  onLabNo,
+  onFollowup,
+}: LockedInteractionAreaProps) {
+  if (!pendingLabTopic && !labGenerating && (!followups || followups.length === 0) && !followupsLoading) {
+    return null;
+  }
+  return (
+    <AnimatePresence mode="popLayout">
+      <motion.div
+        key="interaction-area"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -5 }}
+        className="mt-6 flex flex-col gap-3"
+      >
+        {(pendingLabTopic || labGenerating) && (
+          <div className="flex flex-col gap-2">
+            <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+              Hands-on learning
+            </div>
+            {pendingLabTopic && (
+              <motion.div
+                key="lab-prompt"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="flex items-center justify-between gap-3 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <FlaskConical className="h-4 w-4 shrink-0 text-primary" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground leading-snug">
+                      Would you like a hands-on lab for this?
+                    </p>
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                      {pendingLabTopic}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button size="sm" className="h-7 px-3 text-xs" onClick={onLabYes}>
+                    Yes, create lab
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground" onClick={onLabNo}>
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+            {labGenerating && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <span>Creating your lab...</span>
+              </div>
+            )}
+          </div>
+        )}
+        {(followupsLoading || (followups && followups.length > 0)) && (
+          <div className="flex flex-col gap-2">
+            <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+              Follow-up questions
+            </div>
+            {followupsLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                <span>Generating suggestions…</span>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {followups?.map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => onFollowup(q)}
+                    className="text-left text-xs px-3 py-2 rounded-xl border border-border bg-background hover:border-primary/30 hover:bg-secondary/50 transition-all text-muted-foreground hover:text-foreground"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </motion.div>
+    </AnimatePresence>
+  );
 }
 
 function toPlatformLabel(name: string): string {
@@ -59,6 +165,7 @@ export function PlatformResponse({
   onPick,
   onError,
   finalContent,
+  summaryText,
   followups,
   followupsLoading,
   onFollowupClick,
@@ -75,7 +182,7 @@ export function PlatformResponse({
   const [labGenerating, setLabGenerating] = useState(false);
   const [picked, setPicked] = useState<string | null>(null);
   const [sourcesMap, setSourcesMap] = useState<Record<string, SourceReference[]>>({});
-  const [activeTab, setActiveTab] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<string>(() => summaryText ? SUMMARY_TAB : "");
   const buffers = useRef<Record<string, string>>({});
   const startedRef = useRef<Set<string>>(new Set());
   const autoPickedRef = useRef(false);
@@ -107,10 +214,8 @@ export function PlatformResponse({
   }, [messages]);
 
   const requestKey = useMemo(() => {
-    // Keyed to message history + user + persona + current active tab.
-    // We intentionally stream only the active tab (lazy-load per platform).
-    return `${role || ""}::${messageKey}::${user?.id || ""}::${activeTab || ""}`;
-  }, [role, messageKey, user?.id, activeTab]);
+    return `${role || ""}::${messageKey}::${user?.id || ""}`;
+  }, [role, messageKey, user?.id]);
 
   // Auto-dismiss the lab Yes/No prompt if the user sends a new question
   // without responding — treat unanswered as "No".
@@ -287,7 +392,7 @@ export function PlatformResponse({
     setPendingLabTopic(null);
     setLabGenerating(true);
     try {
-      const labId = await generateLab(topic);
+      const labId = await generateLab(topic, "intermediate", role);
       if (labId) {
         toast.success("✅ Lab created! Check your Labs page.", {
           action: { label: "Open Lab", onClick: () => navigate("/lab") },
@@ -308,8 +413,6 @@ export function PlatformResponse({
     if (onFollowupClick) onFollowupClick(q);
   };
 
-  const allDone = platformIds.every((id) => doneStates[id]);
-
   if (platformNames.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -318,18 +421,59 @@ export function PlatformResponse({
     );
   }
 
+  // ── Locked / follow-up mode: single platform, no pick button ──
+  // Render cleanly without tabs or "Explore" label
+  if (!allowPick) {
+    const content = finalContent || responses[platformNames[0]] || "";
+    const isGenerating = !finalContent && !doneStates[platformNames[0]];
+    return (
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="w-full">
+        <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-muted [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_li]:text-muted-foreground [&_p]:text-foreground">
+          {isGenerating ? (
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating…
+            </div>
+          ) : (
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{stripMetaTags(content)}</ReactMarkdown>
+          )}
+        </div>
+        {/* Lab + followups still shown in locked mode */}
+        <LockedInteractionArea
+          pendingLabTopic={pendingLabTopic}
+          labGenerating={labGenerating}
+          followups={followups}
+          followupsLoading={followupsLoading}
+          onLabYes={handleLabYes}
+          onLabNo={handleLabNo}
+          onFollowup={handleFollowupInternal}
+        />
+      </motion.div>
+    );
+  }
+
+  // ── Comparison mode: multiple platforms, pick button ──
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       className="w-full"
     >
-      <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
-        Explore platform responses
-      </div>
-
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full justify-start bg-transparent p-0 h-auto gap-2 flex-wrap">
+        {/* Tab bar: Summary + Platform tabs */}
+        <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
+          Compare platforms
+        </div>
+        <TabsList className="w-full justify-start bg-transparent p-0 h-auto gap-2 flex-wrap mb-3">
+          {/* Summary tab — shown only when summaryText is available */}
+          {summaryText && (
+            <TabsTrigger
+              value={SUMMARY_TAB}
+              className="rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-muted-foreground shadow-none data-[state=active]:border-primary/40 data-[state=active]:bg-primary/10 data-[state=active]:text-foreground data-[state=active]:shadow-none"
+            >
+              Summary
+            </TabsTrigger>
+          )}
+          {/* Platform tabs */}
           {platformNames.map((platformName) => (
             <TabsTrigger
               key={platformName}
@@ -343,7 +487,7 @@ export function PlatformResponse({
                 <ChevronRight
                   className={`h-3 w-3 ml-1 transition-colors ${!doneStates[platformName]
                       ? "text-primary animate-pulse"
-                      : "text-muted-foreground group-data-[state=active]:text-primary"
+                      : "text-muted-foreground"
                     }`}
                 />
               )}
@@ -351,22 +495,29 @@ export function PlatformResponse({
           ))}
         </TabsList>
 
-        {!activeTab && (
-          <TabsContent value="__empty__" className="mt-3">
-            <div className="rounded-lg border border-border bg-background p-4 text-sm text-muted-foreground">
-              Select a platform above to generate its response.
+        {/* Summary tab content */}
+        {summaryText && (
+          <TabsContent value={SUMMARY_TAB} className="mt-0">
+            <div className="rounded-lg border border-border bg-background p-4">
+              <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                Cross-platform overview
+              </div>
+              <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1 [&_p]:leading-snug [&_a]:text-primary [&_li]:text-foreground/70 [&_p]:text-foreground [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm [&_th]:border [&_th]:border-border [&_th]:bg-muted/60 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:text-xs [&_th]:font-semibold [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_td]:align-top [&_tr:nth-child(even)_td]:bg-muted/20 max-h-[400px] overflow-y-auto">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{summaryText}</ReactMarkdown>
+              </div>
             </div>
           </TabsContent>
         )}
 
+        {/* Platform tab contents */}
         {platformNames.map((platformName) => (
-          <TabsContent key={platformName} value={platformName} className="mt-3">
+          <TabsContent key={platformName} value={platformName} className="mt-0">
             <div className="relative rounded-lg border border-border bg-background p-4">
-              <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-muted [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_li]:text-muted-foreground [&_p]:text-foreground min-h-[60px] max-h-[340px] overflow-y-auto">
+              <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-muted [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_li]:text-muted-foreground [&_p]:text-foreground [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm [&_th]:border [&_th]:border-border [&_th]:bg-muted/60 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:text-xs [&_th]:font-semibold [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_td]:align-top [&_tr:nth-child(even)_td]:bg-muted/20 min-h-[60px] max-h-[340px] overflow-y-auto">
                 {finalContent && activeTab === platformName ? (
-                  <ReactMarkdown>{stripMetaTags(finalContent)}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{stripMetaTags(finalContent)}</ReactMarkdown>
                 ) : responses[platformName] ? (
-                  <ReactMarkdown>{stripMetaTags(responses[platformName])}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{stripMetaTags(responses[platformName])}</ReactMarkdown>
                 ) : (
                   <div className="flex items-center gap-2 text-muted-foreground text-sm">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating…
@@ -378,9 +529,10 @@ export function PlatformResponse({
         ))}
       </Tabs>
 
-      {allowPick && activeTab && doneStates[activeTab] && responses[activeTab] && (
+      {/* Continue button — only for platform tabs, not Summary */}
+      {activeTab && activeTab !== SUMMARY_TAB && doneStates[activeTab] && responses[activeTab] && (
         <Button className="mt-3 w-full" onClick={() => handlePick(activeTab)}>
-          Continue chat with {toPlatformLabel(activeTab)} →
+          Continue with {toPlatformLabel(activeTab)} →
         </Button>
       )}
 

@@ -99,7 +99,7 @@ export default function CertificateDetail() {
                       Certificate of Achievement
                     </p>
                     <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-50">
-                      UseBox Certification
+                      Usebox Certification
                     </h1>
                   </div>
                 </div>
@@ -153,7 +153,7 @@ export default function CertificateDetail() {
                 </div>
                 <div className="text-center sm:text-right">
                   <div className="inline-flex items-center gap-2 justify-center sm:justify-end px-3 py-1.5 rounded-full bg-amber-100/70 dark:bg-amber-400/10 text-amber-800 dark:text-amber-200 border border-amber-200/70 dark:border-amber-400/20">
-                    <span className="text-xs font-medium">Verified by UseBox</span>
+                    <span className="text-xs font-medium">Verified by Usebox</span>
                     <span className="text-xs font-semibold">{certificate.certificate_code}</span>
                   </div>
                 </div>
