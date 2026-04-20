@@ -63,6 +63,7 @@ export type ApiLab = {
   description?: string;
   topic?: string;
   difficulty?: string;
+  persona?: string;
   total_steps?: number;
   completed_steps?: number;
   status?: string;
@@ -89,6 +90,7 @@ export type ApiAssessmentCatalogItem = {
   description: string;
   skills_json: string[];
   active: boolean;
+  persona?: string;
 };
 
 export type ApiAssessmentQuestion = {
@@ -213,6 +215,15 @@ export const api = {
       "/api/earnings/redeem",
       { method: "POST", body: payload }
     ),
+  getPredefinedLabs: (persona?: string | null) =>
+    request<ApiLab[]>(
+      `/api/labs/predefined${persona && persona !== "no-persona" ? `?persona=${encodeURIComponent(persona)}` : ""}`
+    ),
+  startPredefinedLab: (labId: string, payload: { user_id: string; persona?: string | null }) =>
+    request<{ id: string; title: string }>(`/api/labs/predefined/${encodeURIComponent(labId)}/start`, {
+      method: "POST",
+      body: payload,
+    }),
   getLabsForUser: (userId: string) => request<ApiLab[]>(`/api/labs/user/${encodeURIComponent(userId)}`),
   generateLab: (payload: { topic: string; difficulty?: string; user_id?: string; role?: string }) =>
     request<ApiLab>("/api/labs/generate", { method: "POST", body: payload }),
@@ -233,9 +244,11 @@ export const api = {
     }),
   getChatFollowups: (payload: { userId?: string; prompt?: string; pickedPlatform?: string; pickedAnswer?: string }) =>
     request<{ questions: string[] }>("/api/chat/followups", { method: "POST", body: payload }),
-  getAssessmentCatalog: () =>
-    request<{ items: ApiAssessmentCatalogItem[] }>(`/api/assessments/catalog`),
-  startAssessment: (payload: { user_id: string; assessment_id: string }) =>
+  getAssessmentCatalog: (persona?: string | null) =>
+    request<{ items: ApiAssessmentCatalogItem[] }>(
+      `/api/assessments/catalog${persona && persona !== "no-persona" ? `?persona=${encodeURIComponent(persona)}` : ""}`
+    ),
+  startAssessment: (payload: { user_id: string; assessment_id: string; persona?: string | null }) =>
     request<ApiAssessmentStartResponse>("/api/assessments/start", { method: "POST", body: payload }),
   submitAssessment: (
     attemptId: string,

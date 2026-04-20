@@ -28,6 +28,7 @@ export interface Lab {
   description: string;
   topic: string;
   difficulty: string;
+  persona: string;
   total_steps: number;
   completed_steps: number;
   status: string;
@@ -61,6 +62,7 @@ export function useLabs(options?: { autoFetch?: boolean }) {
         description: al.description || al.goal || String(al.raw || "").substring(0, 100) + "...",
         topic: al.topic || al.question || "",
         difficulty: al.difficulty || "intermediate",
+        persona: al.persona || "no-persona",
         total_steps: al.total_steps || 0,
         completed_steps: al.completed_steps || 0,
         status: al.status || "in_progress",

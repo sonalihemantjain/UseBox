@@ -13,10 +13,10 @@ export function useAssessments() {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const loadCatalog = useCallback(async () => {
+  const loadCatalog = useCallback(async (persona?: string | null) => {
     setLoading(true);
     try {
-      const res = await api.getAssessmentCatalog();
+      const res = await api.getAssessmentCatalog(persona);
       setCatalog(res.items || []);
     } finally {
       setLoading(false);
@@ -29,7 +29,7 @@ export function useAssessments() {
   }, []);
 
   const start = useCallback(
-    async (payload: { user_id: string; assessment_id: string }): Promise<ApiAssessmentStartResponse> => {
+    async (payload: { user_id: string; assessment_id: string; persona?: string | null }): Promise<ApiAssessmentStartResponse> => {
       return api.startAssessment(payload);
     },
     []
