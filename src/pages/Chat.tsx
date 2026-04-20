@@ -339,7 +339,7 @@ const Chat = () => {
               className="text-center pt-[15vh]"
             >
               <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
-                <img src={useBoxLogo} alt="UseBox" className="h-7 w-7" />
+                <img src={useBoxLogo} alt="Usebox" className="h-7 w-7" />
               </div>
               <h2 className="font-display text-2xl sm:text-3xl font-bold mb-2">
                 What can I help with?
@@ -441,7 +441,7 @@ const Chat = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Message UseBox..."
+              placeholder="Message Usebox..."
               rows={1}
               className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground resize-none outline-none min-h-[24px] max-h-[120px]"
               style={{ height: "auto", overflow: "hidden" }}
@@ -461,7 +461,7 @@ const Chat = () => {
             </Button>
           </div>
           <p className="text-center text-[11px] text-muted-foreground/60 mt-2">
-            UseBox may produce inaccurate information. Verify important details.
+            Usebox may produce inaccurate information. Verify important details.
           </p>
         </form>
       </div>

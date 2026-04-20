@@ -194,7 +194,7 @@ export default function Assessment() {
             <div className="flex items-center gap-2 mb-4">
               <ClipboardCheck className="h-4 w-4 text-primary" />
               <h2 className="text-sm font-semibold">Available Assessments</h2>
-              <span className="text-xs text-muted-foreground ml-1">by UseBox</span>
+              <span className="text-xs text-muted-foreground ml-1">by Usebox</span>
             </div>
 
             {loading ? (

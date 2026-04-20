@@ -13,9 +13,9 @@ export function AuthenticatedLayout({ children }: { children: React.ReactNode })
           <header className="md:hidden flex items-center gap-3 px-4 h-14 border-b border-border bg-background shrink-0 z-20">
             <SidebarTrigger className="h-8 w-8" />
             <a href="/dashboard" className="flex items-center gap-2">
-              <img src={useBoxLogo} alt="UseBox" className="h-7 w-7" />
+              <img src={useBoxLogo} alt="Usebox" className="h-7 w-7" />
               <span className="font-display text-base font-bold tracking-tight">
-                Use<span className="text-gradient-gold">Box</span>
+                Use<span className="text-gradient-gold">box</span>
               </span>
             </a>
           </header>

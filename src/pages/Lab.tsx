@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FlaskConical, Loader2, Wand2, BookMarked, ChevronRight, Trash2, Clock, Sparkles } from "lucide-react";
-import { useLabs, type Lab } from "@/hooks/useLabs";
+import { useLabs, type Lab, type LabTask, type LabTaskStep } from "@/hooks/useLabs";
 import { useUserRole, ROLE_LABELS } from "@/hooks/useUserRole";
-import { useAuth } from "@/hooks/useAuth";
 import { LabDetail } from "@/components/lab/LabDetail";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -22,16 +21,65 @@ const PERSONA_BADGE: Record<string, { label: string; className: string }> = {
 const getPersonaBadge = (persona: string) =>
   PERSONA_BADGE[persona] ?? PERSONA_BADGE["no-persona"];
 
+function predefinedToLab(apiLab: ApiLab): Lab {
+  const tasks: LabTask[] = (apiLab.tasks || []).map(t => ({
+    id: t.id,
+    lab_id: apiLab.id,
+    task_order: t.task_order,
+    title: t.title,
+    description: t.description || "",
+    steps: (t.steps || []).map(s => ({
+      id: s.id,
+      task_id: t.id,
+      step_order: s.step_order,
+      title: s.title,
+      content: s.content,
+      is_completed: false,
+    } as LabTaskStep)),
+  }));
+
+  const total_steps = tasks.reduce((sum, t) => sum + t.steps.length, 0);
+
+  // Build a rich overview: base description + task summary
+  const taskSummary = tasks
+    .map((t, i) => {
+      const stepTitles = t.steps.map(s => `  - ${s.title}`).join("\n");
+      return `**${i + 1}. ${t.title}**\n${t.description ? t.description + "\n" : ""}${stepTitles}`;
+    })
+    .join("\n\n");
+
+  const richDescription = [
+    apiLab.description || "",
+    tasks.length > 0 ? `\n## What You'll Cover\n\n${taskSummary}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return {
+    id: apiLab.id,
+    user_id: "",
+    title: apiLab.title,
+    description: richDescription,
+    topic: apiLab.topic || "",
+    difficulty: apiLab.difficulty || "intermediate",
+    persona: apiLab.persona || "no-persona",
+    total_steps,
+    completed_steps: 0,
+    status: "in_progress",
+    created_at: apiLab.created_at,
+    tasks,
+  };
+}
+
 export default function Lab() {
   const { labs, loading, generating, generateLab, toggleStepComplete, deleteLab, refetch } = useLabs();
   const { role } = useUserRole();
-  const { user } = useAuth();
   const [selected, setSelected] = useState<Lab | null>(null);
   const [topic, setTopic] = useState("");
 
   const [predefinedLabs, setPredefinedLabs] = useState<ApiLab[]>([]);
   const [predefinedLoading, setPredefinedLoading] = useState(false);
-  const [startingLabId, setStartingLabId] = useState<string | null>(null);
+  const [selectedPredefined, setSelectedPredefined] = useState<Lab | null>(null);
 
   const loadPredefined = useCallback(async (persona?: string | null) => {
     setPredefinedLoading(true);
@@ -49,8 +97,19 @@ export default function Lab() {
     loadPredefined(role);
   }, [role, loadPredefined]);
 
-  const currentSelected = selected ? labs.find(l => l.id === selected.id) || null : null;
+  // Show predefined lab detail (read-only, no step toggling)
+  if (selectedPredefined) {
+    return (
+      <LabDetail
+        lab={selectedPredefined}
+        onBack={() => setSelectedPredefined(null)}
+        onToggleStep={() => {}}
+      />
+    );
+  }
 
+  // Show user lab detail (with progress tracking)
+  const currentSelected = selected ? labs.find(l => l.id === selected.id) || null : null;
   if (currentSelected) {
     return (
       <LabDetail
@@ -66,20 +125,6 @@ export default function Lab() {
     if (!trimmed) { toast.error("Please enter a topic"); return; }
     await generateLab(trimmed, "intermediate", role);
     setTopic("");
-  };
-
-  const handleStartPredefined = async (lab: ApiLab) => {
-    if (!user?.id) { toast.error("Please log in first"); return; }
-    setStartingLabId(lab.id);
-    try {
-      const result = await api.startPredefinedLab(lab.id, { user_id: user.id, persona: role });
-      toast.success(`"${result.title}" added to My Labs`);
-      await refetch();
-    } catch {
-      toast.error("Failed to start lab");
-    } finally {
-      setStartingLabId(null);
-    }
   };
 
   return (
@@ -157,7 +202,7 @@ export default function Lab() {
               <div className="flex flex-col items-center justify-center py-16 rounded-xl border border-dashed border-border text-center">
                 <FlaskConical className="h-10 w-10 mb-3 text-muted-foreground/30" />
                 <p className="text-sm text-muted-foreground mb-1">No labs yet</p>
-                <p className="text-xs text-muted-foreground/70">Generate one above or start a predefined lab</p>
+                <p className="text-xs text-muted-foreground/70">Generate a lab above to get started</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -217,7 +262,7 @@ export default function Lab() {
             <div className="flex items-center gap-2 mb-4">
               <BookMarked className="h-4 w-4 text-primary" />
               <h2 className="text-sm font-semibold">Predefined Labs</h2>
-              <span className="text-xs text-muted-foreground ml-1">by UseBox</span>
+              <span className="text-xs text-muted-foreground ml-1">by Usebox</span>
               {role && (
                 <span className={`ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full border ${getPersonaBadge(role).className}`}>
                   {getPersonaBadge(role).label}
@@ -239,34 +284,25 @@ export default function Lab() {
               </div>
             ) : (
               <div className="space-y-3">
-                {predefinedLabs.map((lab, i) => {
-                  const isStarting = startingLabId === lab.id;
-                  return (
-                    <motion.div
-                      key={lab.id}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.15 + i * 0.05 }}
-                      className="rounded-xl border border-border bg-card p-4 flex items-center gap-3 hover:border-primary/30 hover:shadow-sm cursor-pointer transition-all"
-                      onClick={() => !isStarting && handleStartPredefined(lab)}
-                    >
-                      <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
-                        <BookMarked className="h-4 w-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-semibold truncate mb-0.5">{lab.title}</h3>
-                        <p className="text-xs text-muted-foreground line-clamp-1">{lab.description}</p>
-                      </div>
-                      <div className="shrink-0">
-                        {isStarting ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </div>
-                    </motion.div>
-                  );
-                })}
+                {predefinedLabs.map((lab, i) => (
+                  <motion.div
+                    key={lab.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 + i * 0.05 }}
+                    className="rounded-xl border border-border bg-card p-4 flex items-center gap-3 hover:border-primary/30 hover:shadow-sm cursor-pointer transition-all"
+                    onClick={() => setSelectedPredefined(predefinedToLab(lab))}
+                  >
+                    <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
+                      <BookMarked className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-semibold truncate mb-0.5">{lab.title}</h3>
+                      <p className="text-xs text-muted-foreground line-clamp-1">{lab.description}</p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </motion.div>
+                ))}
               </div>
             )}
           </motion.div>

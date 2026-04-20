@@ -175,7 +175,7 @@ const Dashboard = () => {
         >
           <div className="flex items-center gap-2 mb-6">
             <Sparkles className="h-5 w-5 text-primary" />
-            <h2 className="font-display text-xl font-semibold">How UseBox Works</h2>
+            <h2 className="font-display text-xl font-semibold">How Usebox Works</h2>
           </div>
           <div className="grid sm:grid-cols-3 gap-6 text-center">
             {[

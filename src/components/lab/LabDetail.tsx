@@ -55,9 +55,15 @@ export function LabDetail({ lab, onBack, onToggleStep }: Props) {
     });
   };
 
+  const isOverviewStep = (step: LabTaskStep) =>
+    /TASK[_\s]OVERVIEW/i.test(step.title);
+
+  const visibleSteps = (task: LabTask) => task.steps.filter(s => !isOverviewStep(s));
+
   const getTaskProgress = (task: LabTask) => {
-    const completed = task.steps.filter(s => s.is_completed).length;
-    return { completed, total: task.steps.length };
+    const steps = visibleSteps(task);
+    const completed = steps.filter(s => s.is_completed).length;
+    return { completed, total: steps.length };
   };
 
   return (
@@ -122,7 +128,7 @@ export function LabDetail({ lab, onBack, onToggleStep }: Props) {
                         </button>
                         {isExpanded && (
                           <div className="border-t border-border px-3 py-2 space-y-1 bg-muted/30">
-                            {task.steps.map(step => (
+                            {visibleSteps(task).map(step => (
                               <div
                                 key={step.id}
                                 className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-accent/50 cursor-pointer transition-colors"
