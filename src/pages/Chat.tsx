@@ -11,11 +11,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserRole, ROLE_LABELS, type UserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { type ChatMessage, type SourceReference } from "@/lib/chat-stream";
-import { SourceLinks } from "@/components/chat/SourceLinks";
 import { useChatHistory } from "@/hooks/useChatHistory";
 import { PlatformResponse } from "@/components/chat/PlatformResponse";
 import { useLabs } from "@/hooks/useLabs";
+import { useUserContextFilters } from "@/hooks/useUserContextFilters";
+import { api } from "@/lib/api";
 
 const SUGGESTIONS = [
   "How do I get started with product adoption strategies?",
@@ -23,6 +25,20 @@ const SUGGESTIONS = [
   "What are best practices for onboarding enterprise users?",
   "Help me create a learning path for my team",
 ];
+const DEFAULT_COMPARE_PLATFORMS = ["openai", "google", "microsoft"];
+
+function toPlatformLabel(name: string): string {
+  const normalized = (name || "").trim().toLowerCase();
+  if (normalized === "openai") return "OpenAI";
+  if (normalized === "google") return "Google";
+  if (normalized === "microsoft") return "Microsoft";
+  if (normalized === "anthropic") return "Anthropic";
+  return name
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
 
 function stripMetaTags(content: string): string {
   return content
@@ -32,11 +48,19 @@ function stripMetaTags(content: string): string {
     .trim();
 }
 
-type DisplayMessage = ChatMessage & { comparing?: boolean; sources?: SourceReference[] };
+type DisplayMessage = ChatMessage & { 
+  isComparing?: boolean; 
+  summaryText?: string; 
+  summaryPlatforms?: string[];
+  initialActivePlatform?: string | null;
+  selectedPlatform?: string | null;
+  sources?: SourceReference[];
+};
 
 const Chat = () => {
   const { user } = useAuth();
   const { role, setRole } = useUserRole();
+  const { functionalArea, industry } = useUserContextFilters();
   const navigate = useNavigate();
   const { generateLab } = useLabs({ autoFetch: false });
   const { chats, loading: historyLoading, createChat, renameChat, deleteChat, toggleSaveChat, loadMessages, saveMessage, autoTitle } = useChatHistory();
@@ -51,6 +75,9 @@ const Chat = () => {
   const pendingMessagesRef = useRef<ChatMessage[]>([]);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveName, setSaveName] = useState("");
+  const [lockedPlatform, setLockedPlatform] = useState<string | null>(null);
+  const [followups, setFollowups] = useState<string[]>([]);
+  const [followupsLoading, setFollowupsLoading] = useState(false);
 
   const activeChat = chats.find((c) => c.id === activeChatId);
 
@@ -62,11 +89,20 @@ const Chat = () => {
 
   useEffect(() => { scrollToBottom(); }, [messages, comparingIndex]);
 
+  useEffect(() => {
+    if (activeChatId) localStorage.setItem("usebox_active_chat_id", activeChatId);
+    else localStorage.removeItem("usebox_active_chat_id");
+    window.dispatchEvent(new Event("usebox-active-chat-changed"));
+  }, [activeChatId]);
+
   const selectChat = useCallback(async (chatId: string) => {
     setActiveChatId(chatId);
     setComparingIndex(null);
     const msgs = await loadMessages(chatId);
     setMessages(msgs);
+    // Try to find the last picked platform in history to re-lock it
+    const lastAssistant = msgs.slice().reverse().find(m => m.role === 'assistant' && m.selectedPlatform);
+    setLockedPlatform(lastAssistant?.selectedPlatform || null);
   }, [loadMessages]);
 
   useEffect(() => {
@@ -86,6 +122,9 @@ const Chat = () => {
       setMessages([]);
       setComparingIndex(null);
       setInput("");
+      setLockedPlatform(null);
+      setFollowups([]);
+      setFollowupsLoading(false);
     };
     window.addEventListener("usebox-new-chat", handler);
     return () => window.removeEventListener("usebox-new-chat", handler);
@@ -136,6 +175,13 @@ const Chat = () => {
 
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
+    if (!role) {
+      toast.warning("Please select a persona before sending a message.");
+      return;
+    }
+    // Clear followups once user continues the conversation
+    setFollowups([]);
+    setFollowupsLoading(false);
 
     let chatId = activeChatId;
     if (!chatId) {
@@ -156,23 +202,85 @@ const Chat = () => {
       autoTitle(chatId, content.trim());
     }
 
-    if (!role) {
-      toast.info("Tip: Select a persona in the sidebar for personalized platform comparisons!");
-    }
-
     pendingChatIdRef.current = chatId;
     pendingMessagesRef.current = newMessages.map(({ role, content }) => ({ role, content }));
-    setComparingIndex(newMessages.length);
+    try {
+      if (lockedPlatform) {
+        // Skip summary and go straight to the locked platform
+        const assistantMsg: DisplayMessage = {
+          role: "assistant",
+          content: "",
+          isComparing: true, // We use this to trigger PlatformResponse in one-tab mode
+          summaryText: "", 
+          summaryPlatforms: [lockedPlatform],
+          selectedPlatform: lockedPlatform,
+        };
+        setMessages((prev) => [...prev, assistantMsg]);
+        return;
+      }
+
+      const summary = await api.getChatPlatformsSummary({
+        messages: pendingMessagesRef.current,
+        role,
+        userId: user?.id || null,
+        functionalArea,
+        industry,
+      });
+
+      const assistantMsg: DisplayMessage = {
+        role: "assistant",
+        content: "",
+        isComparing: true,
+        summaryText: summary.summary || "",
+        summaryPlatforms: summary.platforms || [],
+        initialActivePlatform: null,
+      };
+      setMessages((prev) => [...prev, assistantMsg]);
+      // Save summary immediately so reopening the chat always shows something
+      if (summary.summary) {
+        saveMessage(chatId, { role: "assistant", content: summary.summary });
+      }
+    } catch (e) {
+      console.error("Failed to load summary:", e);
+      toast.error("Failed to load summary");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handlePick = async (content: string, _model: string, sources?: SourceReference[]) => {
+  // Platform selection happens inside the platform tabs (lazy-loaded per tab).
+
+  const handlePick = async (content: string, platform: string, sources?: SourceReference[]) => {
     const chatId = pendingChatIdRef.current;
     content = content.replace(/\[PERSONA_DETECTED:\w+\]/g, "").trim();
-    const assistantMsg: DisplayMessage = { role: "assistant", content, sources };
-    setMessages((prev) => [...prev, assistantMsg]);
-    setComparingIndex(null);
+    
+    setMessages((prev) => {
+      const last = prev[prev.length - 1];
+      if (last?.role === "assistant" && last.isComparing) {
+        return [
+          ...prev.slice(0, -1),
+          { ...last, isComparing: false, content, sources, selectedPlatform: platform }
+        ];
+      }
+      return prev;
+    });
+
     setIsLoading(false);
-    if (chatId) await saveMessage(chatId, { role: "assistant", content });
+    setLockedPlatform(platform);
+    if (chatId) await saveMessage(chatId, { role: "assistant", content, selectedPlatform: platform });
+
+    // Fetch follow-up questions...
+    try {
+      setFollowupsLoading(true);
+      const lastUserPrompt = pendingMessagesRef.current.slice().reverse().find(m => m.role === 'user')?.content || '';
+      const res = await api.getChatFollowups({ userId: user?.id, prompt: lastUserPrompt, pickedAnswer: content });
+      setFollowups(res.questions || []);
+    } catch (e) {
+      console.error("Failed to load followups", e);
+      setFollowups([]);
+    } finally {
+      setFollowupsLoading(false);
+    }
   };
 
   const handleCompareError = (err: string) => {
@@ -204,19 +312,20 @@ const Chat = () => {
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Minimal top bar for active chat */}
+      {/* Save action below context row once chat exists */}
       {activeChatId && activeChat && (
-        <div className="flex items-center justify-between px-6 py-2.5 border-b border-border/50">
-          <h3 className="text-sm font-medium truncate text-foreground/70">{activeChat.title}</h3>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleToggleSave}
-            className={activeChat.saved ? "text-primary" : "text-muted-foreground hover:text-foreground"}
-          >
-            {activeChat.saved ? <BookmarkCheck className="h-4 w-4 mr-1.5" /> : <Bookmark className="h-4 w-4 mr-1.5" />}
-            <span className="hidden sm:inline">{activeChat.saved ? "Saved" : "Save"}</span>
-          </Button>
+        <div className="z-10 border-b border-border/50 bg-background/95">
+          <div className="w-full px-4 sm:px-8 lg:px-12 py-1.5 flex justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleToggleSave}
+              className={activeChat.saved ? "text-primary" : "text-muted-foreground hover:text-foreground"}
+            >
+              {activeChat.saved ? <BookmarkCheck className="h-4 w-4 mr-1.5" /> : <Bookmark className="h-4 w-4 mr-1.5" />}
+              <span>{activeChat.saved ? "Saved" : "Save"}</span>
+            </Button>
+          </div>
         </div>
       )}
 
@@ -230,7 +339,7 @@ const Chat = () => {
               className="text-center pt-[15vh]"
             >
               <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
-                <img src={useBoxLogo} alt="UseBox" className="h-7 w-7" />
+                <img src={useBoxLogo} alt="Usebox" className="h-7 w-7" />
               </div>
               <h2 className="font-display text-2xl sm:text-3xl font-bold mb-2">
                 What can I help with?
@@ -265,36 +374,52 @@ const Chat = () => {
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 py-3 ${msg.role === "user"
-                    ? "bg-primary text-primary-foreground rounded-br-sm"
-                    : "bg-muted/50 rounded-bl-sm"
+                  className={`max-w-[85%] sm:max-w-[80%] rounded-2xl ${msg.role === "user"
+                    ? "bg-primary text-primary-foreground rounded-br-sm px-4 py-3"
+                    : msg.isComparing ? "bg-card border border-border p-5 rounded-bl-sm w-full" : "bg-muted/50 rounded-bl-sm px-4 py-3"
                     }`}
                 >
                   {msg.role === "assistant" ? (
-                    <>
-                      <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-background [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-background [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_li]:text-foreground/70 [&_p]:text-foreground">
-                        <ReactMarkdown>{stripMetaTags(msg.content)}</ReactMarkdown>
+                    msg.isComparing || (msg.summaryPlatforms && msg.summaryPlatforms.length > 0) ? (
+                      <PlatformResponse
+                        messages={pendingMessagesRef.current}
+                        platforms={msg.summaryPlatforms || []}
+                        role={role}
+                        initialActivePlatformName={msg.selectedPlatform || null}
+                        allowPick={msg.isComparing && (msg.summaryPlatforms?.length || 0) > 1}
+                        onPick={handlePick}
+                        onError={handleCompareError}
+                        autoStart={msg.isComparing ? (msg.summaryPlatforms?.length === 1) : true}
+                        finalContent={msg.content}
+                        summaryText={msg.summaryText}
+                        followups={i === messages.length - 1 ? followups : []}
+                        followupsLoading={i === messages.length - 1 ? followupsLoading : false}
+                        onFollowupClick={sendMessage}
+                      />
+                    ) : (
+                      <div className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-background [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-background [&_pre]:rounded-lg [&_pre]:p-3 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_li]:text-foreground/70 [&_p]:text-foreground [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm [&_th]:border [&_th]:border-border [&_th]:bg-muted/60 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:text-xs [&_th]:font-semibold [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_td]:align-top [&_tr:nth-child(even)_td]:bg-muted/20">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                       </div>
-                      {msg.sources && msg.sources.length > 0 && (
-                        <SourceLinks sources={msg.sources} />
-                      )}
-                    </>
+                    )
                   ) : (
                     <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                   )}
                 </div>
               </motion.div>
             ))}
+            {isLoading && !messages.some(m => m.isComparing) && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex justify-start"
+              >
+                <div className="bg-muted/50 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-2 text-sm text-muted-foreground shadow-sm border border-border/40">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <span className="animate-pulse font-medium">Thinking...</span>
+                </div>
+              </motion.div>
+            )}
           </AnimatePresence>
-
-          {comparingIndex !== null && (
-            <PlatformResponse
-              messages={pendingMessagesRef.current}
-              role={role}
-              onPick={handlePick}
-              onError={handleCompareError}
-            />
-          )}
 
           <div ref={messagesEndRef} />
         </div>
@@ -316,7 +441,7 @@ const Chat = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Message UseBox..."
+              placeholder="Message Usebox..."
               rows={1}
               className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground resize-none outline-none min-h-[24px] max-h-[120px]"
               style={{ height: "auto", overflow: "hidden" }}
@@ -336,7 +461,7 @@ const Chat = () => {
             </Button>
           </div>
           <p className="text-center text-[11px] text-muted-foreground/60 mt-2">
-            UseBox may produce inaccurate information. Verify important details.
+            Usebox may produce inaccurate information. Verify important details.
           </p>
         </form>
       </div>
