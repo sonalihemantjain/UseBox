@@ -17,14 +17,9 @@ import { useChatHistory } from "@/hooks/useChatHistory";
 import { PlatformResponse } from "@/components/chat/PlatformResponse";
 import { useLabs } from "@/hooks/useLabs";
 import { useUserContextFilters } from "@/hooks/useUserContextFilters";
+import { useSuggestions } from "@/hooks/useSuggestions";
 import { api } from "@/lib/api";
 
-const SUGGESTIONS = [
-  "How do I get started with product adoption strategies?",
-  "Explain RAG architecture in simple terms",
-  "What are best practices for onboarding enterprise users?",
-  "Help me create a learning path for my team",
-];
 const DEFAULT_COMPARE_PLATFORMS = ["openai", "google", "microsoft"];
 
 function toPlatformLabel(name: string): string {
@@ -61,6 +56,11 @@ const Chat = () => {
   const { user } = useAuth();
   const { role, setRole } = useUserRole();
   const { functionalArea, industry } = useUserContextFilters();
+  const { suggestions, loading: suggestionsLoading } = useSuggestions(
+    industry,
+    functionalArea,
+    role ? ROLE_LABELS[role] : null
+  );
   const navigate = useNavigate();
   const { generateLab } = useLabs({ autoFetch: false });
   const { chats, loading: historyLoading, createChat, renameChat, deleteChat, toggleSaveChat, loadMessages, saveMessage, autoTitle } = useChatHistory();
@@ -351,15 +351,22 @@ const Chat = () => {
                 }
               </p>
               <div className="grid sm:grid-cols-2 gap-2.5 max-w-lg mx-auto">
-                {SUGGESTIONS.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => sendMessage(s)}
-                    className="text-left text-sm px-4 py-3 rounded-xl border border-border hover:border-primary/30 hover:bg-secondary/50 transition-all text-muted-foreground hover:text-foreground"
-                  >
-                    {s}
-                  </button>
-                ))}
+                {suggestionsLoading
+                  ? Array.from({ length: 4 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="h-[52px] rounded-xl border border-border bg-secondary/30 animate-pulse"
+                      />
+                    ))
+                  : suggestions.map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => sendMessage(s)}
+                        className="text-left text-sm px-4 py-3 rounded-xl border border-border hover:border-primary/30 hover:bg-secondary/50 transition-all text-muted-foreground hover:text-foreground"
+                      >
+                        {s}
+                      </button>
+                    ))}
               </div>
             </motion.div>
           )}
