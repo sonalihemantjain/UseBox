@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { User, Zap, Code, Layers, Shield, HelpCircle, Sparkles, ChevronDown, RotateCcw } from "lucide-react";
+import { User, Zap, Code, Layers, Shield, HelpCircle, ChevronDown, RotateCcw, BarChart2, Settings2, Package } from "lucide-react";
 import { type UserRole, ROLE_LABELS } from "@/hooks/useUserRole";
 import { cn } from "@/lib/utils";
 import {
@@ -11,30 +11,43 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const ROLE_ICONS: Record<UserRole, React.ElementType> = {
-  nocode: User,
-  lowcode: Zap,
-  prodeveloper: Code,
-  architect: Layers,
-  admin: Shield,
+  businessuser:       User,
+  citizen_developer:  Zap,
+  prodeveloper:       Code,
+  data_analyst:       BarChart2,
+  operations_manager: Settings2,
+  product_manager:    Package,
+  architect:          Layers,
+  admin:              Shield,
 };
 
 const ROLE_COLORS: Record<UserRole, string> = {
-  nocode: "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20",
-  lowcode: "from-amber-500/10 to-amber-500/5 border-amber-500/20",
-  prodeveloper: "from-blue-500/10 to-blue-500/5 border-blue-500/20",
-  architect: "from-purple-500/10 to-purple-500/5 border-purple-500/20",
-  admin: "from-red-500/10 to-red-500/5 border-red-500/20",
+  businessuser:       "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20",
+  citizen_developer:  "from-teal-500/10 to-teal-500/5 border-teal-500/20",
+  prodeveloper:       "from-blue-500/10 to-blue-500/5 border-blue-500/20",
+  data_analyst:       "from-cyan-500/10 to-cyan-500/5 border-cyan-500/20",
+  operations_manager: "from-orange-500/10 to-orange-500/5 border-orange-500/20",
+  product_manager:    "from-pink-500/10 to-pink-500/5 border-pink-500/20",
+  architect:          "from-purple-500/10 to-purple-500/5 border-purple-500/20",
+  admin:              "from-red-500/10 to-red-500/5 border-red-500/20",
 };
 
 const ROLE_ICON_COLORS: Record<UserRole, string> = {
-  nocode: "text-emerald-600",
-  lowcode: "text-amber-600",
-  prodeveloper: "text-blue-600",
-  architect: "text-purple-600",
-  admin: "text-red-600",
+  businessuser:       "text-emerald-600",
+  citizen_developer:  "text-teal-600",
+  prodeveloper:       "text-blue-600",
+  data_analyst:       "text-cyan-600",
+  operations_manager: "text-orange-600",
+  product_manager:    "text-pink-600",
+  architect:          "text-purple-600",
+  admin:              "text-red-600",
 };
 
-const roles: UserRole[] = ["nocode", "lowcode", "prodeveloper", "architect", "admin"];
+const roles: UserRole[] = [
+  "businessuser", "citizen_developer", "prodeveloper",
+  "data_analyst", "operations_manager", "product_manager",
+  "architect", "admin",
+];
 
 interface RoleSelectorProps {
   value: UserRole | null;
@@ -45,14 +58,14 @@ interface RoleSelectorProps {
 export function RoleSelector({ value, onChange, collapsed }: RoleSelectorProps) {
   const [open, setOpen] = useState(false);
 
-  const currentRole = value || "nocode"; // Default to nocode if no value
+  const currentRole = value || "businessuser";
   const Icon = ROLE_ICONS[currentRole];
 
   return (
     <div className={cn("mx-2 my-1.5", collapsed && "mx-0 px-1.5")}>
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
-          <button 
+          <button
             className={cn(
               "w-full flex items-center gap-2 px-2.5 py-2 rounded-lg bg-gradient-to-b border cursor-pointer hover:opacity-90 transition-opacity",
               value ? ROLE_COLORS[value] : "from-muted/60 to-muted/20 border-dashed border-border",
@@ -100,7 +113,7 @@ export function RoleSelector({ value, onChange, collapsed }: RoleSelectorProps) 
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => onChange(null)} className="text-muted-foreground">
                 <RotateCcw className="h-4 w-4 mr-2" />
-                Re-discover via chat
+                Clear persona
               </DropdownMenuItem>
             </>
           )}

@@ -1,13 +1,25 @@
 import { useCallback } from "react";
 import { useUserContext } from "@/hooks/useUserContext";
 
-export type UserRole = "businessuser" | "prodeveloper" | "architect" | "admin";
+export type UserRole =
+  | "businessuser"
+  | "citizen_developer"
+  | "prodeveloper"
+  | "data_analyst"
+  | "operations_manager"
+  | "product_manager"
+  | "architect"
+  | "admin";
 
 export const ROLE_LABELS: Record<UserRole, string> = {
-  businessuser: "Business User",
-  prodeveloper: "Pro Developer",
-  architect: "Architect",
-  admin: "Administrator",
+  businessuser:       "Business User",
+  citizen_developer:  "Citizen Developer",
+  prodeveloper:       "Pro Developer",
+  data_analyst:       "Data Analyst",
+  operations_manager: "Operations Manager",
+  product_manager:    "Product Manager",
+  architect:          "Solution Architect",
+  admin:              "IT Admin",
 };
 
 export function useUserRole() {
@@ -15,7 +27,6 @@ export function useUserRole() {
 
   const setRole = useCallback(
     (r: UserRole | null) => {
-      // Keep safety: ignore invalid roles
       if (r && !(r in ROLE_LABELS)) return;
       setRoleFromCtx(r);
     },
