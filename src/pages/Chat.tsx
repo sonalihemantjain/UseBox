@@ -106,12 +106,20 @@ const Chat = () => {
   }, [loadMessages]);
 
   useEffect(() => {
+    if (historyLoading) return;
+
     const chatIdFromUrl = searchParams.get("id");
-    if (chatIdFromUrl && chatIdFromUrl !== activeChatId && !historyLoading) {
-      // We don't strictly need to check chatExists if we trust the URL, 
-      // but let's be safe and just try to load it.
+
+    if (chatIdFromUrl && chatIdFromUrl !== activeChatId) {
       selectChat(chatIdFromUrl);
       setSearchParams({}, { replace: true });
+      return;
+    }
+
+    // Restore last active chat when navigating back to /chat
+    if (!activeChatId && !chatIdFromUrl) {
+      const savedId = localStorage.getItem("usebox_active_chat_id");
+      if (savedId) selectChat(savedId);
     }
   }, [searchParams, historyLoading, activeChatId, selectChat, setSearchParams]);
 
