@@ -9,7 +9,7 @@ import { useGoogleLogin } from "@react-oauth/google";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const STATIC_OTP = "12345";
 
 type AuthStep = "credentials" | "otp";
@@ -79,6 +79,9 @@ const Auth = () => {
       } else if (pendingAction === "google" && pendingGoogleToken) {
         await doGoogleAuth(pendingGoogleToken);
       }
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err) || "Something went wrong. Please try again.");
+      setStep("credentials");
     } finally {
       setLoading(false);
     }
@@ -114,9 +117,8 @@ const Auth = () => {
     });
 
     if (!response.ok) {
-      toast.error("Backend authentication failed");
-      setStep("credentials");
-      return;
+      const text = await response.text().catch(() => "");
+      throw new Error(`Google login failed (${response.status})${text ? ": " + text : ""}`);
     }
 
     const data = await response.json();
