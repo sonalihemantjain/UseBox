@@ -5,26 +5,47 @@ import { useUserRole, ROLE_LABELS } from "@/hooks/useUserRole";
 import { useNavigate } from "react-router-dom";
 
 const ROLE_DESCRIPTIONS: Record<string, { greeting: string; learnDesc: string; shareDesc: string; earnDesc: string; suggestions: string[] }> = {
-  business: {
+  businessuser: {
     greeting: "Continue mastering business strategy and product adoption.",
     learnDesc: "Get AI coaching on product adoption, go-to-market strategies, and business analytics.",
     shareDesc: "Contribute business insights, case studies, and best practices to the community.",
     earnDesc: "Earn rewards for sharing business knowledge and mentoring others.",
     suggestions: ["How do I improve product adoption?", "Best practices for stakeholder presentations", "Understanding SaaS metrics"],
   },
-  lowcode: {
-    greeting: "Keep building with low-code tools and automation.",
-    learnDesc: "Learn to build faster with low-code platforms, automation tools, and integrations.",
-    shareDesc: "Share your low-code templates, workflows, and integration patterns.",
+  citizen_developer: {
+    greeting: "Keep building powerful apps and flows with low-code tools.",
+    learnDesc: "Learn Power Apps, Power Automate, and Power Fx to automate your team's work without writing code.",
+    shareDesc: "Share your app templates, flow patterns, and connector tips with the community.",
     earnDesc: "Earn tokens by contributing reusable templates and automation guides.",
-    suggestions: ["How to build a workflow automation?", "Best low-code integration patterns", "When to go custom vs low-code?"],
+    suggestions: ["How to build a canvas app in Power Apps?", "Best Power Automate flow patterns", "When to use Power Apps vs Power Automate?"],
   },
-  developer: {
+  prodeveloper: {
     greeting: "Level up your development skills and best practices.",
     learnDesc: "Get AI coaching on coding patterns, architecture, debugging, and modern frameworks.",
     shareDesc: "Share code snippets, technical tutorials, and open-source contributions.",
     earnDesc: "Earn rewards for quality code reviews, tutorials, and community answers.",
     suggestions: ["Explain RAG architecture", "Best practices for API design", "How to optimize React performance?"],
+  },
+  data_analyst: {
+    greeting: "Turn data into insights that drive decisions.",
+    learnDesc: "Get AI coaching on Power BI, DAX formulas, data modelling, and dashboard best practices.",
+    shareDesc: "Share report templates, DAX patterns, and data storytelling techniques.",
+    earnDesc: "Earn rewards for contributing reusable data models and BI guides.",
+    suggestions: ["How to write a DAX measure for YoY growth?", "Best practices for Power BI data modelling", "When to use calculated columns vs measures?"],
+  },
+  operations_manager: {
+    greeting: "Automate processes and improve your team's efficiency.",
+    learnDesc: "Learn to design approval workflows, automate repetitive tasks, and measure process performance.",
+    shareDesc: "Share process templates, automation blueprints, and efficiency frameworks.",
+    earnDesc: "Earn rewards for contributing workflow templates and process guides.",
+    suggestions: ["How to automate an approval process?", "Best practices for workflow design", "How to track KPIs with Power BI?"],
+  },
+  product_manager: {
+    greeting: "Build better products with AI-powered insights.",
+    learnDesc: "Get coaching on feature prioritisation, capability comparisons, and product adoption strategies.",
+    shareDesc: "Share product frameworks, roadmap templates, and adoption case studies.",
+    earnDesc: "Earn rewards for contributing product strategy knowledge to the community.",
+    suggestions: ["How to prioritise features with AI tools?", "Comparing Microsoft Copilot vs custom GPT", "Best practices for measuring feature adoption"],
   },
   architect: {
     greeting: "Design scalable systems and lead technical decisions.",
@@ -34,11 +55,11 @@ const ROLE_DESCRIPTIONS: Record<string, { greeting: string; learnDesc: string; s
     suggestions: ["Microservices vs monolith tradeoffs", "Event-driven architecture patterns", "How to design for scale?"],
   },
   admin: {
-    greeting: "Manage your platform, users, and configurations.",
-    learnDesc: "Learn platform administration, security best practices, and team management.",
-    shareDesc: "Share admin guides, security policies, and governance frameworks.",
+    greeting: "Keep your platform secure, compliant, and well-governed.",
+    learnDesc: "Learn platform administration, governance policies, security best practices, and compliance controls.",
+    shareDesc: "Share admin guides, security policies, DLP patterns, and governance frameworks.",
     earnDesc: "Earn rewards for maintaining platform health and quality standards.",
-    suggestions: ["User access management best practices", "Security audit checklist", "How to set up team roles?"],
+    suggestions: ["User access management best practices", "How to configure DLP in Power Platform?", "Security audit checklist for Copilot Studio"],
   },
 };
 
@@ -46,7 +67,7 @@ const Dashboard = () => {
   const { user } = useAuth();
   const { role } = useUserRole();
   const navigate = useNavigate();
-  const roleData = role ? (ROLE_DESCRIPTIONS[role] || ROLE_DESCRIPTIONS.business) : null;
+  const roleData = role ? (ROLE_DESCRIPTIONS[role] || ROLE_DESCRIPTIONS.businessuser) : null;
 
   return (
     <div className="h-full overflow-y-auto">

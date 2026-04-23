@@ -11,11 +11,15 @@ import type { ApiLab } from "@/lib/api";
 import { toast } from "sonner";
 
 const PERSONA_BADGE: Record<string, { label: string; className: string }> = {
-  businessuser:  { label: "Business User",  className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
-  prodeveloper:  { label: "Pro Developer",  className: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-  architect:     { label: "Architect",      className: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
-  admin:         { label: "Administrator",  className: "bg-red-500/10 text-red-600 border-red-500/20" },
-  "no-persona":  { label: "No Persona",     className: "bg-muted/60 text-muted-foreground border-border" },
+  businessuser:       { label: "Business User",       className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
+  citizen_developer:  { label: "Citizen Developer",   className: "bg-teal-500/10 text-teal-600 border-teal-500/20" },
+  prodeveloper:       { label: "Pro Developer",       className: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
+  data_analyst:       { label: "Data Analyst",        className: "bg-cyan-500/10 text-cyan-600 border-cyan-500/20" },
+  operations_manager: { label: "Operations Manager",  className: "bg-orange-500/10 text-orange-600 border-orange-500/20" },
+  product_manager:    { label: "Product Manager",     className: "bg-pink-500/10 text-pink-600 border-pink-500/20" },
+  architect:          { label: "Solution Architect",  className: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
+  admin:              { label: "IT Admin",            className: "bg-red-500/10 text-red-600 border-red-500/20" },
+  "no-persona":       { label: "No Persona",          className: "bg-muted/60 text-muted-foreground border-border" },
 };
 
 const getPersonaBadge = (persona: string) =>
