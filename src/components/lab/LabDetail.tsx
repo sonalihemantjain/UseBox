@@ -33,24 +33,27 @@ interface Props {
 }
 
 const difficultyColors: Record<string, string> = {
-  beginner: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+  beginner:     "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
   intermediate: "bg-amber-500/10 text-amber-600 border-amber-500/20",
-  advanced: "bg-rose-500/10 text-rose-600 border-rose-500/20",
+  advanced:     "bg-rose-500/10 text-rose-600 border-rose-500/20",
 };
 
+
 export function LabDetail({ lab, onBack, onToggleStep }: Props) {
-  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set(lab.tasks.map(t => t.id)));
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(
+    new Set(lab.tasks.map(t => t.id))
+  );
   const [readingStep, setReadingStep] = useState<LabTaskStep | null>(null);
-  const progressPct = lab.total_steps > 0 ? Math.round((lab.completed_steps / lab.total_steps) * 100) : 0;
+
+  const progressPct =
+    lab.total_steps > 0
+      ? Math.round((lab.completed_steps / lab.total_steps) * 100)
+      : 0;
 
   const toggleTask = (taskId: string) => {
     setExpandedTasks(prev => {
       const next = new Set(prev);
-      if (next.has(taskId)) {
-        next.delete(taskId);
-      } else {
-        next.add(taskId);
-      }
+      next.has(taskId) ? next.delete(taskId) : next.add(taskId);
       return next;
     });
   };
@@ -69,27 +72,38 @@ export function LabDetail({ lab, onBack, onToggleStep }: Props) {
   return (
     <div className="h-full overflow-y-auto">
       <div className="w-full px-4 sm:px-8 lg:px-12 py-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-          <Button variant="ghost" size="sm" onClick={onBack} className="mb-6 gap-2 text-muted-foreground">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onBack}
+            className="mb-6 gap-2 text-muted-foreground"
+          >
             <ArrowLeft className="h-4 w-4" /> Back to labs
           </Button>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left panel - progress & tasks */}
             <div className="space-y-4">
-              {/* Progress card */}
+              {/* Progress */}
               <div className="rounded-xl border border-border bg-card p-5">
                 <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
                   📊 Progress
                 </h3>
                 <div className="flex justify-between text-sm mb-2">
-                  <span className="text-muted-foreground">{lab.completed_steps}/{lab.total_steps} steps complete</span>
+                  <span className="text-muted-foreground">
+                    {lab.completed_steps}/{lab.total_steps} steps complete
+                  </span>
                   <span className="font-semibold text-primary">{progressPct}%</span>
                 </div>
                 <Progress value={progressPct} className="h-2.5" />
               </div>
 
-              {/* Tasks card */}
+              {/* Tasks */}
               <div className="rounded-xl border border-border bg-card p-5">
                 <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
                   📋 Tasks
@@ -110,22 +124,31 @@ export function LabDetail({ lab, onBack, onToggleStep }: Props) {
                   {lab.tasks.map((task, ti) => {
                     const { completed, total } = getTaskProgress(task);
                     const isExpanded = expandedTasks.has(task.id);
-                    const allDone = completed === total;
+                    const allDone    = total > 0 && completed === total;
                     return (
                       <div key={task.id} className="border border-border rounded-lg overflow-hidden">
                         <button
                           onClick={() => toggleTask(task.id)}
                           className="w-full flex items-center gap-2 p-3 hover:bg-accent/50 transition-colors text-left"
                         >
-                          {isExpanded ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
-                          <div className={`shrink-0 w-5 h-5 rounded flex items-center justify-center text-xs font-bold ${allDone ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"}`}>
+                          {isExpanded
+                            ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                            : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                          <div className={`shrink-0 w-5 h-5 rounded flex items-center justify-center text-xs font-bold ${
+                            allDone
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-primary/10 text-primary"
+                          }`}>
                             {allDone ? "✓" : ti + 1}
                           </div>
                           <div className="flex-1 min-w-0">
                             <span className="text-sm font-medium line-clamp-1">{task.title}</span>
-                            <span className="text-xs text-muted-foreground ml-1">({completed}/{total})</span>
+                            {total > 0 && (
+                              <span className="text-xs text-muted-foreground ml-1">({completed}/{total})</span>
+                            )}
                           </div>
                         </button>
+
                         {isExpanded && (
                           <div className="border-t border-border px-3 py-2 space-y-1 bg-muted/30">
                             {visibleSteps(task).map(step => (
@@ -135,16 +158,19 @@ export function LabDetail({ lab, onBack, onToggleStep }: Props) {
                                 onClick={() => setReadingStep(step)}
                               >
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); onToggleStep(lab.id, step.id); }}
+                                  onClick={e => { e.stopPropagation(); onToggleStep(lab.id, step.id); }}
                                   className="shrink-0"
                                 >
-                                  {step.is_completed ? (
-                                    <CheckSquare className="h-4 w-4 text-emerald-500" />
-                                  ) : (
-                                    <Square className="h-4 w-4 text-muted-foreground/40 hover:text-primary/60 transition-colors" />
-                                  )}
+                                  {step.is_completed
+                                    ? <CheckSquare className="h-4 w-4 text-emerald-500" />
+                                    : <Square className="h-4 w-4 text-muted-foreground/40 hover:text-primary/60 transition-colors" />
+                                  }
                                 </button>
-                                <span className={`text-xs ${step.is_completed ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                                <span className={`text-xs ${
+                                  step.is_completed
+                                    ? "text-muted-foreground line-through"
+                                    : "text-foreground"
+                                }`}>
                                   {step.title}
                                 </span>
                               </div>
@@ -158,7 +184,10 @@ export function LabDetail({ lab, onBack, onToggleStep }: Props) {
               </div>
 
               <p className="text-xs text-muted-foreground text-center">
-                Created: {new Date(lab.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit" })}
+                Created:{" "}
+                {new Date(lab.created_at).toLocaleDateString("en-US", {
+                  year: "numeric", month: "short", day: "2-digit",
+                })}
               </p>
             </div>
 
