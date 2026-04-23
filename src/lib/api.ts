@@ -63,6 +63,7 @@ export type ApiLab = {
   description?: string;
   topic?: string;
   difficulty?: string;
+  persona?: string;
   total_steps?: number;
   completed_steps?: number;
   status?: string;
@@ -72,6 +73,66 @@ export type ApiLab = {
   question?: string;
   raw?: string;
   task_states?: Record<string, boolean>;
+};
+
+export type ChatPlatformsSummaryResponse = {
+  summary: string;
+  platforms: string[];
+  platformCount?: number;
+  showPlatformTabs: boolean;
+};
+
+export type SuggestionsResponse = {
+  suggestions: string[];
+};
+
+export type ApiAssessmentCatalogItem = {
+  id: string;
+  provider: string;
+  title: string;
+  level: string;
+  description: string;
+  skills_json: string[];
+  active: boolean;
+  persona?: string;
+};
+
+export type ApiAssessmentQuestion = {
+  id: string;
+  question_text: string;
+  options: string[];
+  question_order: number;
+};
+
+export type ApiAssessmentStartResponse = {
+  attempt_id: string;
+  assessment_id: string;
+  title: string;
+  provider: string;
+  pass_threshold: number;
+  questions: ApiAssessmentQuestion[];
+};
+
+export type ApiCertificate = {
+  id: string;
+  certificate_code: string;
+  user_id: string;
+  assessment_id?: string;
+  topic: string; // kept for UI compatibility (maps to title_snapshot)
+  provider?: string;
+  score_percent: number;
+  issued_at: string;
+  user_email?: string | null;
+  user_name?: string | null;
+};
+
+export type ApiAssessmentSubmitResponse = {
+  attempt_id: string;
+  score_percent: number;
+  correct_answers: number;
+  total_questions: number;
+  passed: boolean;
+  certificate?: ApiCertificate | null;
 };
 
 export const api = {
@@ -158,12 +219,63 @@ export const api = {
       "/api/earnings/redeem",
       { method: "POST", body: payload }
     ),
+  getPredefinedLabs: (persona?: string | null) =>
+    request<ApiLab[]>(
+      `/api/labs/predefined${persona && persona !== "no-persona" ? `?persona=${encodeURIComponent(persona)}` : ""}`
+    ),
+  startPredefinedLab: (labId: string, payload: { user_id: string; persona?: string | null }) =>
+    request<{ id: string; title: string }>(`/api/labs/predefined/${encodeURIComponent(labId)}/start`, {
+      method: "POST",
+      body: payload,
+    }),
   getLabsForUser: (userId: string) => request<ApiLab[]>(`/api/labs/user/${encodeURIComponent(userId)}`),
-  generateLab: (payload: { topic: string; difficulty?: string; user_id?: string }) =>
+  generateLab: (payload: { topic: string; difficulty?: string; user_id?: string; role?: string }) =>
     request<ApiLab>("/api/labs/generate", { method: "POST", body: payload }),
   updateLabProgress: (labId: string, payload: { task_states: Record<string, boolean>; tasks: unknown[] }) =>
     request<{ status: string }>(`/api/labs/${labId}/progress`, { method: "PATCH", body: payload }),
   deleteLab: (labId: string) => request<{ status: string }>(`/api/labs/${labId}`, { method: "DELETE" }),
   getLabById: (labId: string) => request<ApiLab>(`/api/labs/${labId}`),
+  getChatPlatformsSummary: (payload: {
+    messages: Array<{ role: string; content: string }>;
+    role?: string | null;
+    userId?: string | null;
+    functionalArea?: string | null;
+    industry?: string | null;
+  }) =>
+    request<ChatPlatformsSummaryResponse>("/api/chat/platforms", {
+      method: "POST",
+      body: { ...payload, mode: "summary" },
+    }),
+  getChatFollowups: (payload: { userId?: string; prompt?: string; pickedPlatform?: string; pickedAnswer?: string }) =>
+    request<{ questions: string[] }>("/api/chat/followups", { method: "POST", body: payload }),
+  getSuggestions: (
+    params: { industry: string; functional_area: string; persona: string },
+    signal?: AbortSignal
+  ) => {
+    const qs = new URLSearchParams({
+      industry: params.industry,
+      functional_area: params.functional_area,
+      persona: params.persona,
+    }).toString();
+    return request<SuggestionsResponse>(`/api/suggestions?${qs}`, { signal });
+  },
+  getAssessmentCatalog: (persona?: string | null) =>
+    request<{ items: ApiAssessmentCatalogItem[] }>(
+      `/api/assessments/catalog${persona && persona !== "no-persona" ? `?persona=${encodeURIComponent(persona)}` : ""}`
+    ),
+  startAssessment: (payload: { user_id: string; assessment_id: string; persona?: string | null }) =>
+    request<ApiAssessmentStartResponse>("/api/assessments/start", { method: "POST", body: payload }),
+  submitAssessment: (
+    attemptId: string,
+    payload: { user_id: string; answers: Array<{ question_id: string; selected_option: string }> }
+  ) =>
+    request<ApiAssessmentSubmitResponse>(`/api/assessments/${encodeURIComponent(attemptId)}/submit`, {
+      method: "POST",
+      body: payload,
+    }),
+  getCertificates: (userId: string) =>
+    request<{ items: ApiCertificate[] }>(`/api/assessments/certificates/${encodeURIComponent(userId)}`),
+  getCertificateById: (certificateId: string) =>
+    request<ApiCertificate>(`/api/assessments/certificate/${encodeURIComponent(certificateId)}`),
 };
 

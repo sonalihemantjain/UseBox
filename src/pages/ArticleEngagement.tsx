@@ -142,7 +142,7 @@ const ArticleEngagement = () => {
           </Button>
           <div className="flex-1 min-w-0">
             <h1 className="font-display text-lg font-bold truncate text-foreground">{article.title}</h1>
-            <p className="text-xs text-muted-foreground">UseBox Knowledge</p>
+            <p className="text-xs text-muted-foreground">Usebox Knowledge</p>
           </div>
         </div>
       </header>

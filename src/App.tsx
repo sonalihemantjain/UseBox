@@ -14,6 +14,8 @@ import Knowledge from "./pages/Knowledge";
 import UploadDocument from "./pages/UploadDocument";
 import Earn from "./pages/Earn";
 import Lab from "./pages/Lab";
+import Assessment from "./pages/Assessment";
+import CertificateDetail from "./pages/CertificateDetail";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import ArticleEngagement from "./pages/ArticleEngagement";
@@ -43,6 +45,8 @@ const App = () => (
           <Route path="/upload" element={<ProtectedRoute><UploadDocument /></ProtectedRoute>} />
           <Route path="/earn" element={<ProtectedRoute><Earn /></ProtectedRoute>} />
           <Route path="/lab" element={<ProtectedRoute><Lab /></ProtectedRoute>} />
+          <Route path="/assessment" element={<ProtectedRoute><Assessment /></ProtectedRoute>} />
+          <Route path="/assessment/certificate/:certificateId" element={<ProtectedRoute><CertificateDetail /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="/article/:id" element={<ArticleEngagement />} />
           <Route path="*" element={<NotFound />} />
