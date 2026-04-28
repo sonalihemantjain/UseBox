@@ -123,13 +123,13 @@ export default function Assessment() {
       <div className="w-full px-4 sm:px-8 lg:px-12 py-8 space-y-8">
 
         {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex items-end justify-between">
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
             <h1 className="font-display text-3xl sm:text-4xl font-bold mb-1">Assessment</h1>
             <p className="text-muted-foreground text-sm">Test your knowledge and earn certifications.</p>
           </div>
           {certificates.length > 0 && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 self-start sm:self-auto">
               <Award className="h-4 w-4 text-emerald-600" />
               <span className="text-sm font-medium text-emerald-600">
                 {certificates.length} certificate{certificates.length > 1 ? "s" : ""} earned
@@ -231,7 +231,7 @@ export default function Assessment() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className={cn(
-                        "text-[10px] font-semibold px-2 py-0.5 rounded-full border",
+                        "hidden sm:inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-full border",
                         getPersonaBadge(role).className
                       )}>
                         {getPersonaBadge(role).label}
@@ -346,7 +346,7 @@ export default function Assessment() {
                           : `You need ${activeAttempt.passThreshold}% to pass. Give it another shot!`}
                       </p>
                       <div className={cn(
-                        "rounded-2xl border px-10 py-5 mb-6",
+                        "rounded-2xl border px-6 sm:px-10 py-5 mb-6",
                         result.passed ? "border-emerald-500/20 bg-emerald-500/5" : "border-red-500/20 bg-red-500/5"
                       )}>
                         <div className={cn(

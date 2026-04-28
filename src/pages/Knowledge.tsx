@@ -57,8 +57,8 @@ const Knowledge = () => {
                   <FileText className="h-5 w-5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <h3 className="font-semibold text-foreground truncate">{article.title}</h3>
+                  <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
+                    <h3 className="font-semibold text-foreground truncate w-full sm:w-auto">{article.title}</h3>
                     <Badge variant="outline" className="text-[10px] shrink-0">{article.category}</Badge>
                     <Badge variant="secondary" className="text-[10px] shrink-0">{article.difficulty}</Badge>
                   </div>
@@ -66,11 +66,11 @@ const Knowledge = () => {
                     <p className="text-sm text-muted-foreground truncate">{article.description}</p>
                   )}
                 </div>
-                <div className="flex items-center gap-3 shrink-0 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2 sm:gap-3 shrink-0 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1"><Eye className="h-3.5 w-3.5" />{article.viewCount}</span>
                   <span className="flex items-center gap-1"><Heart className="h-3.5 w-3.5" />{article.likeCount}</span>
-                  <span className="flex items-center gap-1"><MessageCircle className="h-3.5 w-3.5" />{article.commentCount}</span>
-                  <span className="flex items-center gap-1"><Share2 className="h-3.5 w-3.5" />{article.shareCount}</span>
+                  <span className="hidden sm:flex items-center gap-1"><MessageCircle className="h-3.5 w-3.5" />{article.commentCount}</span>
+                  <span className="hidden sm:flex items-center gap-1"><Share2 className="h-3.5 w-3.5" />{article.shareCount}</span>
                 </div>
               </motion.div>
             ))}

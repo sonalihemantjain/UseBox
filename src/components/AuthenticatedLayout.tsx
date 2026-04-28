@@ -1,10 +1,12 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { DomainBar } from "@/components/DomainBar";
+import { PageActionsProvider } from "@/context/PageActionsContext";
 import useBoxLogo from "@/assets/usebox-logo.png";
 
 export function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   return (
+    <PageActionsProvider>
     <SidebarProvider defaultOpen={false}>
       <div className="min-h-screen flex w-full">
         <AppSidebar />
@@ -26,5 +28,6 @@ export function AuthenticatedLayout({ children }: { children: React.ReactNode })
         </div>
       </div>
     </SidebarProvider>
+    </PageActionsProvider>
   );
 }

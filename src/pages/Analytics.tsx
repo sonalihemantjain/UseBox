@@ -97,7 +97,7 @@ const Analytics = () => {
         </motion.div>
 
         {/* Stat cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           {statCards.map((s, i) => (
             <motion.div key={s.label} {...anim(i + 1)}>
               <Card className="p-5 bg-card border-border hover:border-primary/20 transition-colors">
@@ -150,27 +150,29 @@ const Analytics = () => {
                 <PieChartIcon className="h-4 w-4 text-accent" />
                 <h3 className="font-display font-semibold text-foreground">Reading Progress</h3>
               </div>
-              <div className="flex items-center justify-center gap-8">
-                <ResponsiveContainer width={180} height={180}>
-                  <PieChart>
-                    <Pie
-                      data={data.progressBreakdown}
-                      dataKey="count"
-                      nameKey="status"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={80}
-                      paddingAngle={3}
-                      strokeWidth={0}
-                    >
-                      {data.progressBreakdown.map((_, i) => (
-                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip content={<CustomTooltip />} />
-                  </PieChart>
-                </ResponsiveContainer>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-8">
+                <div className="h-[180px] w-[180px] shrink-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={data.progressBreakdown}
+                        dataKey="count"
+                        nameKey="status"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={80}
+                        paddingAngle={3}
+                        strokeWidth={0}
+                      >
+                        {data.progressBreakdown.map((_, i) => (
+                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
                 <div className="space-y-3">
                   {data.progressBreakdown.map((p, i) => (
                     <div key={p.status} className="flex items-center gap-2">

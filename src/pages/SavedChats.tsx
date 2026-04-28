@@ -38,6 +38,7 @@ const SavedChats = () => {
   }, []);
 
   return (
+    <div className="h-full overflow-y-auto">
     <div className="w-full px-4 sm:px-8 lg:px-12 py-8">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-center gap-3 mb-2">
@@ -152,6 +153,7 @@ const SavedChats = () => {
           </div>
         )}
       </motion.div>
+    </div>
     </div>
   );
 };
