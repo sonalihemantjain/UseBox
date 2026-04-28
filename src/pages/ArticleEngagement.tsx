@@ -150,7 +150,7 @@ const ArticleEngagement = () => {
       <main className="container max-w-4xl mx-auto px-4 py-8">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
           {/* Meta */}
-          <div className="flex items-center gap-2 mb-6">
+          <div className="flex flex-wrap items-center gap-2 mb-6">
             <Badge variant="outline">{article.category}</Badge>
             <Badge variant="secondary">{article.difficulty}</Badge>
             {article.tags.map((t) => (
@@ -179,7 +179,7 @@ const ArticleEngagement = () => {
 
           {/* Engagement Bar */}
           <div className="border-t border-b border-border py-4 mb-8">
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4 sm:gap-6">
               <button
                 onClick={handleLike}
                 disabled={submitting}

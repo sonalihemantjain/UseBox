@@ -79,11 +79,11 @@ const Earn = () => {
 
         {/* Stats */}
         {loading ? (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
             {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
           </div>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
             {statCards.map((s, i) => (
               <motion.div key={s.key} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
                 <Card>
@@ -121,13 +121,13 @@ const Earn = () => {
               ) : (
                 <div className="space-y-3">
                   {articleStats.map((a) => (
-                    <div key={a.id} className="flex items-center justify-between p-3 rounded-lg border border-border">
+                    <div key={a.id} className="flex items-center justify-between gap-2 p-3 rounded-lg border border-border">
                       <div className="flex items-center gap-3 min-w-0">
                         <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                         <span className="text-sm font-medium truncate">{a.title}</span>
                       </div>
-                      <div className="flex items-center gap-4 shrink-0 text-sm">
-                        <span className="flex items-center gap-1 text-muted-foreground"><Eye className="h-3 w-3" />{a.views}</span>
+                      <div className="flex items-center gap-2 sm:gap-4 shrink-0 text-sm">
+                        <span className="hidden sm:flex items-center gap-1 text-muted-foreground"><Eye className="h-3 w-3" />{a.views}</span>
                         <span className="flex items-center gap-1 text-muted-foreground"><Heart className="h-3 w-3" />{a.likes}</span>
                         <span className="flex items-center gap-1 text-amber-500 font-medium"><Coins className="h-3 w-3" />{a.credits}</span>
                       </div>

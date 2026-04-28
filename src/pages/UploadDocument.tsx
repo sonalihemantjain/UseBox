@@ -62,7 +62,7 @@ const UploadDocument = () => {
           />
           <div
             onClick={() => inputRef.current?.click()}
-            className="border-2 border-dashed border-border rounded-xl p-10 text-center cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all"
+            className="border-2 border-dashed border-border rounded-xl p-6 sm:p-10 text-center cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all"
           >
             {file ? (
               <div className="flex items-center justify-center gap-3">

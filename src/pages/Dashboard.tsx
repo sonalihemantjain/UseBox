@@ -125,7 +125,7 @@ const Dashboard = () => {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 + i * 0.12, duration: 0.5 }}
-              className={`group cursor-pointer rounded-2xl bg-card border ${pillar.border} p-8 hover:border-opacity-50 transition-all duration-300 relative overflow-hidden`}
+              className={`group cursor-pointer rounded-2xl bg-card border ${pillar.border} p-5 sm:p-8 hover:border-opacity-50 transition-all duration-300 relative overflow-hidden`}
               onClick={() => pillar.href && navigate(pillar.href)}
             >
               <div className={`inline-flex items-center justify-center w-14 h-14 rounded-xl ${pillar.bg} mb-5`}>
@@ -192,7 +192,7 @@ const Dashboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7, duration: 0.5 }}
-          className="rounded-2xl bg-card border border-border p-8"
+          className="rounded-2xl bg-card border border-border p-5 sm:p-8"
         >
           <div className="flex items-center gap-2 mb-6">
             <Sparkles className="h-5 w-5 text-primary" />

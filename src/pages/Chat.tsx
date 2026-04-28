@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, type ReactNode } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Loader2, Bookmark, BookmarkCheck } from "lucide-react";
@@ -19,6 +19,7 @@ import { useLabs } from "@/hooks/useLabs";
 import { useUserContextFilters } from "@/hooks/useUserContextFilters";
 import { useSuggestions } from "@/hooks/useSuggestions";
 import { api } from "@/lib/api";
+import { usePageActions } from "@/context/PageActionsContext";
 
 const DEFAULT_COMPARE_PLATFORMS = ["openai", "google", "microsoft"];
 
@@ -54,6 +55,7 @@ type DisplayMessage = ChatMessage & {
 
 const Chat = () => {
   const { user } = useAuth();
+  const { setPageAction } = usePageActions();
   const { role, setRole } = useUserRole();
   const { functionalArea, industry } = useUserContextFilters();
   const { suggestions, loading: suggestionsLoading } = useSuggestions(
@@ -148,6 +150,27 @@ const Chat = () => {
       setSaveDialogOpen(true);
     }
   }, [activeChatId, activeChat, toggleSaveChat]);
+
+  // Inject Save button into DomainBar via context
+  useEffect(() => {
+    if (!activeChatId || !activeChat) {
+      setPageAction(null);
+      return;
+    }
+    const node: ReactNode = (
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleToggleSave}
+        className={activeChat.saved ? "text-primary" : "text-muted-foreground hover:text-foreground"}
+      >
+        {activeChat.saved ? <BookmarkCheck className="h-4 w-4 mr-1.5" /> : <Bookmark className="h-4 w-4 mr-1.5" />}
+        <span>{activeChat.saved ? "Saved" : "Save"}</span>
+      </Button>
+    );
+    setPageAction(node);
+    return () => setPageAction(null);
+  }, [activeChatId, activeChat, handleToggleSave, setPageAction]);
 
   const confirmSave = useCallback(async () => {
     if (!activeChatId) return;
@@ -320,23 +343,6 @@ const Chat = () => {
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Save action below context row once chat exists */}
-      {activeChatId && activeChat && (
-        <div className="z-10 border-b border-border/50 bg-background/95">
-          <div className="w-full px-4 sm:px-8 lg:px-12 py-1.5 flex justify-end">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleToggleSave}
-              className={activeChat.saved ? "text-primary" : "text-muted-foreground hover:text-foreground"}
-            >
-              {activeChat.saved ? <BookmarkCheck className="h-4 w-4 mr-1.5" /> : <Bookmark className="h-4 w-4 mr-1.5" />}
-              <span>{activeChat.saved ? "Saved" : "Save"}</span>
-            </Button>
-          </div>
-        </div>
-      )}
-
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto">
         <div className="w-full px-4 sm:px-8 lg:px-12 py-6 space-y-5">
@@ -441,7 +447,7 @@ const Chat = () => {
       </div>
 
       {/* Input area — centered, ChatGPT-style */}
-      <div className="shrink-0 pb-4 pt-2 px-4">
+      <div className="shrink-0 pb-4 pt-2 px-4 sm:px-8 lg:px-12">
         {!role && messages.length > 0 && (
           <div className="w-full mb-2 px-4 py-1.5 rounded-lg bg-primary/5 border border-primary/10 flex items-center justify-center gap-2">
             <span className="text-[11px] font-medium text-primary">
