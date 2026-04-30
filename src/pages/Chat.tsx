@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback, type ReactNode } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Loader2, Bookmark, BookmarkCheck } from "lucide-react";
+import { Send, Loader2, Bookmark, BookmarkCheck, Pencil } from "lucide-react";
 import useBoxLogo from "@/assets/usebox-logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,9 +17,13 @@ import { useChatHistory } from "@/hooks/useChatHistory";
 import { PlatformResponse } from "@/components/chat/PlatformResponse";
 import { useLabs } from "@/hooks/useLabs";
 import { useUserContextFilters } from "@/hooks/useUserContextFilters";
+import { useContextFilterOptions } from "@/hooks/useContextFilterOptions";
+import { usePersonaOptions } from "@/hooks/usePersonaOptions";
 import { useSuggestions } from "@/hooks/useSuggestions";
 import { api } from "@/lib/api";
 import { usePageActions } from "@/context/PageActionsContext";
+import { useCustomOptions } from "@/hooks/useCustomOptions";
+import { ContextEditDialog } from "@/components/ContextEditDialog";
 
 const DEFAULT_COMPARE_PLATFORMS = ["openai", "google", "microsoft"];
 
@@ -57,7 +61,20 @@ const Chat = () => {
   const { user } = useAuth();
   const { setPageAction } = usePageActions();
   const { role, setRole } = useUserRole();
-  const { functionalArea, industry } = useUserContextFilters();
+  const { functionalArea, industry, setFunctionalArea, setIndustry } = useUserContextFilters();
+  const { functionalAreas, industries, loading: filtersLoading } = useContextFilterOptions();
+  const { personas, loading: personasLoading } = usePersonaOptions(functionalArea);
+
+  const { getByType } = useCustomOptions();
+  const customPersonas = getByType("persona");
+  const selectedIndustryLabel = industries.find((i) => i.key === industry)?.display_name ?? null;
+  const selectedFALabel = functionalAreas.find((f) => f.key === functionalArea)?.display_name ?? null;
+  const selectedPersonaLabel =
+    personas.find((p) => p.key === role)?.display_name ??
+    customPersonas.find((p) => p.key === role)?.display_name ??
+    null;
+  const [contextEditOpen, setContextEditOpen] = useState(false);
+
   const { suggestions, loading: suggestionsLoading } = useSuggestions(
     industry,
     functionalArea,
@@ -448,44 +465,59 @@ const Chat = () => {
 
       {/* Input area — centered, ChatGPT-style */}
       <div className="shrink-0 pb-4 pt-2 px-4 sm:px-8 lg:px-12">
-        {!role && messages.length > 0 && (
-          <div className="w-full mb-2 px-4 py-1.5 rounded-lg bg-primary/5 border border-primary/10 flex items-center justify-center gap-2">
-            <span className="text-[11px] font-medium text-primary">
-              Select a persona in the sidebar to enable platform comparison
-            </span>
-          </div>
-        )}
         <form onSubmit={handleSubmit} className="w-full">
-          <div className="flex items-end gap-2 bg-muted/40 rounded-2xl px-4 py-3 border border-border/60 focus-within:border-primary/40 focus-within:bg-muted/60 transition-all shadow-sm">
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Message Usebox..."
-              rows={1}
-              className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground resize-none outline-none min-h-[24px] max-h-[120px]"
-              style={{ height: "auto", overflow: "hidden" }}
-              onInput={(e) => {
-                const target = e.target as HTMLTextAreaElement;
-                target.style.height = "auto";
-                target.style.height = Math.min(target.scrollHeight, 120) + "px";
-              }}
-            />
-            <Button
-              type="submit"
-              size="icon"
-              disabled={!input.trim() || isLoading}
-              className="shrink-0 h-8 w-8 rounded-lg disabled:opacity-30"
-            >
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </Button>
+          <div className="bg-muted/40 rounded-2xl border border-border/60 focus-within:border-primary/40 focus-within:bg-muted/60 transition-all shadow-sm">
+            {/* "Ask usebox as" context row */}
+            <div className="flex items-center gap-1.5 px-4 pt-3 pb-2 border-b border-border/40">
+              <span className="text-[11px] text-muted-foreground/50 shrink-0">Ask usebox as</span>
+              <span className="text-[11px] text-foreground/60 font-medium truncate">
+                {[selectedIndustryLabel, selectedFALabel, selectedPersonaLabel || "No persona"]
+                  .filter(Boolean)
+                  .join(" | ")}
+              </span>
+              <button
+                type="button"
+                onClick={() => setContextEditOpen(true)}
+                className="ml-auto shrink-0 inline-flex items-center justify-center h-5 w-5 rounded text-muted-foreground/40 hover:text-foreground hover:bg-muted transition-colors"
+                aria-label="Edit context"
+              >
+                <Pencil className="h-3 w-3" />
+              </button>
+            </div>
+            {/* Message input */}
+            <div className="flex items-end gap-2 px-4 py-3">
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Type here..."
+                rows={1}
+                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground resize-none outline-none min-h-[24px] max-h-[120px]"
+                style={{ height: "auto", overflow: "hidden" }}
+                onInput={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = "auto";
+                  target.style.height = Math.min(target.scrollHeight, 120) + "px";
+                }}
+              />
+              <Button
+                type="submit"
+                size="icon"
+                disabled={!input.trim() || isLoading}
+                className="shrink-0 h-8 w-8 rounded-lg disabled:opacity-30"
+              >
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </Button>
+            </div>
           </div>
           <p className="text-center text-[11px] text-muted-foreground/60 mt-2">
             Usebox may produce inaccurate information. Verify important details.
           </p>
         </form>
       </div>
+
+      <ContextEditDialog open={contextEditOpen} onOpenChange={setContextEditOpen} />
 
       {/* Save dialog */}
       <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>

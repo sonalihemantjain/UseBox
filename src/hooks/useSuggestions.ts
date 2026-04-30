@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 
 export const FALLBACK_SUGGESTIONS = [
-  "How do I get started with product adoption strategies?",
-  "Explain RAG architecture in simple terms",
-  "What are best practices for onboarding enterprise users?",
-  "Help me create a learning path for my team",
+  "Compare Microsoft Copilot vs ChatGPT for enterprise use",
+  "Where do I start with Microsoft Power Platform?",
+  "How do I automate approvals without writing code?",
+  "What AI skills are most in demand for 2025?",
 ];
 
 const DEBOUNCE_MS = 300;
@@ -19,7 +19,8 @@ export function useSuggestions(
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!industry || !functionalArea || !persona) {
+    // Need at least persona to fetch dynamic suggestions
+    if (!persona) {
       setSuggestions(FALLBACK_SUGGESTIONS);
       setLoading(false);
       return;
@@ -31,7 +32,11 @@ export function useSuggestions(
     const timer = setTimeout(() => {
       api
         .getSuggestions(
-          { industry, functional_area: functionalArea, persona },
+          {
+            industry: industry ?? undefined,
+            functional_area: functionalArea ?? undefined,
+            persona,
+          },
           controller.signal
         )
         .then((res) => {

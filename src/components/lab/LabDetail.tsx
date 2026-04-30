@@ -43,7 +43,11 @@ export function LabDetail({ lab, onBack, onToggleStep }: Props) {
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(
     new Set(lab.tasks.map(t => t.id))
   );
-  const [readingStep, setReadingStep] = useState<LabTaskStep | null>(null);
+  const [readingStepId, setReadingStepId] = useState<string | null>(null);
+  // Always derive from lab prop so toggling instantly reflects in the reading panel
+  const readingStep = readingStepId
+    ? lab.tasks.flatMap(t => t.steps).find(s => s.id === readingStepId) ?? null
+    : null;
 
   const progressPct =
     lab.total_steps > 0
@@ -110,7 +114,7 @@ export function LabDetail({ lab, onBack, onToggleStep }: Props) {
                 </h3>
                 {/* Overview shortcut */}
                 <button
-                  onClick={() => setReadingStep(null)}
+                  onClick={() => setReadingStepId(null)}
                   className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm mb-3 transition-colors ${
                     !readingStep
                       ? "bg-primary/10 text-primary font-medium"
@@ -155,7 +159,7 @@ export function LabDetail({ lab, onBack, onToggleStep }: Props) {
                               <div
                                 key={step.id}
                                 className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-accent/50 cursor-pointer transition-colors"
-                                onClick={() => setReadingStep(step)}
+                                onClick={() => setReadingStepId(step.id)}
                               >
                                 <button
                                   onClick={e => { e.stopPropagation(); onToggleStep(lab.id, step.id); }}
@@ -202,7 +206,7 @@ export function LabDetail({ lab, onBack, onToggleStep }: Props) {
                 >
                   {/* Step header */}
                   <div className="px-8 pt-7 pb-5 border-b border-border/60 bg-muted/20">
-                    <Button variant="ghost" size="sm" onClick={() => setReadingStep(null)} className="mb-3 gap-2 text-muted-foreground -ml-2">
+                    <Button variant="ghost" size="sm" onClick={() => setReadingStepId(null)} className="mb-3 gap-2 text-muted-foreground -ml-2">
                       <ArrowLeft className="h-4 w-4" /> Back to tasks
                     </Button>
                     <h2 className="font-display text-xl font-bold">{readingStep.title}</h2>

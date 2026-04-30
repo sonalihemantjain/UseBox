@@ -29,14 +29,28 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-const navItems = [
-  { title: "Learn", url: "/chat", icon: MessageSquare },
-  { title: "Share", url: "/knowledge", icon: BookOpen },
-  { title: "Earn", url: "/earn", icon: GraduationCap },
-  { title: "Lab", url: "/lab", icon: FlaskConical },
-  { title: "Assessment", url: "/assessment", icon: ClipboardCheck },
-  { title: "Pages", url: "/saved-chats", icon: BookmarkCheck },
-  { title: "Settings", url: "/settings", icon: Settings },
+const navSections = [
+  {
+    label: "LEARN",
+    items: [
+      { title: "Chat", url: "/chat", icon: MessageSquare },
+      { title: "Lab", url: "/lab", icon: FlaskConical },
+      { title: "Assessment", url: "/assessment", icon: ClipboardCheck },
+      { title: "Pages", url: "/saved-chats", icon: BookmarkCheck },
+    ],
+  },
+  {
+    label: "SHARE",
+    items: [
+      { title: "Share", url: "/knowledge", icon: BookOpen },
+    ],
+  },
+  {
+    label: "EARN",
+    items: [
+      { title: "Earn", url: "/earn", icon: GraduationCap },
+    ],
+  },
 ];
 export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
@@ -44,7 +58,6 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { chats, renameChat, deleteChat, toggleSaveChat, fetchChats, removeFromList } = useChatHistory();
-
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [recentExpanded, setRecentExpanded] = useState(true);
@@ -144,15 +157,42 @@ export function AppSidebar() {
           </Button>
         )}
 
-        {/* Main Navigation */}
+        {/* Main Navigation — grouped sections */}
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  {collapsed ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
+            {navSections.map((section, si) => (
+              <div key={section.label}>
+                {/* Section label — hidden when collapsed */}
+                {!collapsed && (
+                  <div className={cn("flex items-center gap-2 px-2 py-1.5", si > 0 && "mt-2")}>
+                    <span className="text-[10px] font-semibold text-sidebar-foreground/35 uppercase tracking-widest whitespace-nowrap">
+                      {section.label}
+                    </span>
+                    <div className="flex-1 h-px bg-sidebar-border/50" />
+                  </div>
+                )}
+                {collapsed && si > 0 && (
+                  <div className="my-1.5 mx-2 h-px bg-sidebar-border/40" />
+                )}
+                <SidebarMenu>
+                  {section.items.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      {collapsed ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <SidebarMenuButton asChild>
+                              <NavLink
+                                to={item.url}
+                                className="hover:bg-sidebar-accent/50 text-sidebar-foreground/70"
+                                activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
+                              >
+                                <item.icon className="h-4 w-4 shrink-0" />
+                              </NavLink>
+                            </SidebarMenuButton>
+                          </TooltipTrigger>
+                          <TooltipContent side="right">{item.title}</TooltipContent>
+                        </Tooltip>
+                      ) : (
                         <SidebarMenuButton asChild>
                           <NavLink
                             to={item.url}
@@ -160,26 +200,16 @@ export function AppSidebar() {
                             activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
                           >
                             <item.icon className="h-4 w-4 shrink-0" />
+                            <span>{item.title}</span>
                           </NavLink>
                         </SidebarMenuButton>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">{item.title}</TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to={item.url}
-                        className="hover:bg-sidebar-accent/50 text-sidebar-foreground/70"
-                        activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
-                      >
-                        <item.icon className="h-4 w-4 shrink-0" />
-                        <span>{item.title}</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  )}
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+                      )}
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </div>
+            ))}
+
           </SidebarGroupContent>
         </SidebarGroup>
 
@@ -268,6 +298,36 @@ export function AppSidebar() {
           </Button>
         )}
         {!collapsed && <Separator className="my-2 bg-sidebar-border" />}
+
+        {/* Settings link */}
+        {collapsed ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <SidebarMenuButton asChild className="mb-1">
+                <NavLink
+                  to="/settings"
+                  className="hover:bg-sidebar-accent/50 text-sidebar-foreground/70"
+                  activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
+                >
+                  <Settings className="h-4 w-4 shrink-0" />
+                </NavLink>
+              </SidebarMenuButton>
+            </TooltipTrigger>
+            <TooltipContent side="right">Settings</TooltipContent>
+          </Tooltip>
+        ) : (
+          <SidebarMenuButton asChild className="mb-1">
+            <NavLink
+              to="/settings"
+              className="hover:bg-sidebar-accent/50 text-sidebar-foreground/70"
+              activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
+            >
+              <Settings className="h-4 w-4 shrink-0" />
+              <span>Settings</span>
+            </NavLink>
+          </SidebarMenuButton>
+        )}
+
         {user && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
