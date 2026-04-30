@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { useUserRole, type UserRole } from "@/hooks/useUserRole";
 import { useUserContextFilters } from "@/hooks/useUserContextFilters";
 import { useContextFilterOptions } from "@/hooks/useContextFilterOptions";
@@ -13,6 +14,9 @@ import {
 import { ChevronDown } from "lucide-react";
 
 export function DomainBar() {
+  const location = useLocation();
+  if (location.pathname === "/chat") return null;
+
   const { role, setRole } = useUserRole();
   const { functionalArea, industry, setFunctionalArea, setIndustry } = useUserContextFilters();
   const { functionalAreas, industries, loading: filtersLoading, error: filtersError, refetch: refetchFilters } = useContextFilterOptions();

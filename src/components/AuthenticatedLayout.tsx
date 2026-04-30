@@ -1,6 +1,5 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { DomainBar } from "@/components/DomainBar";
 import { PageActionsProvider } from "@/context/PageActionsContext";
 import useBoxLogo from "@/assets/usebox-logo.png";
 
@@ -21,7 +20,6 @@ export function AuthenticatedLayout({ children }: { children: React.ReactNode })
               </span>
             </a>
           </header>
-          <DomainBar />
           <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
             {children}
           </main>

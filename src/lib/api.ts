@@ -249,15 +249,13 @@ export const api = {
   getChatFollowups: (payload: { userId?: string; prompt?: string; pickedPlatform?: string; pickedAnswer?: string }) =>
     request<{ questions: string[] }>("/api/chat/followups", { method: "POST", body: payload }),
   getSuggestions: (
-    params: { industry: string; functional_area: string; persona: string },
+    params: { industry?: string; functional_area?: string; persona: string },
     signal?: AbortSignal
   ) => {
-    const qs = new URLSearchParams({
-      industry: params.industry,
-      functional_area: params.functional_area,
-      persona: params.persona,
-    }).toString();
-    return request<SuggestionsResponse>(`/api/suggestions?${qs}`, { signal });
+    const qs = new URLSearchParams({ persona: params.persona });
+    if (params.functional_area) qs.set("functional_area", params.functional_area);
+    if (params.industry) qs.set("industry", params.industry);
+    return request<SuggestionsResponse>(`/api/suggestions?${qs.toString()}`, { signal });
   },
   getAssessmentCatalog: (persona?: string | null) =>
     request<{ items: ApiAssessmentCatalogItem[] }>(
